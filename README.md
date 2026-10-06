@@ -72,6 +72,8 @@ Die Anzeige ist ein Raster. Jedes Widget steht mit `at: [Spalte, Zeile, Breite, 
 | `radio` | Sendertasten, Lautstärke, laufender Titel | `source` (Radio-Instanz) |
 | `video` | Live-Bild einer Kamera oder eines Streams; Antippen füllt den Bildschirm | `source` (Video-Instanz), `stream`, `label` |
 | `media-window` | Fernsehbild beim Fernsehsender, Logo beim Radiosender | `source` (Radio-Instanz), `video` (Video-Instanz), `idle` |
+| `news` | Eine Meldung mit Bild, reihum aus allen Feeds; Antippen öffnet den Artikel | `source` (Nachrichten-Instanz), `feeds`, `seconds` |
+| `recipes` | Rezeptauswahl; Antippen öffnet Liste und Leseansicht | `source` (Rezept-Instanz), `title` |
 
 `map` übersetzt Zustandswerte in Text, etwa `{ "0": "aus", "1": "läuft", "3": "fertig" }`.
 
@@ -106,6 +108,43 @@ Das Plugin `media-video` bereitet Kameras und Livestreams für den Browser auf. 
 - Liefert eine Kamera nur Einzelbilder statt eines Videostroms, erkennt Culinola das beim ersten Verbindungsversuch und zeigt sie als Bildfolge.
 
 Die Verwaltungsschnittstelle von go2rtc hört nur auf dem eigenen Rechner; die Anzeige erreicht die Bilder ausschließlich über den Kern. Für die Bildübertragung selbst muss der Port 8555 (TCP und UDP) vom Anzeigerechner aus erreichbar sein.
+
+### Nachrichten
+
+Das Plugin `source-rss` liest beliebig viele RSS- und Atom-Feeds:
+
+```json
+{ "id": "news", "plugin": "source-rss", "config": {
+    "feeds": ["dw-de", "augsburger-allgemeine", { "id": "verein", "name": "Sportverein", "url": "https://example.org/feed" }],
+    "refreshMinutes": 10 } }
+```
+
+Ein Feed ist entweder eine Kennung aus dem mitgelieferten Katalog ([catalog.json](plugins/source-rss/src/catalog.json), abrufbar auch unter `/api/v1/resources/<Instanz>/catalog`) oder ein eigener Eintrag mit `id`, `name` und `url`.
+
+Die Kachel zeigt immer eine Meldung – Überschrift, Anreißer und das Bild, das der Anbieter im Feed mitliefert – und wechselt nach `seconds` Sekunden (Vorgabe 20) zur nächsten, reihum durch die Feeds. Antippen öffnet den Artikel: innerhalb der Anzeige, wenn der Anbieter das Einbetten seiner Seiten erlaubt, sonst in einem eigenen Browserfenster. Ob er es erlaubt, prüft der Kern einmal am Tag.
+
+### Rezepte
+
+Das Plugin `recipes` zeigt Markdown-Dateien aus einem Ordner. Ohne die Angabe `folder` ist das der Ordner der Instanz im Datenordner, bei `{ "id": "recipes", "plugin": "recipes" }` also `data/recipes`. Unterordner werden mitgelesen und dienen als Kategorie; Änderungen im Ordner erscheinen ohne Neustart.
+
+Ein Rezept ist gewöhnliches Markdown, auf Wunsch mit Angaben am Anfang – ein Beispiel liegt in [plugins/recipes/examples](plugins/recipes/examples/pfannkuchen.md):
+
+```markdown
+---
+title: Pfannkuchen
+category: Schnelle Küche
+tags: [vegetarisch, Grundrezept]
+time: 25 min
+servings: 4
+---
+
+## Zutaten
+…
+```
+
+Alle Angaben sind freiwillig; deutsche Feldnamen (`Titel`, `Kategorie`, `Stichworte`, `Zeit`, `Portionen`) gelten ebenso. Fehlt der Titel, gilt die erste Überschrift, sonst der Dateiname. Bilder liegen neben dem Rezept und werden wie üblich eingebunden: `![Kuchen](bilder/kuchen.jpg)`. Eingebettetes HTML wird nicht ausgeführt, sondern als Text gezeigt.
+
+In der Leseansicht lässt sich die Schrift in Stufen vergrößern; solange ein Rezept offen ist, hält die Anzeige den Bildschirm wach, soweit der Browser das zulässt (gesicherte Verbindung oder `localhost`).
 
 ## API
 

@@ -1,7 +1,9 @@
 {
   "port": 8090,
   "sources": [
-    { "id": "openhab", "plugin": "connector-openhab", "config": { "url": "http://openhab:8080" } }
+    { "id": "openhab", "plugin": "connector-openhab", "config": { "url": "http://openhab:8080" } },
+    { "id": "news", "plugin": "source-rss", "config": { "feeds": ["dw-de", "tagesschau"] } },
+    { "id": "recipes", "plugin": "recipes" }
   ],
   "layouts": {
     "main": {
@@ -28,7 +30,9 @@
           "type": "switches",
           "at": [0, 9, 16, 2],
           "config": { "items": [{ "datapoint": "openhab:Licht_Esstisch", "label": "Esstisch" }] }
-        }
+        },
+        { "type": "news", "at": [16, 0, 8, 6], "config": { "source": "news" } },
+        { "type": "recipes", "at": [16, 6, 8, 5], "config": { "source": "recipes" } }
       ]
     }
   }

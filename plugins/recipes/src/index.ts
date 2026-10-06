@@ -1,0 +1,124 @@
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, watch } from 'node:fs';
+import { dirname, extname, join, relative, resolve } from 'node:path';
+import { definePlugin } from '@culinola/sdk';
+import { inside, parseRecipe, recipeId, type RecipeInfo } from './library.ts';
+
+interface Config {
+  /** Ordner mit den Rezepten; ohne Angabe der eigene Ordner der Instanz im Datenordner. */
+  folder?: string;
+}
+
+interface Entry extends RecipeInfo {
+  id: string;
+  file: string;
+}
+
+const IMAGE_TYPES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+};
+const MAX_DEPTH = 4;
+const MAX_RECIPE_BYTES = 1_000_000;
+const SETTLE_MS = 500;
+const POLL_MS = 60_000;
+
+export default definePlugin<Config>({
+  id: 'recipes',
+
+  parseConfig(raw) {
+    const config = raw as { folder?: unknown };
+    if (config.folder !== undefined && (typeof config.folder !== 'string' || !config.folder)) throw new Error('"folder" muss ein Ordnerpfad sein.');
+    return typeof config.folder === 'string' ? { folder: config.folder } : {};
+  },
+
+  start(context) {
+    const { log } = context;
+    const folder = resolve(context.config.folder ?? context.storageDir);
+    mkdirSync(folder, { recursive: true });
+
+    let recipes = new Map<string, Entry>();
+    const reported = new Set<string>();
+
+    const files = (dir: string, depth = 0): string[] => {
+      const found: string[] = [];
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (entry.name.startsWith('.')) continue;
+        const path = join(dir, entry.name);
+        if (entry.isDirectory() && depth < MAX_DEPTH) found.push(...files(path, depth + 1));
+        else if (entry.isFile() && extname(entry.name).toLowerCase() === '.md') found.push(path);
+      }
+      return found;
+    };
+
+    const scan = () => {
+      const next = new Map<string, Entry>();
+      for (const file of files(folder)) {
+        const way = relative(folder, file);
+        try {
+          if (statSync(file).size > MAX_RECIPE_BYTES) throw new Error('Datei ist größer als 1 MB');
+          const { markdown: _markdown, problem, ...info } = parseRecipe(file, readFileSync(file, 'utf8'));
+          if (problem && !reported.has(`${way}|${problem}`)) {
+            reported.add(`${way}|${problem}`);
+            log.warn(`Rezept "${way}": ${problem}`);
+          }
+          let id = recipeId(way) || 'rezept';
+          for (let count = 2; next.has(id); count++) id = `${recipeId(way)}-${count}`;
+          // Ohne eigene Angabe ordnet der Unterordner das Rezept ein
+          const folderName = way.split(/[\\/]/).length > 1 ? way.split(/[\\/]/)[0]! : undefined;
+          next.set(id, { id, file, ...info, ...(info.category || !folderName ? {} : { category: folderName }) });
+        } catch (error) {
+          if (!reported.has(way)) log.warn(`Rezept "${way}" nicht lesbar: ${error instanceof Error ? error.message : String(error)}`);
+          reported.add(way);
+        }
+      }
+      recipes = next;
+      context.resources.set(
+        'list',
+        [...recipes.values()].map(({ file: _file, ...entry }) => entry).sort((a, b) => a.title.localeCompare(b.title)),
+      );
+      context.datapoints.set({ id: 'count', value: recipes.size, label: 'Anzahl der Rezepte' });
+      // Die Anzeige erfährt über diesen Datenpunkt, dass sich der Rezeptordner geändert hat
+      context.datapoints.set({ id: 'updated', value: new Date().toISOString(), label: 'Letzte Änderung der Rezepte' });
+    };
+
+    scan();
+    log.info(`${recipes.size} Rezepte in ${folder}`);
+
+    // Änderungen im Ordner kommen oft in Schüben; gelesen wird, wenn Ruhe eingekehrt ist.
+    let settle: NodeJS.Timeout | undefined;
+    const rescan = () => {
+      clearTimeout(settle);
+      settle = setTimeout(scan, SETTLE_MS);
+    };
+    try {
+      const watcher = watch(folder, { recursive: true }, rescan);
+      watcher.on('error', () => undefined);
+      context.signal.addEventListener('abort', () => watcher.close());
+    } catch {
+      // Wo das System den Ordner nicht beobachten kann, wird er regelmäßig neu gelesen.
+      const timer = setInterval(scan, POLL_MS);
+      context.signal.addEventListener('abort', () => clearInterval(timer));
+    }
+    context.signal.addEventListener('abort', () => clearTimeout(settle));
+
+    context.routes.get('/text/:id', (request) => {
+      const entry = recipes.get(request.params.id ?? '');
+      if (!entry || !existsSync(entry.file)) return Response.json({ error: 'Rezept nicht gefunden.' }, { status: 404 });
+      const { problem: _problem, ...recipe } = parseRecipe(entry.file, readFileSync(entry.file, 'utf8'));
+      return Response.json({ ...recipe, id: entry.id, ...(recipe.category || !entry.category ? {} : { category: entry.category }) });
+    });
+
+    // Bilder, auf die ein Rezept verweist – gesucht wird vom Ordner des Rezepts aus, nie außerhalb des Rezeptordners.
+    context.routes.get('/file/:id/*', (request) => {
+      const entry = recipes.get(request.params.id ?? '');
+      const wanted = request.params['*'] ?? '';
+      const file = entry && wanted ? inside(folder, relative(folder, dirname(entry.file)), wanted) : undefined;
+      const contentType = file ? IMAGE_TYPES[extname(file).toLowerCase()] : undefined;
+      if (!file || !contentType || !existsSync(file) || !statSync(file).isFile()) return Response.json({ error: 'Bild nicht gefunden.' }, { status: 404 });
+      return new Response(new Uint8Array(readFileSync(file)), { headers: { 'Content-Type': contentType, 'Cache-Control': 'private, max-age=3600' } });
+    });
+  },
+});

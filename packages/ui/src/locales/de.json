@@ -46,5 +46,27 @@
     "enlarge": "{name} im Vollbild zeigen",
     "shrink": "Vollbild von {name} schließen",
     "tapForSound": "Für Ton antippen"
+  },
+  "overlay": {
+    "close": "Schließen"
+  },
+  "news": {
+    "empty": "Noch keine Meldungen",
+    "next": "Nächste Meldung",
+    "open": "Artikel öffnen: {title}",
+    "ownWindow": "In eigenem Fenster"
+  },
+  "recipes": {
+    "title": "Rezepte",
+    "count": "kein Rezept | 1 Rezept | {n} Rezepte",
+    "all": "Alle",
+    "list": "Liste",
+    "choose": "Links ein Rezept wählen.",
+    "empty": "Noch keine Rezepte. Legen Sie Markdown-Dateien in den Rezeptordner.",
+    "failed": "Rezept nicht verfügbar: {error}",
+    "time": "Zeit: {time}",
+    "servings": "Portionen: {servings}",
+    "smaller": "Schrift kleiner",
+    "larger": "Schrift größer"
   }
 }

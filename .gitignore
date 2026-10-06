@@ -5,7 +5,7 @@ coverage/
 
 # Laufzeitdaten und Geheimnisse gehören nie ins Repository
 data/
-recipes/
+/recipes/
 app_key.txt
 .env
 .env.*

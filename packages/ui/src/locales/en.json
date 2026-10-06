@@ -46,5 +46,27 @@
     "enlarge": "Show {name} full screen",
     "shrink": "Close full screen of {name}",
     "tapForSound": "Tap for sound"
+  },
+  "overlay": {
+    "close": "Close"
+  },
+  "news": {
+    "empty": "No news yet",
+    "next": "Next story",
+    "open": "Open article: {title}",
+    "ownWindow": "In a separate window"
+  },
+  "recipes": {
+    "title": "Recipes",
+    "count": "no recipes | 1 recipe | {n} recipes",
+    "all": "All",
+    "list": "List",
+    "choose": "Choose a recipe on the left.",
+    "empty": "No recipes yet. Put Markdown files into the recipe folder.",
+    "failed": "Recipe not available: {error}",
+    "time": "Time: {time}",
+    "servings": "Servings: {servings}",
+    "smaller": "Smaller text",
+    "larger": "Larger text"
   }
 }

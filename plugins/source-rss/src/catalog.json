@@ -1,0 +1,15 @@
+[
+  { "id": "dw-de", "name": "Deutsche Welle", "url": "https://rss.dw.com/xml/rss-de-all", "language": "de", "scope": "international" },
+  { "id": "dw-en", "name": "Deutsche Welle (English)", "url": "https://rss.dw.com/xml/rss-en-all", "language": "en", "scope": "international" },
+  { "id": "bbc-world", "name": "BBC News World", "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "language": "en", "scope": "international" },
+  { "id": "guardian-world", "name": "The Guardian World", "url": "https://www.theguardian.com/world/rss", "language": "en", "scope": "international" },
+  { "id": "aljazeera", "name": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml", "language": "en", "scope": "international" },
+  { "id": "npr", "name": "NPR News", "url": "https://feeds.npr.org/1001/rss.xml", "language": "en", "scope": "international" },
+  { "id": "tagesschau", "name": "tagesschau", "url": "https://www.tagesschau.de/infoservices/alle-meldungen-100~rss2.xml", "language": "de", "scope": "national" },
+  { "id": "deutschlandfunk", "name": "Deutschlandfunk", "url": "https://www.deutschlandfunk.de/nachrichten-100.rss", "language": "de", "scope": "national" },
+  { "id": "zdfheute", "name": "ZDFheute", "url": "https://www.zdf.de/rss/zdf/nachrichten", "language": "de", "scope": "national" },
+  { "id": "spiegel", "name": "DER SPIEGEL", "url": "https://www.spiegel.de/schlagzeilen/index.rss", "language": "de", "scope": "national" },
+  { "id": "augsburger-allgemeine", "name": "Augsburger Allgemeine", "url": "https://www.augsburger-allgemeine.de/augsburg/rss", "language": "de", "scope": "local", "region": "Augsburg" },
+  { "id": "daz-augsburg", "name": "DAZ – Die Augsburger Zeitung", "url": "https://www.daz-augsburg.de/feed/", "language": "de", "scope": "local", "region": "Augsburg" },
+  { "id": "presse-augsburg", "name": "Presse Augsburg", "url": "https://presse-augsburg.de/feed/", "language": "de", "scope": "local", "region": "Augsburg" }
+]
