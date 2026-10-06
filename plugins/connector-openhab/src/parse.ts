@@ -29,6 +29,16 @@ export function parseState(state: string, itemType: string): ParsedState {
   return { value: state, quality: 'good' };
 }
 
+/**
+ * Item-Arten, die sich ein- und ausschalten lassen. Dimmer und Farblampen nehmen
+ * in openHAB ebenfalls ON und OFF an, auch wenn ihr Zustand eine Zahl bzw. ein Farbwert ist.
+ */
+const SWITCHABLE = new Set(['Switch', 'Dimmer', 'Color']);
+
+export function isSwitchable(itemType: string): boolean {
+  return SWITCHABLE.has(itemType);
+}
+
 /** Übersetzt einen Culinola-Wert in einen openHAB-Befehl. */
 export function toCommand(value: DatapointValue): string {
   if (value === true) return 'ON';

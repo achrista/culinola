@@ -1,5 +1,5 @@
 import { definePlugin, type PluginContext, type SeriesPoint } from '@culinola/sdk';
-import { itemFromTopic, parseState, toCommand } from './parse.ts';
+import { isSwitchable, itemFromTopic, parseState, toCommand } from './parse.ts';
 
 interface Config {
   /** Adresse von openHAB, z. B. "http://openhab:8080". */
@@ -47,7 +47,7 @@ export default definePlugin<Config>({
       const type = types.get(name);
       if (type === undefined) return;
       const parsed = parseState(state, type);
-      context.datapoints.set({ id: name, ...parsed, ...(label ? { label } : {}), writable: type === 'Switch' });
+      context.datapoints.set({ id: name, ...parsed, ...(label ? { label } : {}), writable: isSwitchable(type) });
     };
 
     // Ausgangsstand: alle Items einmal lesen
@@ -65,7 +65,9 @@ export default definePlugin<Config>({
     }
 
     context.onCommand(async (id, value) => {
-      await request(`/rest/items/${encodeURIComponent(id)}`, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: toCommand(value) });
+      const command = toCommand(value);
+      const response = await request(`/rest/items/${encodeURIComponent(id)}`, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: command });
+      log.info(`Befehl ${command} an ${id} gesendet, openHAB antwortet mit ${response.status}.`);
     });
 
     context.provideHistory(async (id, from, to) => {

@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import fastifyStatic from '@fastify/static';
 import fastifyWebsocket from '@fastify/websocket';
 import Fastify, { type FastifyInstance } from 'fastify';
-import type { Datapoint, DatapointValue } from '@culinola/sdk';
+import type { Datapoint, DatapointValue, Logger } from '@culinola/sdk';
 import { type ActionRegistry, InvalidParams, UnknownAction } from './actions.ts';
 import type { AppConfig } from './config.ts';
 import type { PluginHost } from './plugins.ts';
@@ -16,11 +16,12 @@ export interface ServerDeps {
   registry: DatapointRegistry;
   plugins: PluginHost;
   actions: ActionRegistry;
+  log: Logger;
   /** Ordner mit der gebauten Oberfläche; fehlt er, läuft nur die API. */
   uiDir?: string;
 }
 
-export async function buildServer({ config, registry, plugins, actions, uiDir }: ServerDeps): Promise<FastifyInstance> {
+export async function buildServer({ config, registry, plugins, actions, log, uiDir }: ServerDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   await app.register(fastifyWebsocket);
 
@@ -86,8 +87,15 @@ export async function buildServer({ config, registry, plugins, actions, uiDir }:
   app.get('/api/v1/actions', () => actions.list());
 
   app.post<{ Params: { name: string }; Body: Record<string, unknown> | null }>('/api/v1/actions/:name', async (request) => {
-    const result = await actions.run(request.params.name, request.body ?? {});
-    return { ok: true, result: result ?? null };
+    const params = request.body ?? {};
+    try {
+      const result = await actions.run(request.params.name, params);
+      log.info(`Aktion ${request.params.name} ${JSON.stringify(params)} ausgeführt.`);
+      return { ok: true, result: result ?? null };
+    } catch (error) {
+      log.warn(`Aktion ${request.params.name} ${JSON.stringify(params)} fehlgeschlagen: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
   });
 
   app.get<{ Params: { id: string } }>('/api/v1/layouts/:id', (request, reply) => {

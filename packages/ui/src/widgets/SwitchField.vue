@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { postJson } from '../api.ts';
+import { isOn } from '../state.ts';
 import { datapoints } from '../store.ts';
 
 const props = defineProps<{ config: { items?: { datapoint: string; label?: string }[] } }>();
@@ -8,12 +9,13 @@ const props = defineProps<{ config: { items?: { datapoint: string; label?: strin
 const pending = ref(new Set<string>());
 const failed = ref('');
 
+const on = (id: string) => isOn(datapoints.get(id)?.value);
+
 async function toggle(id: string) {
-  const current = datapoints.get(id)?.value === true;
   pending.value = new Set(pending.value).add(id);
   failed.value = '';
   try {
-    await postJson('/actions/switch.set', { datapoint: id, on: !current });
+    await postJson('/actions/switch.set', { datapoint: id, on: !on(id) });
   } catch (cause) {
     failed.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
@@ -30,8 +32,8 @@ async function toggle(id: string) {
       v-for="item in props.config.items ?? []"
       :key="item.datapoint"
       class="switch"
-      :class="{ on: datapoints.get(item.datapoint)?.value === true, busy: pending.has(item.datapoint) }"
-      :aria-pressed="datapoints.get(item.datapoint)?.value === true"
+      :class="{ on: on(item.datapoint), busy: pending.has(item.datapoint) }"
+      :aria-pressed="on(item.datapoint)"
       @click="toggle(item.datapoint)"
     >
       <span class="track"><span class="knob"></span></span>
@@ -57,7 +59,7 @@ async function toggle(id: string) {
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 8px 10px;
+  padding: 8px;
   border-radius: var(--radius);
   background: var(--card);
   text-align: left;

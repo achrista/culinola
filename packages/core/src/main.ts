@@ -51,7 +51,7 @@ actions.register(
 await plugins.startAll(config.sources);
 
 const uiDir = resolve(import.meta.dirname, '../../ui/dist');
-const server = await buildServer({ config, registry, plugins, actions, uiDir });
+const server = await buildServer({ config, registry, plugins, actions, log, uiDir });
 await server.listen({ port: config.port, host: '0.0.0.0' });
 log.info(`Culinola läuft auf http://localhost:${config.port}`);
 

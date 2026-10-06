@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { itemFromTopic, parseState, toCommand } from './parse.ts';
+import { isSwitchable, itemFromTopic, parseState, toCommand } from './parse.ts';
 
 describe('parseState', () => {
   it('trennt Zahl und Einheit', () => {
@@ -26,6 +26,20 @@ describe('parseState', () => {
   it('lässt Text unverändert', () => {
     expect(parseState('partly-cloudy-day', 'String')).toEqual({ value: 'partly-cloudy-day', quality: 'good' });
     expect(parseState('ON', 'String')).toEqual({ value: 'ON', quality: 'good' });
+  });
+});
+
+describe('isSwitchable', () => {
+  it('lässt Schalter, Dimmer und Farblampen zu', () => {
+    expect(isSwitchable('Switch')).toBe(true);
+    expect(isSwitchable('Dimmer')).toBe(true);
+    expect(isSwitchable('Color')).toBe(true);
+  });
+
+  it('lässt Messwerte und Text nicht zu', () => {
+    expect(isSwitchable('Number')).toBe(false);
+    expect(isSwitchable('String')).toBe(false);
+    expect(isSwitchable('Contact')).toBe(false);
   });
 });
 
