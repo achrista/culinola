@@ -13,7 +13,7 @@ async function toggle(id: string) {
   pending.value = new Set(pending.value).add(id);
   failed.value = '';
   try {
-    await postJson(`/datapoints/${encodeURIComponent(id)}/command`, { value: !current });
+    await postJson('/actions/switch.set', { datapoint: id, on: !current });
   } catch (cause) {
     failed.value = cause instanceof Error ? cause.message : String(cause);
   } finally {
@@ -47,7 +47,7 @@ async function toggle(id: string) {
   position: relative;
   min-width: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   grid-auto-rows: minmax(56px, 1fr);
   gap: var(--gap);
 }

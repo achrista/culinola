@@ -1,26 +1,41 @@
 <script setup lang="ts">
 import { LineChart } from 'echarts/charts';
-import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components';
+import { GridComponent, LegendComponent, MarkLineComponent, TooltipComponent } from 'echarts/components';
 import { type ECharts, init, use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { getSeries } from '../api.ts';
 
-use([LineChart, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer]);
+use([LineChart, GridComponent, LegendComponent, MarkLineComponent, TooltipComponent, CanvasRenderer]);
 
 interface SeriesConfig {
   datapoint: string;
   label?: string;
+  /** Fläche unter der Linie füllen. */
   area?: boolean;
+  /** Prognose: gestrichelt gezeichnet, darf in die Zukunft reichen. */
+  forecast?: boolean;
 }
 const props = defineProps<{ config: { title?: string; series?: SeriesConfig[] } }>();
 
 const PERIODS = [
-  { id: 'day', label: 'Tag', from: '-24h', step: '5m' },
-  { id: 'week', label: 'Woche', from: '-7d', step: '1h' },
-  { id: 'month', label: 'Monat', from: '-30d', step: '6h' },
+  { id: 'today', label: 'Heute', step: '5m' },
+  { id: 'week', label: 'Woche', step: '1h' },
+  { id: 'month', label: 'Monat', step: '6h' },
 ] as const;
-const period = ref<(typeof PERIODS)[number]['id']>('day');
+type PeriodId = (typeof PERIODS)[number]['id'];
+
+/** „Heute“ läuft von 0 bis 24 Uhr, damit eine Prognose für den Rest des Tages Platz hat. */
+function range(id: PeriodId): { from: Date; to: Date } {
+  const now = new Date();
+  if (id === 'today') {
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return { from: start, to: new Date(start.getTime() + 24 * 3_600_000) };
+  }
+  return { from: new Date(now.getTime() - (id === 'week' ? 7 : 30) * 24 * 3_600_000), to: now };
+}
+
+const period = ref<PeriodId>('today');
 const failed = ref('');
 const target = ref<HTMLElement>();
 let chart: ECharts | undefined;
@@ -33,9 +48,11 @@ async function draw() {
   const list = props.config.series ?? [];
   if (!chart || list.length === 0) return;
   const selected = PERIODS.find((entry) => entry.id === period.value)!;
+  const { from, to } = range(selected.id);
   try {
-    const data = await getSeries(list.map((entry) => entry.datapoint), selected.from, selected.step);
+    const data = await getSeries(list.map((entry) => entry.datapoint), from.toISOString(), to.toISOString(), selected.step);
     failed.value = '';
+    const now = Date.now();
     chart.setOption(
       {
         animation: false,
@@ -44,16 +61,27 @@ async function draw() {
         grid: { left: 8, right: 12, top: 34, bottom: 6, containLabel: true },
         legend: { top: 0, right: 0, icon: 'roundRect', itemWidth: 14, itemHeight: 4, textStyle: { color: token('--mute') } },
         tooltip: { trigger: 'axis', backgroundColor: token('--card'), borderColor: token('--line'), textStyle: { color: token('--ink') } },
-        xAxis: { type: 'time', axisLine: { lineStyle: { color: token('--line') } }, axisLabel: { color: token('--mute') }, splitLine: { show: false } },
+        xAxis: {
+          type: 'time',
+          min: from.getTime(),
+          max: to.getTime(),
+          axisLine: { lineStyle: { color: token('--line') } },
+          axisLabel: { color: token('--mute') },
+          splitLine: { show: false },
+        },
         yAxis: { type: 'value', axisLabel: { color: token('--mute') }, splitLine: { lineStyle: { color: token('--line') } } },
         series: list.map((entry, index) => ({
           name: entry.label ?? entry.datapoint,
           type: 'line',
           showSymbol: false,
-          smooth: false,
-          lineStyle: { width: 2 },
-          areaStyle: entry.area ? { opacity: 0.3 } : undefined,
-          data: data[index]?.points ?? [],
+          lineStyle: { width: 2, type: entry.forecast ? 'dashed' : 'solid' },
+          areaStyle: entry.area && !entry.forecast ? { opacity: 0.3 } : undefined,
+          // Messwerte enden jetzt; nur eine Prognose darf darüber hinausreichen
+          data: entry.forecast ? (data[index]?.points ?? []) : (data[index]?.points ?? []).filter(([time]) => time <= now),
+          markLine:
+            index === 0 && selected.id === 'today'
+              ? { silent: true, symbol: 'none', label: { show: false }, lineStyle: { color: token('--mute'), type: 'dotted', width: 1 }, data: [{ xAxis: now }] }
+              : undefined,
         })),
       },
       true,

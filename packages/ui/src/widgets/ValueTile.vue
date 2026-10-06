@@ -19,7 +19,17 @@ interface Secondary {
   decimals?: number;
 }
 const props = defineProps<{
-  config: { datapoint: string; label?: string; secondary?: string | Secondary; factor?: number; unit?: string; decimals?: number; warn?: Warn };
+  config: {
+    datapoint: string;
+    label?: string;
+    secondary?: string | Secondary;
+    factor?: number;
+    unit?: string;
+    decimals?: number;
+    warn?: Warn;
+    /** Übersetzt Zustandswerte in Text, z. B. { "0": "aus", "1": "läuft", "3": "fertig" }. */
+    map?: Record<string, string>;
+  };
 }>();
 
 /** Manche Quellen liefern Anteile als Bruchteil (0,58 statt 58 %); `factor` rechnet für die Anzeige um. */
@@ -29,7 +39,13 @@ const main = computed(() => datapoints.get(props.config.datapoint));
 const mainValue = computed(() => scale(main.value?.value, props.config.factor));
 const secondaryConfig = computed<Secondary | undefined>(() => (typeof props.config.secondary === 'string' ? { datapoint: props.config.secondary } : props.config.secondary));
 const secondary = computed(() => (secondaryConfig.value ? datapoints.get(secondaryConfig.value.datapoint) : undefined));
-const unit = computed(() => props.config.unit ?? main.value?.unit ?? '');
+const mapped = computed(() => {
+  const value = mainValue.value;
+  if (!props.config.map || value === null || value === undefined) return undefined;
+  return props.config.map[typeof value === 'number' ? String(Math.round(value)) : String(value)];
+});
+const display = computed(() => mapped.value ?? formatValue(mainValue.value, props.config.decimals));
+const unit = computed(() => (mapped.value !== undefined ? '' : (props.config.unit ?? main.value?.unit ?? '')));
 
 /** grün = im Bereich, gelb = Achtung, rot = außerhalb, grau = keine Bewertung */
 const status = computed(() => {
@@ -45,7 +61,7 @@ const status = computed(() => {
 const history = ref<number[]>([]);
 async function loadHistory() {
   try {
-    const [series] = await getSeries([props.config.datapoint], '-1h', '2m');
+    const [series] = await getSeries([props.config.datapoint], '-1h', undefined, '2m');
     history.value = (series?.points ?? []).map(([, value]) => value);
   } catch {
     history.value = [];
@@ -81,9 +97,9 @@ const sparkline = computed(() => {
       <span class="dot" :class="status" role="img" :aria-label="{ ok: 'im Bereich', warn: 'Achtung', alarm: 'außerhalb', none: 'ohne Bewertung' }[status]"></span>
     </header>
     <div class="reading">
-      <span class="value">{{ formatValue(mainValue, config.decimals) }}</span>
+      <span class="value">{{ display }}</span>
       <span class="unit">{{ unit }}</span>
-      <svg v-if="sparkline" class="spark" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><polyline :points="sparkline" /></svg>
+      <svg v-if="sparkline && mapped === undefined" class="spark" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><polyline :points="sparkline" /></svg>
     </div>
   </section>
 </template>

@@ -65,13 +65,35 @@ Die Anzeige ist ein Raster. Jedes Widget steht mit `at: [Spalte, Zeile, Breite, 
 | Typ | Zeigt | Wichtigste Angaben |
 |---|---|---|
 | `clock` | Uhrzeit mit Sekunden und Datum | – |
-| `value-tile` | Messwert mit Statuspunkt und Verlaufslinie | `datapoint`, `label`, `secondary`, `unit`, `decimals`, `factor`, `warn` |
+| `value-tile` | Messwert mit Statuspunkt und Verlaufslinie | `datapoint`, `label`, `secondary`, `unit`, `decimals`, `factor`, `warn`, `map` |
 | `switches` | Feld von Schaltern, das sich dem Platz anpasst | `items: [{ datapoint, label }]` |
-| `chart` | Zeitverlauf für Tag, Woche, Monat | `title`, `series: [{ datapoint, label, area }]` |
+| `chart` | Zeitverlauf für heute, Woche, Monat | `title`, `series: [{ datapoint, label, area, forecast }]` |
+| `note` | Hält einen Platz frei und beschriftet ihn | `title`, `text` |
+
+`map` übersetzt Zustandswerte in Text, etwa `{ "0": "aus", "1": "läuft", "3": "fertig" }`.
+
+Im Diagramm läuft „Heute“ von 0 bis 24 Uhr. Eine Reihe mit `forecast: true` wird gestrichelt gezeichnet und darf über den jetzigen Zeitpunkt hinausreichen; Messwerte enden an der Markierung „jetzt“.
 
 `warn` nimmt bis zu vier Grenzen: `lowAlarm`, `lowWarn`, `highWarn`, `highAlarm`. Der Punkt ist grün im Bereich, gelb bei Achtung, rot außerhalb und grau ohne Bewertung.
 
 `factor` rechnet einen Wert für die Anzeige um – etwa `100`, wenn die Quelle Feuchte als Bruchteil (0,58) statt in Prozent liefert.
+
+## API
+
+Die Oberfläche benutzt dieselbe Schnittstelle wie jedes andere Programm. Alle Pfade beginnen mit `/api/v1`.
+
+| Aufruf | Zweck |
+|---|---|
+| `GET /status` | Zustand der Quellen |
+| `GET /datapoints`, `GET /datapoints/{id}` | Aktuelle Werte |
+| `POST /datapoints/{id}/command` | Schreibbaren Datenpunkt setzen, Rumpf `{ "value": … }` |
+| `GET /series?ids=&from=&to=&step=&agg=` | Verlauf, auf Wunsch verdichtet |
+| `GET /actions` | Verzeichnis der Aktionen |
+| `POST /actions/{name}` | Aktion auslösen, Parameter im Rumpf – z. B. `switch.set` mit `{ "datapoint": "…", "on": true }` |
+| `GET /layouts/{id}` | Layout |
+| WebSocket `/stream` | Änderungen in Echtzeit; abonnieren mit `{ "op": "sub", "topics": ["dp/*"] }` |
+
+Die API ist noch **ohne Zugriffsschutz** und deshalb nur für das eigene Heimnetz gedacht.
 
 ## Entwickeln
 

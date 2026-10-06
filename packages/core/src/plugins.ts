@@ -1,4 +1,5 @@
 import type { DatapointValue, Logger, PluginDefinition, SeriesPoint } from '@culinola/sdk';
+import type { ActionRegistry } from './actions.ts';
 import type { SourceConfig } from './config.ts';
 import type { DatapointRegistry } from './registry.ts';
 
@@ -20,11 +21,13 @@ export class PluginHost {
   readonly status: SourceStatus[] = [];
 
   private readonly registry: DatapointRegistry;
+  private readonly actions: ActionRegistry;
   private readonly secrets: Record<string, Record<string, string>>;
   private readonly log: Logger;
 
-  constructor(registry: DatapointRegistry, secrets: Record<string, Record<string, string>>, log: Logger) {
+  constructor(registry: DatapointRegistry, actions: ActionRegistry, secrets: Record<string, Record<string, string>>, log: Logger) {
     this.registry = registry;
+    this.actions = actions;
     this.secrets = secrets;
     this.log = log;
   }
@@ -69,6 +72,7 @@ export class PluginHost {
           });
         },
       },
+      actions: { register: (definition, handler) => this.actions.register(definition, handler) },
       onCommand: (handler) => this.commands.set(source.id, handler),
       provideHistory: (handler) => this.histories.set(source.id, handler),
       signal: this.stop.signal,

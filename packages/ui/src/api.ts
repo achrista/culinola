@@ -22,7 +22,9 @@ export interface Series {
   points: [time: number, value: number][];
 }
 
-export async function getSeries(ids: string[], from: string, step: string): Promise<Series[]> {
+/** `from` und `to` als ISO-Zeitpunkt oder relativ zu jetzt ("-1h"); ohne `to` endet die Reihe jetzt. */
+export async function getSeries(ids: string[], from: string, to: string | undefined, step: string): Promise<Series[]> {
   const query = new URLSearchParams({ ids: ids.join(','), from, step });
+  if (to) query.set('to', to);
   return (await getJson<{ series: Series[] }>(`/series?${query}`)).series;
 }

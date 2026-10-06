@@ -3,6 +3,7 @@ import fastifyStatic from '@fastify/static';
 import fastifyWebsocket from '@fastify/websocket';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Datapoint, DatapointValue } from '@culinola/sdk';
+import { type ActionRegistry, InvalidParams, UnknownAction } from './actions.ts';
 import type { AppConfig } from './config.ts';
 import type { PluginHost } from './plugins.ts';
 import type { DatapointRegistry } from './registry.ts';
@@ -14,18 +15,20 @@ export interface ServerDeps {
   config: AppConfig;
   registry: DatapointRegistry;
   plugins: PluginHost;
+  actions: ActionRegistry;
   /** Ordner mit der gebauten Oberfläche; fehlt er, läuft nur die API. */
   uiDir?: string;
 }
 
-export async function buildServer({ config, registry, plugins, uiDir }: ServerDeps): Promise<FastifyInstance> {
+export async function buildServer({ config, registry, plugins, actions, uiDir }: ServerDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   await app.register(fastifyWebsocket);
 
   // Eingabefehler als 400 mit lesbarer Meldung statt als 500
   class BadRequest extends Error {}
   app.setErrorHandler((error: Error, _request, reply) => {
-    if (error instanceof BadRequest) return reply.code(400).send({ error: error.message });
+    if (error instanceof BadRequest || error instanceof InvalidParams) return reply.code(400).send({ error: error.message });
+    if (error instanceof UnknownAction) return reply.code(404).send({ error: error.message });
     app.log.error(error);
     return reply.code(500).send({ error: error.message });
   });
@@ -78,6 +81,13 @@ export async function buildServer({ config, registry, plugins, uiDir }: ServerDe
       }),
     );
     return { from, to, series };
+  });
+
+  app.get('/api/v1/actions', () => actions.list());
+
+  app.post<{ Params: { name: string }; Body: Record<string, unknown> | null }>('/api/v1/actions/:name', async (request) => {
+    const result = await actions.run(request.params.name, request.body ?? {});
+    return { ok: true, result: result ?? null };
   });
 
   app.get<{ Params: { id: string } }>('/api/v1/layouts/:id', (request, reply) => {

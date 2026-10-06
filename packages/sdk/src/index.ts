@@ -36,14 +36,25 @@ export interface DatapointUpdate {
 /** Ein Messpunkt einer Zeitreihe: Zeit in Millisekunden seit 1970, Wert. */
 export type SeriesPoint = [time: number, value: number];
 
+export interface ActionParameter {
+  type: 'string' | 'number' | 'boolean';
+  description: string;
+  required?: boolean;
+}
+
 /** Was man mit einem Plugin tun kann – auslösbar per Fingertipp, API, Reaktion oder Sprache. */
 export interface ActionDefinition {
-  /** Punktgetrennt, Plugin zuerst: "radio.play". */
+  /** Punktgetrennt, Bereich zuerst: "radio.play". */
   name: string;
+  /** Ein Satz, der auch einem Sprachmodell sagt, wofür die Aktion gut ist. */
   description: string;
+  params?: Record<string, ActionParameter>;
   /** Heikle Aktionen (Türöffner, Garagentor) sind per Sprache gesperrt oder verlangen eine Bestätigung. */
   sensitive?: boolean;
 }
+
+export type ActionParams = Record<string, string | number | boolean>;
+export type ActionHandler = (params: ActionParams) => Promise<unknown> | unknown;
 
 export interface Logger {
   info(message: string): void;
@@ -59,6 +70,8 @@ export interface PluginContext<C> {
   log: Logger;
   secrets: { get(name: string): string | undefined };
   datapoints: { set(update: DatapointUpdate): void };
+  /** Meldet an, was man mit dem Plugin tun kann. */
+  actions: { register(definition: ActionDefinition, handler: ActionHandler): void };
   /** Wird aufgerufen, wenn ein schreibbarer Datenpunkt dieser Instanz gesetzt werden soll. */
   onCommand(handler: (id: string, value: DatapointValue) => Promise<void>): void;
   /** Meldet die Instanz als Quelle für Verlaufsdaten an. */
@@ -69,7 +82,6 @@ export interface PluginContext<C> {
 
 export interface PluginDefinition<C = unknown> {
   id: string;
-  actions?: readonly ActionDefinition[];
   /** Prüft die rohe Konfiguration und liefert sie typisiert zurück; wirft bei Fehlern. */
   parseConfig?(raw: unknown): C;
   start?(context: PluginContext<C>): Promise<void> | void;
@@ -81,11 +93,6 @@ const PLUGIN_ID = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 export function definePlugin<C = unknown>(definition: PluginDefinition<C>): PluginDefinition<C> {
   if (!PLUGIN_ID.test(definition.id)) {
     throw new Error(`Ungültige Plugin-Kennung "${definition.id}": erlaubt sind Kleinbuchstaben, Ziffern und einzelne Bindestriche.`);
-  }
-  for (const action of definition.actions ?? []) {
-    if (!action.name.includes('.')) {
-      throw new Error(`Aktion "${action.name}" in Plugin "${definition.id}" braucht die Form "bereich.name".`);
-    }
   }
   return definition;
 }
