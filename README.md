@@ -2,7 +2,7 @@
 
 Ein modularer Infobildschirm fürs Zuhause – gedacht für einen Touch-Bildschirm in der Küche. Culinola führt Haustechnik, Medien und Alltag zusammen: Messwerte und Schalter, Diagramme, Kameras, Radio und Fernsehen, Nachrichten, Rezepte.
 
-**Stand:** Gerüst. Es gibt noch nichts zu benutzen.
+**Stand:** erste Lieferung im Aufbau. Es laufen der Kern mit API und Echtzeitkanal, die Anbindung an openHAB sowie Uhr, Messwert-Kachel, Schalterfeld und Diagramm.
 
 ## Grundgedanken
 
@@ -27,19 +27,61 @@ docker/      Abbild und Beispiel-Compose-Datei
 docs/        Konzept und Anleitungen
 ```
 
-## Entwickeln
+## Starten
 
-Voraussetzung: Node.js 22 oder neuer.
+Voraussetzung: Node.js 22.18 oder neuer.
 
 ```bash
 npm install
 ```
 
 ```bash
+npm run build
+```
+
+```bash
+npm start
+```
+
+Danach läuft Culinola auf <http://localhost:8090>. Ohne eigene Konfiguration zeigt es erfundene Beispielwerte.
+
+## Einrichten
+
+Alles Eigene liegt im Ordner `data/`, der nicht ins Repository gelangt. Ein anderer Ort lässt sich über die Umgebungsvariable `CULINOLA_DATA` angeben.
+
+- **`data/config.json`** – Quellen und Layout. [config.example.json](config.example.json) ist eine Vorlage.
+- **`data/secrets.json`** – Zugangsdaten, getrennt von der Konfiguration und nie über die API lesbar:
+
+  ```json
+  { "openhab": { "token": "…" } }
+  ```
+
+  Der äußere Name ist die `id` der Quelle aus `config.json`.
+
+### Layout
+
+Die Anzeige ist ein Raster. Jedes Widget steht mit `at: [Spalte, Zeile, Breite, Höhe]` darin, gezählt ab 0.
+
+| Typ | Zeigt | Wichtigste Angaben |
+|---|---|---|
+| `clock` | Uhrzeit mit Sekunden und Datum | – |
+| `value-tile` | Messwert mit Statuspunkt und Verlaufslinie | `datapoint`, `label`, `secondary`, `unit`, `decimals`, `factor`, `warn` |
+| `switches` | Feld von Schaltern, das sich dem Platz anpasst | `items: [{ datapoint, label }]` |
+| `chart` | Zeitverlauf für Tag, Woche, Monat | `title`, `series: [{ datapoint, label, area }]` |
+
+`warn` nimmt bis zu vier Grenzen: `lowAlarm`, `lowWarn`, `highWarn`, `highAlarm`. Der Punkt ist grün im Bereich, gelb bei Achtung, rot außerhalb und grau ohne Bewertung.
+
+`factor` rechnet einen Wert für die Anzeige um – etwa `100`, wenn die Quelle Feuchte als Bruchteil (0,58) statt in Prozent liefert.
+
+## Entwickeln
+
+```bash
 npm run check
 ```
 
 `npm run check` prüft Typen, führt die Tests aus und kontrolliert die Lizenzen der ausgelieferten Abhängigkeiten.
+
+Beim Arbeiten an der Oberfläche läuft sie mit `npm run dev:ui` auf eigenem Port und lädt Änderungen sofort nach; der Kern muss daneben mit `npm start` laufen.
 
 ## Lizenz
 

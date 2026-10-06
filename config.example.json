@@ -1,0 +1,35 @@
+{
+  "port": 8090,
+  "sources": [
+    { "id": "openhab", "plugin": "connector-openhab", "config": { "url": "http://openhab:8080" } }
+  ],
+  "layouts": {
+    "main": {
+      "grid": { "columns": 24, "rows": 12 },
+      "widgets": [
+        { "type": "clock", "at": [0, 0, 8, 2] },
+        {
+          "type": "value-tile",
+          "at": [0, 2, 4, 1],
+          "config": {
+            "datapoint": "openhab:Temperatur_Wohnen",
+            "label": "Wohnen",
+            "secondary": { "datapoint": "openhab:Feuchte_Wohnen", "factor": 100, "unit": "%", "decimals": 0 },
+            "decimals": 1,
+            "warn": { "lowAlarm": 17, "lowWarn": 18, "highWarn": 24, "highAlarm": 25 }
+          }
+        },
+        {
+          "type": "chart",
+          "at": [0, 3, 16, 6],
+          "config": { "title": "Temperatur", "series": [{ "datapoint": "openhab:Temperatur_Wohnen", "label": "Wohnen" }] }
+        },
+        {
+          "type": "switches",
+          "at": [0, 9, 16, 2],
+          "config": { "items": [{ "datapoint": "openhab:Licht_Esstisch", "label": "Esstisch" }] }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@culinola/plugin-connector-demo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Erfundene Beispielwerte, damit Culinola ohne angebundenes System läuft.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@culinola/sdk": "*"
+  }
+}

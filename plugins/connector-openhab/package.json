@@ -1,0 +1,14 @@
+{
+  "name": "@culinola/plugin-connector-openhab",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Bindet openHAB an: Messwerte, Schalten und Verlauf.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@culinola/sdk": "*"
+  }
+}

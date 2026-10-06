@@ -10,7 +10,9 @@
     "exactOptionalPropertyTypes": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["packages/*/src/**/*.ts", "plugins/*/src/**/*.ts"]
+  "include": ["packages/*/src/**/*.ts", "plugins/*/src/**/*.ts"],
+  "exclude": ["packages/ui"]
 }

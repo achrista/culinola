@@ -1,0 +1,69 @@
+/* Design-Tokens des mitgelieferten Themes „Klar“. Ein Theme tauscht nur diese Werte. */
+:root {
+  --bg: #e7ebef;
+  --card: #ffffff;
+  --ink: #14202b;
+  --mute: #4f5d6a;
+  --line: #d3dae1;
+  --soft: #edf1f4;
+  --accent: #0a6a8f;
+  --on-accent: #ffffff;
+  --ok: #17734f;
+  --warn: #e2a400;
+  --alarm: #b93424;
+  --none: #9aa6b2;
+  --series-1: #d9980f;
+  --series-2: #0a6a8f;
+  --series-3: #b93424;
+  --series-4: #17734f;
+
+  --font-text: 'Barlow', sans-serif;
+  --font-num: 'Dosis', sans-serif;
+  --num-weight: 300;
+  --radius: 6px;
+  --gap: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1317;
+    --card: #161f26;
+    --ink: #e9eef2;
+    --mute: #a3afba;
+    --line: #2a3640;
+    --soft: #1e2a33;
+    --accent: #4fb8dc;
+    --on-accent: #06202a;
+    --ok: #5cc79b;
+    --warn: #f2c94c;
+    --alarm: #f08a7a;
+    --none: #5a6772;
+    --series-1: #f0b93a;
+    --series-2: #4fb8dc;
+    --series-3: #f08a7a;
+    --series-4: #5cc79b;
+  }
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 16px;
+  line-height: 1.3;
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: 0;
+}

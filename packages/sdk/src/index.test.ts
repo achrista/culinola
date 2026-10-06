@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { definePlugin } from './index.js';
+import { definePlugin } from './index.ts';
 
 describe('definePlugin', () => {
   it('gibt eine gültige Definition unverändert zurück', () => {
