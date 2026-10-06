@@ -1,0 +1,18 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Laufzeitdaten und Geheimnisse gehören nie ins Repository
+data/
+recipes/
+app_key.txt
+.env
+.env.*
+!.env.example
+
+# Editor und Betriebssystem
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

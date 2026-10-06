@@ -1,0 +1,27 @@
+{
+  "name": "culinola",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Modularer Infobildschirm fürs Zuhause – Haustechnik, Medien und Alltag auf einem Touch-Bildschirm.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "plugins/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "licenses": "license-checker-rseidelsohn --production --excludePrivatePackages --onlyAllow \"MIT;MIT-0;ISC;BSD-2-Clause;BSD-3-Clause;Apache-2.0;0BSD;Unlicense;CC0-1.0\"",
+    "check": "npm run typecheck && npm run test && npm run licenses"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "license-checker-rseidelsohn": "^5.0.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}
