@@ -12,11 +12,22 @@ const log: Logger = {
   error: (message, error) => console.error(`${stamp()} FEHLER ${message}`, error ?? ''),
 };
 
-const { config, dataDir, demo } = loadConfig();
+// Eine fehlerhafte Datei im Datenordner soll mit einer klaren Meldung enden, nicht mit einem Stacktrace.
+function loadOrExit() {
+  try {
+    const loaded = loadConfig();
+    return { ...loaded, secrets: loadSecrets(loaded.dataDir) };
+  } catch (error) {
+    log.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  }
+}
+
+const { config, dataDir, demo, secrets } = loadOrExit();
 if (demo) log.warn(`Keine config.json in ${dataDir} gefunden – Culinola läuft mit erfundenen Beispielwerten.`);
 
 const registry = new DatapointRegistry();
-const plugins = new PluginHost(registry, loadSecrets(dataDir), log);
+const plugins = new PluginHost(registry, secrets, log);
 await plugins.startAll(config.sources);
 
 const uiDir = resolve(import.meta.dirname, '../../ui/dist');

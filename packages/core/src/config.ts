@@ -72,6 +72,21 @@ const DEMO_CONFIG: AppConfig = {
   },
 };
 
+/**
+ * Liest eine JSON-Datei und meldet Fehler so, dass man sie ohne Programmierkenntnis
+ * beheben kann – mit Dateiname und der Stelle, an der es hakt.
+ */
+function readJson(file: string): unknown {
+  try {
+    return JSON.parse(readFileSync(file, 'utf8'));
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `${file} lässt sich nicht lesen: ${detail}. Häufige Ursachen: ein Zeilenumbruch mitten in einem eingefügten Wert, ein fehlendes Komma oder ein fehlendes Anführungszeichen.`,
+    );
+  }
+}
+
 export interface LoadedConfig {
   config: AppConfig;
   dataDir: string;
@@ -85,7 +100,7 @@ export function loadConfig(): LoadedConfig {
   const file = join(dataDir, 'config.json');
   if (!existsSync(file)) return { config: DEMO_CONFIG, dataDir, demo: true };
 
-  const raw = JSON.parse(readFileSync(file, 'utf8')) as Partial<AppConfig>;
+  const raw = readJson(file) as Partial<AppConfig>;
   if (!Array.isArray(raw.sources)) throw new Error(`${file}: "sources" fehlt oder ist keine Liste.`);
   if (!raw.layouts || typeof raw.layouts !== 'object') throw new Error(`${file}: "layouts" fehlt.`);
   return { config: { port: raw.port ?? 8090, sources: raw.sources, layouts: raw.layouts }, dataDir, demo: false };
@@ -98,5 +113,5 @@ export function loadConfig(): LoadedConfig {
 export function loadSecrets(dataDir: string): Record<string, Record<string, string>> {
   const file = join(dataDir, 'secrets.json');
   if (!existsSync(file)) return {};
-  return JSON.parse(readFileSync(file, 'utf8')) as Record<string, Record<string, string>>;
+  return readJson(file) as Record<string, Record<string, string>>;
 }
