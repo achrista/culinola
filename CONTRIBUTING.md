@@ -8,6 +8,10 @@ Wer Code beiträgt, räumt dem Projektinhaber die dafür nötigen Rechte ein. De
 
 **Offen:** Text festlegen und juristisch prüfen lassen, CLA-Abfrage im Repository einrichten.
 
+## Tests
+
+Jede Änderung läuft durch `npm run check`. Was darüber hinaus zu prüfen ist und welche Tests zu neuem Code gehören, steht in [docs/testen.md](docs/testen.md).
+
 ## Regeln für Abhängigkeiten
 
 Zugelassen sind nur permissiv lizenzierte Pakete: MIT, MIT-0, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0, 0BSD, Unlicense, CC0-1.0. Für Schriften zusätzlich OFL-1.1.

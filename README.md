@@ -25,6 +25,7 @@ plugins/     Je Plugin ein Ordner
 themes/      Mitgelieferte Themes
 docker/      Abbild und Beispiel-Compose-Datei
 docs/        Konzept und Anleitungen
+testing/     Testinstanz mit erfundenen Werten
 ```
 
 ## Starten
@@ -44,6 +45,20 @@ npm start
 ```
 
 Danach läuft Culinola auf <http://localhost:8090>. Ohne eigene Konfiguration zeigt es erfundene Beispielwerte.
+
+### Mit Docker
+
+Ein Abbild mit Kern, allen mitgelieferten Plugins und der Oberfläche baut [docker/Dockerfile](docker/Dockerfile); [docker/compose.yaml](docker/compose.yaml) ist ein Beispiel für den Betrieb:
+
+```bash
+cd docker && docker compose up -d --build
+```
+
+Der Ordner `docker/data` wird im Abbild zu `/data` und nimmt `config.json`, `secrets.json`, Rezepte und Senderlogos auf.
+
+- Das Abbild enthält go2rtc und ffmpeg für Kameras und Fernsehen. In `config.json` lauten die Pfade dann `"go2rtc": { "binary": "/usr/local/bin/go2rtc", "ffmpeg": "/usr/bin/ffmpeg" }`. Wer kein Video braucht, baut mit `--build-arg WITH_MEDIA=false` ein kleineres Abbild.
+- Das Beispiel nutzt das Netz des Rechners (`network_mode: host`, nur unter Linux), weil die Bildübertragung der Kameras eine im Heimnetz direkt erreichbare Gegenstelle braucht. Ohne Video genügt die Freigabe von Port 8090.
+- Der Dienst läuft als Benutzer 1000 und muss in `data` schreiben dürfen.
 
 ## Einrichten
 
@@ -208,6 +223,8 @@ npm run check
 ```
 
 `npm run check` prüft Typen, führt die Tests aus und kontrolliert die Lizenzen der ausgelieferten Abhängigkeiten.
+
+Wie geprüft wird – automatisch, an der Testinstanz (`npm run test:instance`) und mit eigenen Geräten –, steht in [docs/testen.md](docs/testen.md).
 
 Beim Arbeiten an der Oberfläche läuft sie mit `npm run dev:ui` auf eigenem Port und lädt Änderungen sofort nach; der Kern muss daneben mit `npm start` laufen.
 

@@ -19,3 +19,32 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+
+  # Baut das Abbild und prüft, dass es startet – mit Beispielwerten, ohne eigene Konfiguration.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f docker/Dockerfile -t culinola:ci .
+      - name: Abbild starten
+        run: docker run -d --name culinola -p 8090:8090 culinola:ci
+      - name: Auf den Kern warten
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8090/api/v1/status; then exit 0; fi
+            sleep 2
+          done
+          docker logs culinola
+          exit 1
+      - name: Oberfläche, Hilfsprogramme und Zustandsmeldung prüfen
+        run: |
+          curl -fsS -o /dev/null http://127.0.0.1:8090/
+          docker exec culinola go2rtc -version
+          docker exec culinola ffmpeg -version | head -n 1
+          docker exec culinola node docker/healthcheck.mjs
+          test "$(docker exec culinola id -un)" = node
+      - name: Sauber beenden
+        run: |
+          docker stop --time 10 culinola
+          test "$(docker inspect -f '{{.State.ExitCode}}' culinola)" = 0
+          docker logs culinola

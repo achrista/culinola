@@ -1,0 +1,32 @@
+{
+  "port": 8191,
+  "site": { "language": "de", "region": "de-DE" },
+  "sources": [
+    { "id": "demo", "plugin": "connector-demo" },
+    { "id": "timer", "plugin": "timer" },
+    { "id": "recipes", "plugin": "recipes" },
+    { "id": "news", "plugin": "source-rss", "config": { "feeds": ["dw-de", "augsburger-allgemeine", { "id": "kaputt", "name": "Gibt es nicht", "url": "https://example.invalid/feed" }] } },
+    { "id": "radio", "plugin": "media-radio", "config": { "volume": 30, "stations": [{ "id": "bayern2", "name": "Bayern 2", "kind": "audio", "url": "http://dispatcher.rndfnk.com/br/br2/live/mp3/mid" }] } }
+  ],
+  "layouts": {
+    "main": {
+      "grid": { "columns": 48, "rows": 24 },
+      "widgets": [
+        { "type": "clock", "at": [0, 0, 12, 3], "config": { "timer": "timer", "alarmSeconds": 20 } },
+        { "type": "value-tile", "at": [0, 3, 6, 2], "config": { "datapoint": "demo:temp_wohnen", "label": "Wohnen", "secondary": "demo:feuchte_wohnen", "decimals": 1, "warn": { "lowAlarm": 16, "lowWarn": 18, "highWarn": 24, "highAlarm": 26 } } },
+        { "type": "value-tile", "at": [6, 3, 6, 2], "config": { "datapoint": "demo:co2", "label": "CO₂", "warn": { "highWarn": 1000, "highAlarm": 1500 } } },
+        { "type": "value-tile", "at": [12, 3, 6, 2], "config": { "datapoint": "demo:solar", "label": "Solar" } },
+        { "type": "value-tile", "at": [18, 3, 6, 2], "config": { "datapoint": "demo:waschen", "label": "Waschen" } },
+        { "type": "chart", "at": [0, 5, 24, 9], "config": { "title": "Strom", "series": [{ "datapoint": "demo:solar", "label": "Solar", "area": true }, { "datapoint": "demo:verbrauch", "label": "Verbrauch" }] } },
+        { "type": "switches", "at": [0, 14, 24, 3], "config": { "items": [{ "datapoint": "demo:licht_esstisch", "label": "Esstisch" }, { "datapoint": "demo:licht_vitrine", "label": "Vitrine" }, { "datapoint": "demo:licht_treppe", "label": "Treppe" }, { "datapoint": "demo:licht_terrasse", "label": "Terrasse" }] } },
+        { "type": "radio", "at": [0, 17, 24, 4], "config": { "source": "radio" } },
+        { "type": "news", "at": [0, 21, 24, 3], "config": { "source": "news", "feeds": ["augsburger-allgemeine"] } },
+        { "type": "recipes", "at": [24, 0, 10, 10], "config": { "source": "recipes" } },
+        { "type": "news", "at": [34, 0, 14, 9], "config": { "source": "news", "seconds": 8, "closeAfter": 60 } },
+        { "type": "media-window", "at": [24, 10, 10, 6], "config": { "source": "radio" } },
+        { "type": "recipes", "at": [34, 22, 14, 2], "config": { "source": "recipes", "seconds": 10 } },
+        { "type": "gibt-es-nicht", "at": [34, 9, 14, 2] }
+      ]
+    }
+  }
+}

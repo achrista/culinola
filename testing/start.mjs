@@ -1,0 +1,53 @@
+// Startet die Testinstanz: ein Kern mit erfundenen Werten, Beispielrezepten und allen
+// Bausteinen, die ohne eigene Geräte laufen. Die Vorlage aus `testing/instance` wird bei
+// jedem Start frisch in einen Wegwerfordner gelegt – die eigenen Daten bleiben unberührt.
+import { cpSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { deflateSync } from 'node:zlib';
+
+const target = join(tmpdir(), 'culinola-testinstanz');
+rmSync(target, { recursive: true, force: true });
+cpSync(fileURLToPath(new URL('./instance', import.meta.url)), target, { recursive: true });
+writeFileSync(join(target, 'recipes', 'Kuchen', 'kuchen.png'), stripes(480, 320));
+
+process.env.CULINOLA_DATA = target;
+console.log(`Testinstanz in ${target}`);
+await import('../packages/core/src/main.ts');
+
+/** Ein Streifenbild als PNG, hier erzeugt – so braucht die Testinstanz kein fremdes Foto. */
+function stripes(width, height) {
+  const raw = Buffer.alloc((width * 3 + 1) * height);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const at = y * (width * 3 + 1) + 1 + x * 3;
+      const band = Math.floor(((x + y) / width) * 6) % 2;
+      raw.set(band ? [217, 152, 15] : [240, 185, 58], at);
+    }
+  }
+  const table = Array.from({ length: 256 }, (_, n) => {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    return c >>> 0;
+  });
+  const crc = (bytes) => {
+    let value = 0xffffffff;
+    for (const byte of bytes) value = table[(value ^ byte) & 255] ^ (value >>> 8);
+    return (value ^ 0xffffffff) >>> 0;
+  };
+  const chunk = (type, data) => {
+    const body = Buffer.concat([Buffer.from(type), data]);
+    const length = Buffer.alloc(4);
+    length.writeUInt32BE(data.length);
+    const sum = Buffer.alloc(4);
+    sum.writeUInt32BE(crc(body));
+    return Buffer.concat([length, body, sum]);
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header[8] = 8; // Farbtiefe
+  header[9] = 2; // RGB
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', header), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
+}

@@ -1,0 +1,16 @@
+# Was nicht ins Abbild gehört: Laufzeitdaten, Geheimnisse, Heruntergeladenes, Erzeugtes.
+.git
+.github
+**/node_modules
+**/dist
+data
+docker/data
+recipes
+tools
+testing
+coverage
+.env
+.env.*
+app_key.txt
+.vscode
+.idea
