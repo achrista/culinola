@@ -1,5 +1,6 @@
 import { definePlugin, InvalidInput } from '@culinola/sdk';
 import { icyFilter } from './icy.ts';
+import { LogoStore } from './logos.ts';
 
 interface Station {
   id: string;
@@ -8,7 +9,10 @@ interface Station {
   url?: string;
   /** audio = Radio, video = Fernsehen (läuft im Medienfenster). */
   kind: 'audio' | 'video';
-  /** Standbild des Senders für das Medienfenster. */
+  /**
+   * Logo des Senders für das Medienfenster: eine Adresse, von der es einmal geholt wird,
+   * oder der Name einer Datei im Ordner `logos` des Plugins.
+   */
   image?: string;
 }
 
@@ -52,13 +56,40 @@ export default definePlugin<Config>({
     };
     const setTitle = (title: string) => context.datapoints.set({ id: 'title', value: title, label: 'Laufender Titel' });
 
-    // Die Anzeige bekommt die Senderliste ohne die Adressen der Streams – den Ton holt sie über den Kern.
-    context.resources.set(
-      'stations',
-      config.stations.map(({ id, name, kind, image }) => ({ id, name, kind, ...(image ? { image } : {}) })),
-    );
+    // Senderlogos: eine Adresse wird einmal geholt und aufbewahrt, ein Dateiname meint eine selbst abgelegte Datei
+    const logos = new LogoStore(context.storageDir);
+    const logoOf = (station: Station) => (station.image && !/^https?:\/\//.test(station.image) ? logos.local(station.image) : logos.find(station.id));
+
+    // Die Anzeige bekommt die Senderliste ohne die Adressen der Streams – Ton und Logos holt sie über den Kern.
+    const publishStations = () =>
+      context.resources.set(
+        'stations',
+        config.stations.map((station) => ({
+          id: station.id,
+          name: station.name,
+          kind: station.kind,
+          ...(station.image && logoOf(station) ? { image: `/p/${context.instanceId}/logo/${station.id}` } : {}),
+        })),
+      );
+    publishStations();
     publish();
     setTitle('');
+
+    void Promise.all(
+      config.stations
+        .filter((station) => /^https?:\/\//.test(station.image ?? ''))
+        .map(async (station) => {
+          const problem = await logos.fetch(station.id, station.image!, context.signal);
+          if (problem) log.warn(`Logo für "${station.name}" nicht geholt: ${problem}${logos.find(station.id) ? ' – das bisherige bleibt.' : ''}`);
+        }),
+    ).then(publishStations);
+
+    context.routes.get('/logo/:id', (request) => {
+      const station = stations.get(request.params.id ?? '');
+      const logo = station ? logoOf(station) : undefined;
+      if (!logo) return Response.json({ error: 'Kein Logo vorhanden.' }, { status: 404 });
+      return new Response(new Uint8Array(logos.read(logo)), { headers: { 'Content-Type': logo.contentType, 'Cache-Control': 'private, max-age=86400' } });
+    });
 
     context.actions.register(
       {

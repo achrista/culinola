@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { currentStation } from '../media.ts';
+import { currentStation, mediaUrl } from '../media.ts';
 import { datapoints } from '../store.ts';
 import StreamPlayer from './StreamPlayer.vue';
 
@@ -37,7 +37,7 @@ const showsVideo = computed(() => station.value?.kind === 'video' || (!station.v
     <StreamPlayer v-if="station?.kind === 'video'" :source="videoSource" :stream="station.id" :muted="false" :volume="volume" />
     <StreamPlayer v-else-if="!station && props.config.idle" :source="videoSource" :stream="props.config.idle" muted />
     <div v-else class="still">
-      <img v-if="station?.image" :src="station.image" :alt="station.name" />
+      <img v-if="station?.image" :src="mediaUrl(station.image)" :alt="station.name" />
       <span v-else class="name">{{ station?.name ?? t('radio.idle') }}</span>
     </div>
     <span v-if="station" class="label">{{ station.name }}</span>
