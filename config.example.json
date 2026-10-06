@@ -3,13 +3,14 @@
   "sources": [
     { "id": "openhab", "plugin": "connector-openhab", "config": { "url": "http://openhab:8080" } },
     { "id": "news", "plugin": "source-rss", "config": { "feeds": ["dw-de", "tagesschau"] } },
-    { "id": "recipes", "plugin": "recipes" }
+    { "id": "recipes", "plugin": "recipes" },
+    { "id": "timer", "plugin": "timer" }
   ],
   "layouts": {
     "main": {
       "grid": { "columns": 24, "rows": 12 },
       "widgets": [
-        { "type": "clock", "at": [0, 0, 8, 2] },
+        { "type": "clock", "at": [0, 0, 8, 2], "config": { "timer": "timer" } },
         {
           "type": "value-tile",
           "at": [0, 2, 4, 1],

@@ -54,7 +54,9 @@
     "empty": "Noch keine Meldungen",
     "next": "Nächste Meldung",
     "open": "Artikel öffnen: {title}",
-    "ownWindow": "In eigenem Fenster"
+    "ownWindow": "In eigenem Fenster",
+    "inOwnWindow": "Der Artikel liegt in einem eigenen Fenster über der Anzeige, weil {feed} das Einbetten nicht erlaubt. „Schließen“ holt die Anzeige zurück.",
+    "blocked": "Der Browser hat das Fenster für den Artikel nicht geöffnet. Erlauben Sie dieser Seite Pop-ups oder öffnen Sie den Artikel über „In eigenem Fenster“."
   },
   "recipes": {
     "title": "Rezepte",
@@ -67,6 +69,20 @@
     "time": "Zeit: {time}",
     "servings": "Portionen: {servings}",
     "smaller": "Schrift kleiner",
-    "larger": "Schrift größer"
+    "larger": "Schrift größer",
+    "open": "Rezept öffnen: {title}",
+    "showAll": "Alle Rezepte zeigen | Alle Rezepte zeigen | Alle {n} Rezepte zeigen"
+  },
+  "timer": {
+    "title": "Eieruhr",
+    "stopwatch": "Stoppuhr",
+    "done": "Zeit ist um",
+    "set": "Eieruhr stellen",
+    "tapToStop": "Zeit ist um – zum Ausschalten antippen",
+    "minutes": "{n} min",
+    "start": "Start",
+    "startStopwatch": "Stoppuhr starten",
+    "stop": "Stoppen",
+    "failed": "Eieruhr nicht verfügbar: {error}"
   }
 }

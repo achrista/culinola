@@ -54,7 +54,9 @@
     "empty": "No news yet",
     "next": "Next story",
     "open": "Open article: {title}",
-    "ownWindow": "In a separate window"
+    "ownWindow": "In a separate window",
+    "inOwnWindow": "The article is open in a separate window on top of the display because {feed} does not allow embedding. “Close” brings the display back.",
+    "blocked": "The browser did not open the article window. Allow pop-ups for this page or open the article via “In a separate window”."
   },
   "recipes": {
     "title": "Recipes",
@@ -67,6 +69,20 @@
     "time": "Time: {time}",
     "servings": "Servings: {servings}",
     "smaller": "Smaller text",
-    "larger": "Larger text"
+    "larger": "Larger text",
+    "open": "Open recipe: {title}",
+    "showAll": "Show all recipes | Show all recipes | Show all {n} recipes"
+  },
+  "timer": {
+    "title": "Kitchen timer",
+    "stopwatch": "Stopwatch",
+    "done": "Time is up",
+    "set": "Set the kitchen timer",
+    "tapToStop": "Time is up – tap to switch off",
+    "minutes": "{n} min",
+    "start": "Start",
+    "startStopwatch": "Start stopwatch",
+    "stop": "Stop",
+    "failed": "Kitchen timer not available: {error}"
   }
 }

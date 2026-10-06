@@ -64,7 +64,7 @@ Die Anzeige ist ein Raster. Jedes Widget steht mit `at: [Spalte, Zeile, Breite, 
 
 | Typ | Zeigt | Wichtigste Angaben |
 |---|---|---|
-| `clock` | Uhrzeit mit Sekunden und Datum | – |
+| `clock` | Uhrzeit mit Sekunden und Datum; Antippen stellt die Eieruhr | `timer` (Eieruhr-Instanz), `alarmSeconds` |
 | `value-tile` | Messwert mit Statuspunkt und Verlaufslinie | `datapoint`, `label`, `secondary`, `unit`, `decimals`, `factor`, `warn`, `map` |
 | `switches` | Feld von Schaltern, das sich dem Platz anpasst | `items: [{ datapoint, label }]` |
 | `chart` | Zeitverlauf für heute, Woche, Monat | `title`, `series: [{ datapoint, label, area, forecast }]` |
@@ -72,8 +72,8 @@ Die Anzeige ist ein Raster. Jedes Widget steht mit `at: [Spalte, Zeile, Breite, 
 | `radio` | Sendertasten, Lautstärke, laufender Titel | `source` (Radio-Instanz) |
 | `video` | Live-Bild einer Kamera oder eines Streams; Antippen füllt den Bildschirm | `source` (Video-Instanz), `stream`, `label` |
 | `media-window` | Fernsehbild beim Fernsehsender, Logo beim Radiosender | `source` (Radio-Instanz), `video` (Video-Instanz), `idle` |
-| `news` | Eine Meldung mit Bild, reihum aus allen Feeds; Antippen öffnet den Artikel | `source` (Nachrichten-Instanz), `feeds`, `seconds` |
-| `recipes` | Rezeptauswahl; Antippen öffnet Liste und Leseansicht | `source` (Rezept-Instanz), `title` |
+| `news` | Eine Meldung mit Bild, reihum aus allen Feeds; Antippen öffnet den Artikel | `source` (Nachrichten-Instanz), `feeds`, `seconds`, `closeAfter` |
+| `recipes` | Ein zufällig gewähltes Rezept mit Bild im Wechsel; Antippen öffnet es, der Pfeil die ganze Liste | `source` (Rezept-Instanz), `title`, `seconds` |
 
 `map` übersetzt Zustandswerte in Text, etwa `{ "0": "aus", "1": "läuft", "3": "fertig" }`.
 
@@ -82,6 +82,14 @@ Im Diagramm läuft „Heute“ von 0 bis 24 Uhr. Eine Reihe mit `forecast: true`
 `warn` nimmt bis zu vier Grenzen: `lowAlarm`, `lowWarn`, `highWarn`, `highAlarm`. Der Punkt ist grün im Bereich, gelb bei Achtung, rot außerhalb und grau ohne Bewertung.
 
 `factor` rechnet einen Wert für die Anzeige um – etwa `100`, wenn die Quelle Feuchte als Bruchteil (0,58) statt in Prozent liefert.
+
+### Eieruhr
+
+Mit `{ "id": "timer", "plugin": "timer" }` als Quelle und `"timer": "timer"` in den Angaben der Uhr wird die Uhr zur Eieruhr: Antippen öffnet die Auswahl der Dauer, die laufende Zeit steht neben der Uhrzeit. Ist die Zeit um, klingelt die Anzeige `alarmSeconds` Sekunden lang (Vorgabe 120) und zeigt es an, bis jemand die Uhr antippt. Statt rückwärts läuft sie als Stoppuhr auch vorwärts.
+
+Die Eieruhr lebt im Kern, nicht in der Anzeige: Sie übersteht ein Neuladen und einen Neustart, alle Anzeigen zeigen dieselbe, und sie lässt sich über die Aktionen `timer.start` (`minutes`, `seconds`), `timer.stopwatch`, `timer.add` (`seconds`) und `timer.stop` auch von außen stellen. Damit die Restzeit stimmt, müssen die Uhren von Kern und Anzeigerechner gleich gehen – bei beiden also die Zeit aus dem Netz beziehen.
+
+Den Klingelton erzeugt der Browser selbst. Browser spielen Ton erst, nachdem die Seite einmal angetippt wurde; wird die Eieruhr nur von außen gestellt, bleibt es sonst bei der sichtbaren Meldung.
 
 ### Radio und Fernsehen
 
@@ -121,7 +129,7 @@ Das Plugin `source-rss` liest beliebig viele RSS- und Atom-Feeds:
 
 Ein Feed ist entweder eine Kennung aus dem mitgelieferten Katalog ([catalog.json](plugins/source-rss/src/catalog.json), abrufbar auch unter `/api/v1/resources/<Instanz>/catalog`) oder ein eigener Eintrag mit `id`, `name` und `url`.
 
-Die Kachel zeigt immer eine Meldung – Überschrift, Anreißer und das Bild, das der Anbieter im Feed mitliefert – und wechselt nach `seconds` Sekunden (Vorgabe 20) zur nächsten, reihum durch die Feeds. Antippen öffnet den Artikel: innerhalb der Anzeige, wenn der Anbieter das Einbetten seiner Seiten erlaubt, sonst in einem eigenen Browserfenster. Ob er es erlaubt, prüft der Kern einmal am Tag.
+Die Kachel zeigt immer eine Meldung – Überschrift, Anreißer und das Bild, das der Anbieter im Feed mitliefert – und wechselt nach `seconds` Sekunden (Vorgabe 20) zur nächsten, reihum durch die Feeds. Antippen öffnet den Artikel über der Anzeige: eingebettet, wenn der Anbieter das Einbetten seiner Seiten erlaubt, sonst in einem eigenen Browserfenster in der Größe des Bildschirms. Ob er es erlaubt, prüft der Kern einmal am Tag. Schließen führt zurück zur Anzeige; nach `closeAfter` Sekunden (Vorgabe 600, `0` schaltet das ab) schließt Culinola den Artikel von selbst. Für das eigene Fenster muss der Browser dieser Seite Pop-ups erlauben.
 
 ### Rezepte
 
@@ -142,7 +150,7 @@ servings: 4
 …
 ```
 
-Alle Angaben sind freiwillig; deutsche Feldnamen (`Titel`, `Kategorie`, `Stichworte`, `Zeit`, `Portionen`) gelten ebenso. Fehlt der Titel, gilt die erste Überschrift, sonst der Dateiname. Bilder liegen neben dem Rezept und werden wie üblich eingebunden: `![Kuchen](bilder/kuchen.jpg)`. Eingebettetes HTML wird nicht ausgeführt, sondern als Text gezeigt.
+Alle Angaben sind freiwillig; deutsche Feldnamen (`Titel`, `Kategorie`, `Stichworte`, `Zeit`, `Portionen`) gelten ebenso. Fehlt der Titel, gilt die erste Überschrift, sonst der Dateiname. Bilder liegen neben dem Rezept und werden wie üblich eingebunden: `![Kuchen](bilder/kuchen.jpg)`. Das erste Bild – oder das in den Angaben unter `image` genannte – ist das Bild des Rezepts auf der Kachel. Die Kachel zeigt alle `seconds` Sekunden (Vorgabe 30) ein anderes, zufällig gewähltes Rezept mit Bild. Eingebettetes HTML wird nicht ausgeführt, sondern als Text gezeigt.
 
 In der Leseansicht lässt sich die Schrift in Stufen vergrößern; solange ein Rezept offen ist, hält die Anzeige den Bildschirm wach, soweit der Browser das zulässt (gesicherte Verbindung oder `localhost`).
 

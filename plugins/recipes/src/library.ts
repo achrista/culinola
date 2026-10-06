@@ -9,6 +9,8 @@ export interface RecipeInfo {
   time?: string;
   /** Portionen, so wie sie im Rezept stehen, etwa "4" oder "1 Blech". */
   servings?: string;
+  /** Bild des Rezepts: Pfad neben der Rezeptdatei oder Webadresse. */
+  image?: string;
 }
 
 export interface Recipe extends RecipeInfo {
@@ -18,7 +20,8 @@ export interface Recipe extends RecipeInfo {
   problem?: string;
 }
 
-const FRONT_MATTER = /^﻿?---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+const FRONT_MATTER = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+const FIRST_IMAGE = /!\[[^\]]*\]\(\s*<?([^)\s>]+)>?[^)]*\)/;
 const FIRST_HEADING = /^\s*#[ \t]+(.+?)[ \t]*#*[ \t]*(?:\r?\n|$)/;
 
 /** Angaben aus den Kopfdaten; deutsche Feldnamen gelten genauso wie englische. */
@@ -46,7 +49,7 @@ function words(value: unknown): string[] {
 export function parseRecipe(fileName: string, text: string): Recipe {
   let data: Record<string, unknown> = {};
   let problem: string | undefined;
-  let markdown = text.replace(/^﻿/, '');
+  let markdown = text.replace(/^\uFEFF/, '');
 
   const front = FRONT_MATTER.exec(text);
   if (front) {
@@ -70,12 +73,15 @@ export function parseRecipe(fileName: string, text: string): Recipe {
   const category = word(field(data, 'category', 'kategorie'));
   const time = word(field(data, 'time', 'zeit', 'dauer'));
   const servings = word(field(data, 'servings', 'portionen'));
+  // Ohne eigene Angabe gilt das erste Bild im Text
+  const image = word(field(data, 'image', 'bild')) ?? FIRST_IMAGE.exec(markdown)?.[1];
   return {
     title,
     ...(category ? { category } : {}),
     tags: words(field(data, 'tags', 'stichworte')),
     ...(time ? { time } : {}),
     ...(servings ? { servings } : {}),
+    ...(image ? { image } : {}),
     markdown: markdown.trim(),
     ...(problem ? { problem } : {}),
   };

@@ -34,6 +34,12 @@ describe('parseRecipe', () => {
     expect(recipe).toMatchObject({ title: 'Suppe', markdown: 'Text' });
   });
 
+  it('nennt das Bild aus den Kopfdaten, sonst das erste im Text', () => {
+    expect(parseRecipe('x.md', '---\nbild: fotos/suppe.jpg\n---\n![a](anderes.png)').image).toBe('fotos/suppe.jpg');
+    expect(parseRecipe('x.md', '# Kuchen\n\nText ![Der Kuchen](bilder/kuchen.png "Titel") und ![b](zwei.png)').image).toBe('bilder/kuchen.png');
+    expect(parseRecipe('x.md', 'Ohne Bild.').image).toBeUndefined();
+  });
+
   it('kommt mit Windows-Zeilenenden zurecht', () => {
     const recipe = parseRecipe('x.md', '---\r\ntitle: Brot\r\n---\r\n\r\nKneten.\r\n');
     expect(recipe).toMatchObject({ title: 'Brot', markdown: 'Kneten.' });

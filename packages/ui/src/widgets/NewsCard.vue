@@ -34,6 +34,8 @@ const props = defineProps<{
     feeds?: string[];
     /** So lange bleibt eine Meldung stehen. */
     seconds?: number;
+    /** Nach so vielen Sekunden schließt sich ein geöffneter Artikel von selbst; 0 lässt ihn offen. */
+    closeAfter?: number;
   };
 }>();
 
@@ -42,6 +44,9 @@ const source = computed(() => props.config.source ?? 'news');
 const feeds = ref<Feed[]>([]);
 const index = ref(0);
 const opened = ref<Entry>();
+/** Der Artikel liegt in einem eigenen Fenster über der Anzeige. */
+const separate = ref(false);
+const blocked = ref(false);
 const broken = reactive(new Set<string>());
 
 async function load() {
@@ -95,14 +100,50 @@ function next() {
   schedule();
 }
 onMounted(schedule);
-onUnmounted(() => window.clearInterval(timer));
+
+// Das eigene Fenster gehört nicht in den Zustand der Oberfläche: Auf ein fremdes Fenster darf Vue nicht zugreifen.
+let popup: Window | null = null;
+let watchdog: number | undefined;
+let giveUp: number | undefined;
 
 function open() {
-  if (!current.value) return;
-  // Wo der Anbieter das Einbetten untersagt, öffnet sich der Artikel in einem eigenen Fenster
-  if (current.value.feed.embed) opened.value = current.value;
-  else window.open(current.value.item.link, '_blank', 'noopener,noreferrer');
+  const entry = current.value;
+  if (!entry) return;
+  opened.value = entry;
+  separate.value = !entry.feed.embed;
+  blocked.value = false;
+  if (separate.value) {
+    // Wo der Anbieter das Einbetten untersagt: ein eigenes Browserfenster, das sich über die ganze Anzeige legt
+    const area = screen as Screen & { availLeft?: number; availTop?: number };
+    popup = window.open('', 'culinola-article', `popup,left=${area.availLeft ?? 0},top=${area.availTop ?? 0},width=${area.availWidth},height=${area.availHeight}`);
+    if (popup) {
+      // Die fremde Seite bekommt keinen Zugriff auf die Anzeige, die sie geöffnet hat
+      popup.opener = null;
+      popup.location.href = entry.item.link;
+      watchdog = window.setInterval(() => {
+        if (popup?.closed) close();
+      }, 500);
+    } else {
+      blocked.value = true;
+    }
+  }
+  const limit = props.config.closeAfter ?? 600;
+  if (limit > 0) giveUp = window.setTimeout(close, limit * 1000);
 }
+
+/** Schließt den Artikel – eingebettet wie im eigenen Fenster – und gibt die Anzeige wieder frei. */
+function close() {
+  window.clearInterval(watchdog);
+  window.clearTimeout(giveUp);
+  if (popup && !popup.closed) popup.close();
+  popup = null;
+  opened.value = undefined;
+}
+
+onUnmounted(() => {
+  window.clearInterval(timer);
+  close();
+});
 </script>
 
 <template>
@@ -121,11 +162,13 @@ function open() {
     <p v-else class="empty">{{ t('news.empty') }}</p>
     <button v-if="queue.length > 1" class="next" :aria-label="t('news.next')" @click="next">›</button>
 
-    <DetailOverlay v-if="opened" :title="opened.item.title" @close="opened = undefined">
-      <template #actions>
+    <DetailOverlay v-if="opened" :title="opened.item.title" @close="close">
+      <template v-if="!separate || blocked" #actions>
         <a :href="opened.item.link" target="_blank" rel="noopener noreferrer">{{ t('news.ownWindow') }}</a>
       </template>
-      <iframe :src="opened.item.link" :title="opened.item.title" sandbox="allow-scripts allow-same-origin allow-popups allow-forms" referrerpolicy="no-referrer" />
+      <!-- Hinter dem eigenen Fenster wartet dieser Hinweis; wer ihn sieht, kommt mit einem Tipp zurück zur Anzeige -->
+      <p v-if="separate" class="waiting">{{ t(blocked ? 'news.blocked' : 'news.inOwnWindow', { feed: opened.feed.name }) }}</p>
+      <iframe v-else :src="opened.item.link" :title="opened.item.title" sandbox="allow-scripts allow-same-origin allow-popups allow-forms" referrerpolicy="no-referrer" />
     </DetailOverlay>
   </section>
 </template>
@@ -228,5 +271,13 @@ iframe {
   width: 100%;
   border: 0;
   background: #fff;
+}
+.waiting {
+  margin: auto;
+  max-width: 32em;
+  padding: 24px;
+  color: var(--mute);
+  font-size: 20px;
+  text-align: center;
 }
 </style>

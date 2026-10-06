@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { micromark } from 'micromark';
 import { gfm, gfmHtml } from 'micromark-extension-gfm';
-import { computed, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getJson } from '../api.ts';
 import { mediaUrl } from '../media.ts';
@@ -15,35 +15,83 @@ interface RecipeInfo {
   tags: string[];
   time?: string;
   servings?: string;
+  image?: string;
 }
 interface Recipe extends RecipeInfo {
   markdown: string;
 }
 
-/** Rezepte: auf der Kachel die Auswahl, nach dem Antippen Liste und Leseansicht über den ganzen Bildschirm. */
-const props = defineProps<{ config: { source?: string; title?: string } }>();
+/**
+ * Rezepte: Die Kachel zeigt im Wechsel ein zufällig gewähltes Rezept mit Bild,
+ * nach dem Antippen folgen Liste und Leseansicht über den ganzen Bildschirm.
+ */
+const props = defineProps<{
+  config: {
+    source?: string;
+    title?: string;
+    /** So lange bleibt ein Rezept auf der Kachel stehen. */
+    seconds?: number;
+  };
+}>();
 
 const SCALE_KEY = 'culinola.recipes.scale';
 const SCALES = [0.85, 1, 1.2, 1.45, 1.75];
 
 const { t } = useI18n();
 const source = computed(() => props.config.source ?? 'recipes');
+const heading = computed(() => props.config.title ?? t('recipes.title'));
 const list = ref<RecipeInfo[]>([]);
+const featured = ref<RecipeInfo>();
 const open = ref(false);
 const category = ref<string>();
 const recipe = ref<Recipe>();
 const failed = ref('');
 const scale = ref(readScale());
+const broken = reactive(new Set<string>());
+
+/** Adresse eines Bildes, das zu einem Rezept gehört: Webadressen bleiben, alles andere liegt neben dem Rezept und kommt über den Kern. */
+function imageUrl(recipeId: string, address: string): string {
+  if (/^https?:\/\//i.test(address)) return address;
+  const path = address.split('/').map(encodeURIComponent).join('/');
+  return mediaUrl(`/p/${encodeURIComponent(source.value)}/file/${encodeURIComponent(recipeId)}/${path}`);
+}
+const picture = (entry: RecipeInfo) => (entry.image && !broken.has(`${entry.id}/${entry.image}`) ? imageUrl(entry.id, entry.image) : undefined);
+
+/** Wählt zufällig ein anderes Rezept für die Kachel – eines mit Bild, solange es welche gibt. */
+function pick() {
+  const withPicture = list.value.filter((entry) => picture(entry));
+  const pool = withPicture.length ? withPicture : list.value;
+  const others = pool.filter((entry) => entry.id !== featured.value?.id);
+  const choice = others.length ? others : pool;
+  featured.value = choice[Math.floor(Math.random() * choice.length)];
+}
 
 async function load() {
   try {
     list.value = await getJson<RecipeInfo[]>(`/resources/${encodeURIComponent(source.value)}/list`);
+    if (!list.value.some((entry) => entry.id === featured.value?.id)) pick();
   } catch {
     // Die zuletzt geladene Liste bleibt stehen.
   }
 }
 // Der Kern meldet über diesen Datenpunkt, dass sich der Rezeptordner geändert hat
 watch(() => datapoints.get(`${source.value}:updated`)?.value, load, { immediate: true });
+
+let rotation: number | undefined;
+onMounted(() => {
+  rotation = window.setInterval(
+    () => {
+      // Solange jemand liest, bleibt die Kachel dahinter ruhig
+      if (!open.value) pick();
+    },
+    Math.max(5, props.config.seconds ?? 30) * 1000,
+  );
+});
+
+function pictureFailed(entry: RecipeInfo) {
+  broken.add(`${entry.id}/${entry.image}`);
+  pick();
+}
 
 const categories = computed(() => [...new Set(list.value.map((entry) => entry.category).filter((name): name is string => !!name))].sort((a, b) => a.localeCompare(b)));
 const shown = computed(() => (category.value ? list.value.filter((entry) => entry.category === category.value) : list.value));
@@ -64,16 +112,12 @@ async function show(id: string) {
  * Adressen nicht durch; hier kommen nur noch die Bildadressen und Verweise an die Reihe.
  */
 const html = computed(() => {
-  if (!recipe.value) return '';
+  const current = recipe.value;
+  if (!current) return '';
   const holder = document.createElement('template');
-  holder.innerHTML = micromark(recipe.value.markdown, { extensions: [gfm()], htmlExtensions: [gfmHtml()] });
+  holder.innerHTML = micromark(current.markdown, { extensions: [gfm()], htmlExtensions: [gfmHtml()] });
   for (const image of holder.content.querySelectorAll('img')) {
-    const address = image.getAttribute('src') ?? '';
-    // Bilder ohne Webadresse liegen neben dem Rezept und kommen über den Kern
-    if (!/^https?:\/\//i.test(address)) {
-      const path = address.split('/').map(encodeURIComponent).join('/');
-      image.setAttribute('src', mediaUrl(`/p/${encodeURIComponent(source.value)}/file/${encodeURIComponent(recipe.value.id)}/${path}`));
-    }
+    image.setAttribute('src', imageUrl(current.id, image.getAttribute('src') ?? ''));
     image.setAttribute('loading', 'lazy');
   }
   for (const link of holder.content.querySelectorAll('a')) {
@@ -117,6 +161,7 @@ watch(open, (isOpen) => {
 // Der Browser gibt die Sperre frei, sobald die Anzeige verdeckt wird; beim Zurückkehren holen wir sie wieder.
 document.addEventListener('visibilitychange', keepAwake);
 onUnmounted(() => {
+  window.clearInterval(rotation);
   document.removeEventListener('visibilitychange', keepAwake);
   void lock?.release().catch(() => undefined);
 });
@@ -129,18 +174,18 @@ function close() {
 
 <template>
   <section class="recipes">
-    <button class="head" @click="open = true">
-      <span class="title">{{ props.config.title ?? t('recipes.title') }}</span>
-      <span class="count">{{ t('recipes.count', list.length) }}</span>
-      <span class="arrow" aria-hidden="true">›</span>
+    <button v-if="featured" class="feature" :class="{ plain: !picture(featured) }" :aria-label="t('recipes.open', { title: featured.title })" @click="show(featured.id)">
+      <img v-if="picture(featured)" :key="featured.id" :src="picture(featured)" alt="" @error="pictureFailed(featured)" />
+      <span class="caption">
+        <span class="kicker">{{ heading }}</span>
+        <strong>{{ featured.title }}</strong>
+        <span v-if="featured.category || featured.time" class="facts">{{ [featured.category, featured.time].filter(Boolean).join(' · ') }}</span>
+      </span>
     </button>
-    <ul class="quick">
-      <li v-for="entry in list" :key="entry.id">
-        <button @click="show(entry.id)">{{ entry.title }}</button>
-      </li>
-    </ul>
+    <p v-else class="none">{{ heading }} – {{ t('recipes.count', 0) }}</p>
+    <button class="all" :aria-label="t('recipes.showAll', list.length)" @click="open = true">›</button>
 
-    <DetailOverlay v-if="open" :title="recipe?.title ?? props.config.title ?? t('recipes.title')" @close="close">
+    <DetailOverlay v-if="open" :title="recipe?.title ?? heading" @close="close">
       <template #actions>
         <button v-if="recipe" class="back" @click="recipe = undefined">{{ t('recipes.list') }}</button>
         <button v-if="recipe" :aria-label="t('recipes.smaller')" :disabled="scale === SCALES[0]" @click="resize(-1)">A−</button>
@@ -182,62 +227,116 @@ function close() {
 <style scoped>
 .recipes {
   container-type: size;
+  position: relative;
   min-width: 0;
   min-height: 0;
   border-radius: var(--radius);
   background: var(--card);
+  overflow: hidden;
+}
+/* Hohe Kachel: Das Bild füllt die Fläche, die Beschriftung liegt unten darauf. */
+.feature {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  background: none;
+  display: flex;
+  align-items: flex-end;
+  text-align: left;
+}
+.feature img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.caption {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 28px 60px 10px 12px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.78), transparent);
+  color: #fff;
 }
-.head {
-  flex: none;
-  min-height: 44px;
-  padding: 0 12px;
+.plain .caption {
+  align-self: center;
+  padding-top: 10px;
   background: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-align: left;
+  color: var(--ink);
 }
-.title {
+.kicker {
+  font-size: 13px;
   font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.85;
 }
-.count {
-  flex: 1;
-  color: var(--mute);
-  font-size: 14px;
-}
-.arrow {
-  font-size: 22px;
-  color: var(--mute);
-}
-.quick {
-  flex: 1;
-  min-height: 0;
-  margin: 0;
-  padding: 0 6px 6px;
-  list-style: none;
-  overflow: hidden;
-}
-.quick button {
-  width: 100%;
-  min-height: 40px;
-  padding: 0 6px;
-  border-top: 1px solid var(--line);
-  background: none;
-  text-align: left;
+.caption strong {
+  font-size: clamp(18px, 9cqh, 28px);
+  font-weight: 600;
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* Niedrige Kachel: nur die Zeile, die zur Auswahl führt – und die füllt dann die Höhe */
-@container (max-height: 100px) {
-  .quick {
-    display: none;
+.caption .facts {
+  margin: 0;
+  font-size: 14px;
+  color: inherit;
+  opacity: 0.85;
+}
+.all {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 26px;
+  line-height: 1;
+}
+.none {
+  height: 100%;
+  margin: 0;
+  padding: 0 60px 0 12px;
+  display: flex;
+  align-items: center;
+  color: var(--mute);
+}
+/* Niedrige Kachel: Bild links, Beschriftung daneben */
+@container (max-height: 150px) {
+  .feature {
+    align-items: stretch;
   }
-  .head {
-    flex: 1;
+  .feature img {
+    position: static;
+    flex: none;
+    width: auto;
+    aspect-ratio: 3 / 2;
+  }
+  .caption {
+    justify-content: center;
+    padding: 4px 60px 4px 12px;
+    background: none;
+    color: var(--ink);
+  }
+  .kicker,
+  .caption .facts {
+    color: var(--mute);
+    opacity: 1;
+  }
+  .all {
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+    background: var(--soft);
+    color: var(--ink);
   }
 }
 
@@ -304,7 +403,7 @@ article {
   overflow-y: auto;
   line-height: 1.5;
 }
-.facts {
+article .facts {
   display: flex;
   flex-wrap: wrap;
   gap: 6px 18px;

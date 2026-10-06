@@ -1,0 +1,14 @@
+{
+  "name": "@culinola/plugin-timer",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Eieruhr und Stoppuhr, stellbar per Fingertipp, API oder Sprache.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@culinola/sdk": "*"
+  }
+}
