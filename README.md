@@ -88,6 +88,7 @@ Die Anzeige ist ein Raster. Jedes Widget steht mit `at: [Spalte, Zeile, Breite, 
 | `video` | Live-Bild einer Kamera oder eines Streams; Antippen füllt den Bildschirm | `source` (Video-Instanz), `stream`, `label` |
 | `media-window` | Fernsehbild beim Fernsehsender, Logo beim Radiosender | `source` (Radio-Instanz), `video` (Video-Instanz), `idle` |
 | `news` | Eine Meldung mit Bild, reihum aus allen Feeds; Antippen öffnet den Artikel | `source` (Nachrichten-Instanz), `feeds`, `seconds`, `closeAfter` |
+| `weather` | Wetterlage mit Symbol, Windrose, UV-Index und Vorhersage ab heute | `temperature`, `condition`, `code`, `wind`, `uv`, `sunrise`, `sunset`, `days` |
 | `recipes` | Ein zufällig gewähltes Rezept mit Bild im Wechsel; Antippen öffnet es, der Pfeil die ganze Liste | `source` (Rezept-Instanz), `title`, `seconds` |
 
 `map` übersetzt Zustandswerte in Text, etwa `{ "0": "aus", "1": "läuft", "3": "fertig" }`.
@@ -97,6 +98,31 @@ Im Diagramm läuft „Heute“ von 0 bis 24 Uhr. Eine Reihe mit `forecast: true`
 `warn` nimmt bis zu vier Grenzen: `lowAlarm`, `lowWarn`, `highWarn`, `highAlarm`. Der Punkt ist grün im Bereich, gelb bei Achtung, rot außerhalb und grau ohne Bewertung.
 
 `factor` rechnet einen Wert für die Anzeige um – etwa `100`, wenn die Quelle Feuchte als Bruchteil (0,58) statt in Prozent liefert.
+
+### Wetter
+
+Das Wetter kommt aus Datenpunkten – etwa aus openHAB, das sie von einem Wetterdienst oder einer eigenen Station bezieht. Jede Angabe ist die Kennung eines Datenpunkts; was fehlt, lässt die Kachel weg:
+
+```json
+{ "type": "weather", "at": [19, 0, 12, 3], "config": {
+    "temperature": "openhab:Wetter_Temperatur",
+    "condition": "openhab:Wetter_Lage",
+    "code": "openhab:Wetter_Kennzahl",
+    "wind": { "direction": "openhab:Wind_Richtung", "speed": "openhab:Wind_Geschwindigkeit" },
+    "uv": "openhab:UV_Index",
+    "sunrise": "openhab:Sonnenaufgang", "sunset": "openhab:Sonnenuntergang",
+    "days": [
+      { "condition": "openhab:Lage_0", "max": "openhab:Max_0", "min": "openhab:Min_0" },
+      { "condition": "openhab:Lage_1", "max": "openhab:Max_1", "min": "openhab:Min_1" }
+    ] } }
+```
+
+- Das Symbol richtet sich nach `code` – einer Wetterkennzahl (`800`) oder Symbolkennung (`01d`) von OpenWeatherMap – und sonst nach dem Text in `condition`, deutsch oder englisch. Mit `sunrise` und `sunset` zeigt die Kachel nachts das Nachtsymbol.
+- Die Windrose zeigt, woher der Wind kommt (`direction` in Grad), und in der Mitte die Geschwindigkeit in km/h. Liefert der Datenpunkt eine andere Einheit ohne sie zu nennen, steht sie in `wind.unit` (`m/s`, `mph`, `kn`).
+- Der UV-Index trägt einen Punkt in der Farbe seiner Gefahrenstufe: grün bis 2, gelb bis 5, orange bis 7, rot bis 10, violett darüber.
+- `days` ist die Vorhersage, beginnend mit heute. Gezeigt werden so viele Tage, wie in der Breite Platz haben.
+
+Die Wettersymbole stammen aus dem Satz Meteocons (MIT) und werden ohne dessen Bewegungen gezeigt.
 
 ### Eieruhr
 

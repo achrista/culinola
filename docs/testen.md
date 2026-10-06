@@ -40,7 +40,7 @@ npm run test:instance
 
 Sie läuft auf <http://localhost:8191>, neben einer eigenen Installation auf Port 8090. Die Vorlage liegt in `testing/instance` und wird bei jedem Start frisch in einen Wegwerfordner gelegt; was dort verändert wird, ist nach dem nächsten Start vergessen.
 
-Die Testinstanz enthält: erfundene Messwerte und Schalter, Eieruhr, drei Rezepte (mit Bild, ohne Angaben, mit kaputten Angaben), Nachrichten aus zwei echten Feeds und einem unerreichbaren, einen Radiosender und absichtlich ein unbekanntes Widget. Nachrichten und Radio brauchen Internet.
+Die Testinstanz enthält: erfundene Messwerte, Schalter und Wetterdaten, Eieruhr, drei Rezepte (mit Bild, ohne Angaben, mit kaputten Angaben), Nachrichten aus zwei echten Feeds und einem unerreichbaren, einen Radiosender und absichtlich ein unbekanntes Widget. Nachrichten und Radio brauchen Internet.
 
 ## Prüfliste Oberfläche
 
@@ -60,6 +60,11 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 **Messwerte und Diagramm**
 - [ ] Kacheln zeigen Wert, Einheit und Statuspunkt; die Werte ändern sich ohne Neuladen.
 - [ ] Das Diagramm zeigt „Heute“ von 0 bis 24 Uhr mit der Markierung für jetzt; Woche und Monat lassen sich wählen.
+
+**Wetter**
+- [ ] Die kleine Kachel zeigt Symbol, Temperatur, Wetterlage, Windrose mit Geschwindigkeit, UV-Index und so viele Tage, wie Platz haben; der erste heißt „Heute“.
+- [ ] Die große Kachel zeigt alle fünf Tage mit passenden Symbolen: Wolken, Sonne, Regen, Gewitter, Schneeregen.
+- [ ] Der Zeiger der Windrose wandert (in der Testinstanz einmal rundum je Stunde), die Himmelsrichtung darunter folgt ihm.
 
 **Schalter**
 - [ ] Antippen schaltet um, der Zustand ist sofort sichtbar und nach dem Neuladen derselbe.

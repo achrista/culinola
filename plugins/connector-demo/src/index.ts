@@ -14,6 +14,15 @@ const CURVES: Record<string, { unit: string; label: string; at(hour: number, tim
   batterie: { unit: '%', label: 'Batterie', at: (h) => Math.round(Math.min(100, Math.max(15, 20 + (h < 7 ? 0 : (h - 7) * 9) - (h > 17 ? (h - 17) * 12 : 0)))) },
 };
 
+/** Erfundene Vorhersage für fünf Tage: Wetterlage, Höchst- und Tiefstwert. */
+const FORECAST: [string, number, number][] = [
+  ['Mäßig bewölkt', 16, 8],
+  ['Klarer Himmel', 19, 7],
+  ['Leichter Regen', 14, 9],
+  ['Gewitter', 17, 11],
+  ['Schneeregen', 3, -1],
+];
+
 /** Gleichmäßiges, wiederholbares Rauschen statt Zufall – so passen Verlauf und Live-Wert zusammen. */
 function wobble(time: number, amplitude: number): number {
   return amplitude * (Math.sin(time / 97_000) + 0.5 * Math.sin(time / 31_000));
@@ -35,12 +44,29 @@ export default definePlugin({
       ['licht_terrasse', false],
     ]);
 
+    // Wetter zum Vorzeigen: Der Wind dreht in einer Stunde einmal rundum, der UV-Index folgt dem Sonnenstand.
+    const publishWeather = (now: number) => {
+      const hour = hourOf(now);
+      const set = (id: string, value: DatapointValue, unit?: string) => context.datapoints.set({ id, value, ...(unit ? { unit } : {}) });
+      set('wetter_code', '802');
+      set('wetter_text', 'Mäßig bewölkt');
+      set('wind_richtung', Math.round(((now / 3_600_000) % 1) * 360), '°');
+      set('wind', Math.round((14 + 10 * Math.sin(now / 240_000)) * 10) / 10, 'km/h');
+      set('uv', Math.max(0, Math.round(7 * Math.sin(((hour - 6) / 14) * Math.PI))));
+      FORECAST.forEach(([text, max, min], day) => {
+        set(`tag${day}_text`, text);
+        set(`tag${day}_max`, max, '°C');
+        set(`tag${day}_min`, min, '°C');
+      });
+    };
+
     const publish = () => {
       const now = Date.now();
       for (const [id, curve] of Object.entries(CURVES)) {
         context.datapoints.set({ id, value: Math.round(curve.at(hourOf(now), now) * 10) / 10, unit: curve.unit, label: curve.label });
       }
       context.datapoints.set({ id: 'waschen', value: 'läuft', label: 'Waschmaschine' });
+      publishWeather(now);
       for (const [id, on] of switches) context.datapoints.set({ id, value: on, writable: true });
     };
 

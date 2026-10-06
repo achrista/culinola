@@ -21,14 +21,20 @@ const layout = ref<Layout>();
 const error = ref('');
 const denied = ref(false);
 
-/** Sammelt alle Datenpunkt-Kennungen, die in den Widget-Einstellungen vorkommen. */
+const DATAPOINT_ID = /^[a-z][a-z0-9-]*:[\w.-]+$/;
+
+/**
+ * Sammelt alle Datenpunkt-Kennungen aus den Widget-Einstellungen: jede Angabe der Form
+ * "quelle:name". Was nur so aussieht und keiner ist, schadet nicht – der Kern schickt dazu nichts.
+ */
 function collectIds(value: unknown, found: Set<string>): void {
-  if (Array.isArray(value)) value.forEach((entry) => collectIds(entry, found));
+  if (typeof value === 'string') {
+    if (DATAPOINT_ID.test(value)) found.add(value);
+  } else if (Array.isArray(value)) value.forEach((entry) => collectIds(entry, found));
   else if (value && typeof value === 'object') {
     for (const [key, entry] of Object.entries(value)) {
-      if ((key === 'datapoint' || key === 'secondary') && typeof entry === 'string') found.add(entry);
       // Widgets, die an einer ganzen Quelle hängen (Radio, Video, Eieruhr), brauchen alle ihre Datenpunkte
-      else if ((key === 'source' || key === 'timer') && typeof entry === 'string') found.add(`${entry}:*`);
+      if ((key === 'source' || key === 'timer') && typeof entry === 'string') found.add(`${entry}:*`);
       else collectIds(entry, found);
     }
   }

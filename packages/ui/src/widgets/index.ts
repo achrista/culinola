@@ -9,6 +9,7 @@ import RecipeCard from './RecipeCard.vue';
 import SwitchField from './SwitchField.vue';
 import ValueTile from './ValueTile.vue';
 import VideoTile from './VideoTile.vue';
+import WeatherCard from './WeatherCard.vue';
 
 /** Zuordnung vom Typnamen im Layout zum Widget. */
 export const widgets: Record<string, Component> = {
@@ -21,5 +22,6 @@ export const widgets: Record<string, Component> = {
   radio: RadioBar,
   recipes: RecipeCard,
   video: VideoTile,
+  weather: WeatherCard,
   'media-window': MediaWindow,
 };

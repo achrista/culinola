@@ -84,5 +84,19 @@
     "startStopwatch": "Stoppuhr starten",
     "stop": "Stoppen",
     "failed": "Eieruhr nicht verfügbar: {error}"
+  },
+  "weather": {
+    "today": "Heute",
+    "points": "N,NO,O,SO,S,SW,W,NW",
+    "wind": "Wind",
+    "windFrom": "Wind aus {point}, {speed} km/h, Stärke {force}",
+    "uv": "UV {index}",
+    "uvLevel": {
+      "low": "UV-Belastung niedrig",
+      "moderate": "UV-Belastung mäßig",
+      "high": "UV-Belastung hoch",
+      "veryHigh": "UV-Belastung sehr hoch",
+      "extreme": "UV-Belastung extrem"
+    }
   }
 }

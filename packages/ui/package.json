@@ -10,6 +10,7 @@
     "build": "vite build"
   },
   "dependencies": {
+    "@bybas/weather-icons": "^2.0.0",
     "@culinola/sdk": "^0.0.0",
     "@fontsource/barlow": "^5.3.0",
     "@fontsource/dosis": "^5.3.0",

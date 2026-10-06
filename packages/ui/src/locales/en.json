@@ -84,5 +84,19 @@
     "startStopwatch": "Start stopwatch",
     "stop": "Stop",
     "failed": "Kitchen timer not available: {error}"
+  },
+  "weather": {
+    "today": "Today",
+    "points": "N,NE,E,SE,S,SW,W,NW",
+    "wind": "Wind",
+    "windFrom": "Wind from {point}, {speed} km/h, force {force}",
+    "uv": "UV {index}",
+    "uvLevel": {
+      "low": "UV exposure low",
+      "moderate": "UV exposure moderate",
+      "high": "UV exposure high",
+      "veryHigh": "UV exposure very high",
+      "extreme": "UV exposure extreme"
+    }
   }
 }
