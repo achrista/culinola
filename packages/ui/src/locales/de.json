@@ -39,5 +39,12 @@
     "louder": "Lauter",
     "volume": "Lautstärke {percent} Prozent",
     "tapToStart": "Zum Starten des Tons hier tippen"
+  },
+  "video": {
+    "connecting": "Verbinde …",
+    "reconnecting": "Kein Bild – neuer Versuch läuft",
+    "enlarge": "{name} im Vollbild zeigen",
+    "shrink": "Vollbild von {name} schließen",
+    "tapForSound": "Für Ton antippen"
   }
 }

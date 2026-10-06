@@ -1,3 +1,5 @@
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import type { DatapointValue, Logger, PluginDefinition, RouteHandler, SeriesPoint } from '@culinola/sdk';
 import type { ActionRegistry } from './actions.ts';
 import type { SourceConfig } from './config.ts';
@@ -36,7 +38,10 @@ export class PluginHost {
   private readonly secrets: Record<string, Record<string, string>>;
   private readonly log: Logger;
 
-  constructor(registry: DatapointRegistry, actions: ActionRegistry, secrets: Record<string, Record<string, string>>, log: Logger) {
+  private readonly dataDir: string;
+
+  constructor(registry: DatapointRegistry, actions: ActionRegistry, secrets: Record<string, Record<string, string>>, log: Logger, dataDir: string) {
+    this.dataDir = dataDir;
     this.registry = registry;
     this.actions = actions;
     this.secrets = secrets;
@@ -73,6 +78,7 @@ export class PluginHost {
         error: (message, error) => this.log.error(`${tag} ${message}`, error),
       },
       secrets: { get: (name) => this.secrets[source.id]?.[name] },
+      storageDir: storageDir(this.dataDir, source.id),
       datapoints: {
         set: (update) => {
           this.registry.set({
@@ -114,6 +120,13 @@ export class PluginHost {
   stopAll(): void {
     this.stop.abort();
   }
+}
+
+/** Legt den Ordner der Instanz bei Bedarf an. */
+function storageDir(dataDir: string, instance: string): string {
+  const dir = join(dataDir, instance);
+  mkdirSync(dir, { recursive: true });
+  return dir;
 }
 
 function split(datapointId: string): { source: string; local: string } {

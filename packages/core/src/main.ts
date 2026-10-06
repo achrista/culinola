@@ -32,7 +32,7 @@ else log.info(`Zugriffsschutz aktiv: ${access.map((entry) => `${entry.name} (${e
 
 const registry = new DatapointRegistry();
 const actions = new ActionRegistry();
-const plugins = new PluginHost(registry, actions, secrets, log);
+const plugins = new PluginHost(registry, actions, secrets, log, dataDir);
 
 actions.register(
   {

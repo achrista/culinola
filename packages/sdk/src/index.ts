@@ -87,6 +87,8 @@ export interface PluginContext<C> {
   config: C;
   log: Logger;
   secrets: { get(name: string): string | undefined };
+  /** Eigener Ordner der Instanz im Datenordner, etwa für erzeugte Einstellungsdateien. */
+  storageDir: string;
   datapoints: { set(update: DatapointUpdate): void };
   /** Meldet an, was man mit dem Plugin tun kann. */
   actions: { register(definition: ActionDefinition, handler: ActionHandler): void };

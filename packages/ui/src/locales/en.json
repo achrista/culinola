@@ -39,5 +39,12 @@
     "louder": "Louder",
     "volume": "Volume {percent} percent",
     "tapToStart": "Tap here to start the sound"
+  },
+  "video": {
+    "connecting": "Connecting …",
+    "reconnecting": "No picture – retrying",
+    "enlarge": "Show {name} full screen",
+    "shrink": "Close full screen of {name}",
+    "tapForSound": "Tap for sound"
   }
 }

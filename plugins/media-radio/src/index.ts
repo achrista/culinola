@@ -4,8 +4,8 @@ import { icyFilter } from './icy.ts';
 interface Station {
   id: string;
   name: string;
-  /** Adresse des Streams. */
-  url: string;
+  /** Adresse des Tonstroms. Fernsehsender brauchen keine – ihr Bild kommt über das Video-Plugin. */
+  url?: string;
   /** audio = Radio, video = Fernsehen (läuft im Medienfenster). */
   kind: 'audio' | 'video';
   /** Standbild des Senders für das Medienfenster. */
@@ -34,7 +34,7 @@ export default definePlugin<Config>({
       if (seen.has(station.id)) throw new Error(`Sender-Kennung "${station.id}" ist doppelt vergeben.`);
       seen.add(station.id);
       if (!station.name) throw new Error(`Sender "${station.id}": "name" fehlt.`);
-      if (!/^https?:\/\//.test(station.url ?? '')) throw new Error(`Sender "${station.id}": "url" fehlt oder beginnt nicht mit http:// bzw. https://.`);
+      if (station.kind === 'audio' && !/^https?:\/\//.test(station.url ?? '')) throw new Error(`Sender "${station.id}": "url" fehlt oder beginnt nicht mit http:// bzw. https://.`);
       if (station.kind !== 'audio' && station.kind !== 'video') throw new Error(`Sender "${station.id}": "kind" muss "audio" oder "video" sein.`);
     }
     return { stations: config.stations, volume: clampVolume(config.volume ?? 50) };
@@ -101,7 +101,7 @@ export default definePlugin<Config>({
     // unverschlüsselt sendet, und der eingebettete Titel lässt sich unterwegs herauslesen.
     context.routes.get('/stream/:id', async (request) => {
       const station = stations.get(request.params.id ?? '');
-      if (!station || station.kind !== 'audio') return Response.json({ error: 'Sender unbekannt oder kein Radiosender.' }, { status: 404 });
+      if (!station || station.kind !== 'audio' || !station.url) return Response.json({ error: 'Sender unbekannt oder kein Radiosender.' }, { status: 404 });
 
       let upstream: Response;
       try {
