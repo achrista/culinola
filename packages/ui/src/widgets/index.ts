@@ -2,6 +2,7 @@ import type { Component } from 'vue';
 import ChartCard from './ChartCard.vue';
 import ClockCard from './ClockCard.vue';
 import NoteCard from './NoteCard.vue';
+import RadioBar from './RadioBar.vue';
 import SwitchField from './SwitchField.vue';
 import ValueTile from './ValueTile.vue';
 
@@ -12,4 +13,5 @@ export const widgets: Record<string, Component> = {
   chart: ChartCard,
   clock: ClockCard,
   note: NoteCard,
+  radio: RadioBar,
 };

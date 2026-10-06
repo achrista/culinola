@@ -1,9 +1,11 @@
-import type { ActionDefinition, ActionHandler, ActionParams } from '@culinola/sdk';
+import { type ActionDefinition, type ActionHandler, type ActionParams, InvalidInput } from '@culinola/sdk';
 
 const ACTION_NAME = /^[a-z][a-z0-9]*(\.[a-z][a-zA-Z0-9]*)+$/;
 
 export class UnknownAction extends Error {}
-export class InvalidParams extends Error {}
+/** Fehlerhafte Parameter – dieselbe Art Fehler, die auch ein Plugin für unpassende Eingaben meldet. */
+export { InvalidInput as InvalidParams };
+const InvalidParams = InvalidInput;
 
 /**
  * Verzeichnis aller Aktionen. Dieselbe Aktion wird von überall ausgelöst:

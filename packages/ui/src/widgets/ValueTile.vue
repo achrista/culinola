@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DatapointValue } from '@culinola/sdk';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { getSeries } from '../api.ts';
 import { formatValue } from '../format.ts';
 import { datapoints } from '../store.ts';
@@ -33,6 +34,7 @@ const props = defineProps<{
 }>();
 
 /** Manche Quellen liefern Anteile als Bruchteil (0,58 statt 58 %); `factor` rechnet für die Anzeige um. */
+const { t } = useI18n();
 const scale = (value: DatapointValue | undefined, factor?: number) => (typeof value === 'number' && factor !== undefined ? value * factor : value);
 
 const main = computed(() => datapoints.get(props.config.datapoint));
@@ -94,7 +96,7 @@ const sparkline = computed(() => {
     <header>
       <span class="name">{{ config.label ?? main?.label ?? config.datapoint }}</span>
       <span v-if="secondary && secondaryConfig" class="secondary">{{ formatValue(scale(secondary.value, secondaryConfig.factor), secondaryConfig.decimals) }} {{ secondaryConfig.unit ?? secondary.unit }}</span>
-      <span class="dot" :class="status" role="img" :aria-label="{ ok: 'im Bereich', warn: 'Achtung', alarm: 'außerhalb', none: 'ohne Bewertung' }[status]"></span>
+      <span class="dot" :class="status" role="img" :aria-label="t(`tile.status.${status}`)"></span>
     </header>
     <div class="reading">
       <span class="value">{{ display }}</span>

@@ -10,7 +10,10 @@ const RECONNECT_MS = 3000;
 let socket: WebSocket | undefined;
 let topics: string[] = [];
 
-/** Legt fest, welche Datenpunkte die Anzeige braucht – nur diese schickt der Kern. */
+/**
+ * Legt fest, welche Datenpunkte die Anzeige braucht – nur diese schickt der Kern.
+ * Eine Angabe wie "radio:*" meint alle Datenpunkte einer Quelle.
+ */
 export function subscribe(ids: readonly string[]): void {
   topics = ids.map((id) => `dp/${id}`);
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ op: 'sub', topics }));

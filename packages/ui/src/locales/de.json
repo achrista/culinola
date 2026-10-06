@@ -1,0 +1,43 @@
+{
+  "app": {
+    "layoutFailed": "Das Layout konnte nicht geladen werden: {error}",
+    "notUnlocked": "Diese Anzeige ist noch nicht freigeschaltet ({error}) Öffnen Sie die Adresse einmal mit dem Zusatz „#token=“ und dem Zugangstoken am Ende – danach merkt sich die Anzeige den Zugang.",
+    "offline": "Keine Verbindung zum Kern – neuer Versuch läuft",
+    "unknownWidget": "Unbekanntes Widget „{type}“"
+  },
+  "state": {
+    "on": "an",
+    "off": "aus"
+  },
+  "tile": {
+    "status": {
+      "ok": "im Bereich",
+      "warn": "Achtung",
+      "alarm": "außerhalb",
+      "none": "ohne Bewertung"
+    }
+  },
+  "switches": {
+    "failed": "Schalten fehlgeschlagen: {error}"
+  },
+  "chart": {
+    "title": "Verlauf",
+    "period": "Zeitraum",
+    "today": "Heute",
+    "week": "Woche",
+    "month": "Monat",
+    "failed": "Verlauf nicht verfügbar: {error}"
+  },
+  "radio": {
+    "idle": "Radio und Fernsehen",
+    "radio": "Radio",
+    "tv": "Fernsehen",
+    "tvTag": "TV",
+    "off": "Aus",
+    "inMediaWindow": "Bild im Medienfenster",
+    "quieter": "Leiser",
+    "louder": "Lauter",
+    "volume": "Lautstärke {percent} Prozent",
+    "tapToStart": "Zum Starten des Tons hier tippen"
+  }
+}

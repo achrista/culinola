@@ -1,10 +1,17 @@
-import type { DatapointValue, Logger, PluginDefinition, SeriesPoint } from '@culinola/sdk';
+import type { DatapointValue, Logger, PluginDefinition, RouteHandler, SeriesPoint } from '@culinola/sdk';
 import type { ActionRegistry } from './actions.ts';
 import type { SourceConfig } from './config.ts';
 import type { DatapointRegistry } from './registry.ts';
 
 type CommandHandler = (id: string, value: DatapointValue) => Promise<void>;
 type HistoryHandler = (id: string, from: Date, to: Date) => Promise<SeriesPoint[]>;
+
+export interface PluginRoute {
+  method: 'GET' | 'POST';
+  instance: string;
+  path: string;
+  handler: RouteHandler;
+}
 
 export interface SourceStatus {
   id: string;
@@ -19,6 +26,10 @@ export class PluginHost {
   private readonly histories = new Map<string, HistoryHandler>();
   private readonly stop = new AbortController();
   readonly status: SourceStatus[] = [];
+  /** Listen und Verzeichnisse der Plugins, Schlüssel "<Instanz>/<Name>". */
+  readonly resources = new Map<string, unknown>();
+  /** Von Plugins bereitgestellte Adressen; der Server hängt sie unter `/api/v1/p/<Instanz>` ein. */
+  readonly routes: PluginRoute[] = [];
 
   private readonly registry: DatapointRegistry;
   private readonly actions: ActionRegistry;
@@ -73,6 +84,11 @@ export class PluginHost {
         },
       },
       actions: { register: (definition, handler) => this.actions.register(definition, handler) },
+      resources: { set: (name, value) => this.resources.set(`${source.id}/${name}`, value) },
+      routes: {
+        get: (path, handler) => this.routes.push({ method: 'GET', instance: source.id, path, handler }),
+        post: (path, handler) => this.routes.push({ method: 'POST', instance: source.id, path, handler }),
+      },
       onCommand: (handler) => this.commands.set(source.id, handler),
       provideHistory: (handler) => this.histories.set(source.id, handler),
       signal: this.stop.signal,

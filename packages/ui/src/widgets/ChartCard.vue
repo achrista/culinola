@@ -4,6 +4,7 @@ import { GridComponent, LegendComponent, MarkLineComponent, TooltipComponent } f
 import { type ECharts, init, use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { getSeries } from '../api.ts';
 
 use([LineChart, GridComponent, LegendComponent, MarkLineComponent, TooltipComponent, CanvasRenderer]);
@@ -19,9 +20,9 @@ interface SeriesConfig {
 const props = defineProps<{ config: { title?: string; series?: SeriesConfig[] } }>();
 
 const PERIODS = [
-  { id: 'today', label: 'Heute', step: '5m' },
-  { id: 'week', label: 'Woche', step: '1h' },
-  { id: 'month', label: 'Monat', step: '6h' },
+  { id: 'today', step: '5m' },
+  { id: 'week', step: '1h' },
+  { id: 'month', step: '6h' },
 ] as const;
 type PeriodId = (typeof PERIODS)[number]['id'];
 
@@ -35,6 +36,7 @@ function range(id: PeriodId): { from: Date; to: Date } {
   return { from: new Date(now.getTime() - (id === 'week' ? 7 : 30) * 24 * 3_600_000), to: now };
 }
 
+const { t } = useI18n();
 const period = ref<PeriodId>('today');
 const failed = ref('');
 const target = ref<HTMLElement>();
@@ -109,14 +111,14 @@ watch(period, () => void draw());
 <template>
   <section class="card">
     <header>
-      <h2>{{ config.title ?? 'Verlauf' }}</h2>
-      <div class="periods" role="group" aria-label="Zeitraum">
+      <h2>{{ config.title ?? t('chart.title') }}</h2>
+      <div class="periods" role="group" :aria-label="t('chart.period')">
         <button v-for="entry in PERIODS" :key="entry.id" :class="{ active: period === entry.id }" :aria-pressed="period === entry.id" @click="period = entry.id">
-          {{ entry.label }}
+          {{ t(`chart.${entry.id}`) }}
         </button>
       </div>
     </header>
-    <p v-if="failed" class="error" role="alert">Verlauf nicht verfügbar: {{ failed }}</p>
+    <p v-if="failed" class="error" role="alert">{{ t('chart.failed', { error: failed }) }}</p>
     <div ref="target" class="plot"></div>
   </section>
 </template>

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { AccessDenied, adoptTokenFromAddress, getJson } from './api.ts';
+import { applySite, type SiteSettings } from './i18n.ts';
 import { connect, connected, subscribe } from './store.ts';
 import { widgets } from './widgets/index.ts';
 
@@ -14,6 +16,7 @@ interface Layout {
   widgets: Widget[];
 }
 
+const { t } = useI18n();
 const layout = ref<Layout>();
 const error = ref('');
 const denied = ref(false);
@@ -24,6 +27,8 @@ function collectIds(value: unknown, found: Set<string>): void {
   else if (value && typeof value === 'object') {
     for (const [key, entry] of Object.entries(value)) {
       if ((key === 'datapoint' || key === 'secondary') && typeof entry === 'string') found.add(entry);
+      // Widgets, die an einer ganzen Quelle hängen (Radio, Video), brauchen alle ihre Datenpunkte
+      else if (key === 'source' && typeof entry === 'string') found.add(`${entry}:*`);
       else collectIds(entry, found);
     }
   }
@@ -36,6 +41,7 @@ onMounted(async () => {
     if (adoptTokenFromAddress()) location.reload();
   });
   try {
+    applySite(await getJson<SiteSettings>('/site'));
     layout.value = await getJson<Layout>('/layouts/main');
     const ids = new Set<string>();
     collectIds(layout.value.widgets, ids);
@@ -54,10 +60,8 @@ function place(widget: Widget) {
 </script>
 
 <template>
-  <p v-if="denied" class="notice">
-    Diese Anzeige ist noch nicht freigeschaltet ({{ error }}) Öffnen Sie die Adresse einmal mit dem Zusatz „#token=“ und dem Zugangstoken am Ende – danach merkt sich die Anzeige den Zugang.
-  </p>
-  <p v-else-if="error" class="notice">Das Layout konnte nicht geladen werden: {{ error }}</p>
+  <p v-if="denied" class="notice">{{ t('app.notUnlocked', { error }) }}</p>
+  <p v-else-if="error" class="notice">{{ t('app.layoutFailed', { error }) }}</p>
   <main
     v-else-if="layout"
     class="grid"
@@ -65,10 +69,10 @@ function place(widget: Widget) {
   >
     <template v-for="(widget, index) in layout.widgets" :key="index">
       <component :is="widgets[widget.type]" v-if="widgets[widget.type]" :config="widget.config ?? {}" :style="place(widget)" />
-      <div v-else class="unknown" :style="place(widget)">Unbekanntes Widget „{{ widget.type }}“</div>
+      <div v-else class="unknown" :style="place(widget)">{{ t('app.unknownWidget', { type: widget.type }) }}</div>
     </template>
   </main>
-  <div v-if="layout && !connected" class="offline" role="status">Keine Verbindung zum Kern – neuer Versuch läuft</div>
+  <div v-if="layout && !connected" class="offline" role="status">{{ t('app.offline') }}</div>
 </template>
 
 <style scoped>

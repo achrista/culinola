@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { postJson } from '../api.ts';
 import { isOn } from '../state.ts';
 import { datapoints } from '../store.ts';
 
 const props = defineProps<{ config: { items?: { datapoint: string; label?: string }[] } }>();
 
+const { t } = useI18n();
 const pending = ref(new Set<string>());
 const failed = ref('');
 
@@ -39,7 +41,7 @@ async function toggle(id: string) {
       <span class="track"><span class="knob"></span></span>
       <span class="label">{{ item.label ?? datapoints.get(item.datapoint)?.label ?? item.datapoint }}</span>
     </button>
-    <p v-if="failed" class="error" role="alert">Schalten fehlgeschlagen: {{ failed }}</p>
+    <p v-if="failed" class="error" role="alert">{{ t('switches.failed', { error: failed }) }}</p>
   </section>
 </template>
 

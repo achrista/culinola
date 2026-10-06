@@ -26,6 +26,8 @@ export interface AppConfig {
   port: number;
   sources: SourceConfig[];
   layouts: Record<string, LayoutConfig>;
+  /** Sprache der Oberfläche ("de", "en") und Region für Zahlen und Datum ("de-DE"); ohne Angabe entscheidet der Browser. */
+  site?: { language?: string; region?: string };
   /** Wer die API benutzen darf. Die Tokens selbst stehen in `secrets.json` unter "api". */
   access?: { tokens: { name: string; role: string }[] };
 }
@@ -110,6 +112,7 @@ export function loadConfig(): LoadedConfig {
   if (raw.sources.some((source) => source.id === 'api')) throw new Error(`${file}: Eine Quelle darf nicht "api" heißen – der Name ist vergeben.`);
   const config: AppConfig = { port: raw.port ?? 8090, sources: raw.sources, layouts: raw.layouts };
   if (raw.access) config.access = raw.access;
+  if (raw.site) config.site = raw.site;
   return { config, dataDir, demo: false };
 }
 

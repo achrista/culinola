@@ -6,5 +6,6 @@ import '@fontsource/dosis/400.css';
 import './theme.css';
 import { createApp } from 'vue';
 import App from './App.vue';
+import { i18n } from './i18n.ts';
 
-createApp(App).mount('#app');
+createApp(App).use(i18n).mount('#app');

@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { Readable } from 'node:stream';
 import fastifyStatic from '@fastify/static';
 import fastifyWebsocket from '@fastify/websocket';
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -49,13 +50,18 @@ export async function buildServer({ config, registry, plugins, actions, log, acc
   // überall sonst bleibt es aus der Adresse heraus, damit es in keinem Protokoll landet.
   app.addHook('onRequest', async (request, reply) => {
     if (!request.url.startsWith('/api/')) return;
-    const fromAddress = request.url.startsWith('/api/v1/stream') ? (request.query as { token?: string } | undefined)?.token : undefined;
+    // Auch Ton- und Bildelemente des Browsers können keine Kopfzeile setzen – deshalb gilt
+    // dieselbe Ausnahme für lesende Aufrufe an Plugin-Adressen.
+    const mayUseAddress = request.url.startsWith('/api/v1/stream') || (request.method === 'GET' && request.url.startsWith('/api/v1/p/'));
+    const fromAddress = mayUseAddress ? (request.query as { token?: string } | undefined)?.token : undefined;
     const presented = bearerToken(request.headers.authorization) ?? fromAddress;
     const result = authorize(access, presented, requiredRole(request.method));
     if (!result.ok) return reply.code(result.status).send({ error: result.error });
   });
 
   app.get('/api/v1/status', () => ({ sources: plugins.status, datapoints: registry.all().length, protected: access.length > 0 }));
+
+  app.get('/api/v1/site', () => config.site ?? {});
 
   app.get('/api/v1/datapoints', () => registry.all());
 
@@ -97,6 +103,33 @@ export async function buildServer({ config, registry, plugins, actions, log, acc
     );
     return { from, to, series };
   });
+
+  app.get<{ Params: { instance: string; name: string } }>('/api/v1/resources/:instance/:name', (request, reply) => {
+    const key = `${request.params.instance}/${request.params.name}`;
+    return plugins.resources.has(key) ? plugins.resources.get(key) : reply.code(404).send({ error: `Verzeichnis "${key}" ist unbekannt.` });
+  });
+
+  // Adressen der Plugins. Antworten dürfen fortlaufende Datenströme sein; beendet die
+  // Anzeige die Verbindung, erfährt es das Plugin über das Signal und kann die Quelle schließen.
+  for (const route of plugins.routes) {
+    app.route({
+      method: route.method,
+      url: `/api/v1/p/${route.instance}${route.path}`,
+      handler: async (request, reply) => {
+        const gone = new AbortController();
+        reply.raw.on('close', () => gone.abort());
+        const response = await route.handler({
+          params: request.params as Record<string, string>,
+          query: request.query as Record<string, string>,
+          body: request.body,
+          signal: gone.signal,
+        });
+        reply.code(response.status);
+        response.headers.forEach((value, name) => reply.header(name, value));
+        return reply.send(response.body ? Readable.fromWeb(response.body as import('node:stream/web').ReadableStream) : null);
+      },
+    });
+  }
 
   app.get('/api/v1/actions', () => actions.list());
 

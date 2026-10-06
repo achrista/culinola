@@ -16,3 +16,6 @@ app_key.txt
 .idea/
 .DS_Store
 Thumbs.db
+
+# Heruntergeladene Hilfsprogramme (z. B. go2rtc) werden nicht mitverteilt
+tools/

@@ -1,0 +1,43 @@
+{
+  "app": {
+    "layoutFailed": "The layout could not be loaded: {error}",
+    "notUnlocked": "This display has not been unlocked yet ({error}) Open the address once with “#token=” and the access token appended – the display will remember the access afterwards.",
+    "offline": "No connection to the core – retrying",
+    "unknownWidget": "Unknown widget “{type}”"
+  },
+  "state": {
+    "on": "on",
+    "off": "off"
+  },
+  "tile": {
+    "status": {
+      "ok": "in range",
+      "warn": "attention",
+      "alarm": "out of range",
+      "none": "not rated"
+    }
+  },
+  "switches": {
+    "failed": "Switching failed: {error}"
+  },
+  "chart": {
+    "title": "History",
+    "period": "Period",
+    "today": "Today",
+    "week": "Week",
+    "month": "Month",
+    "failed": "History not available: {error}"
+  },
+  "radio": {
+    "idle": "Radio and TV",
+    "radio": "Radio",
+    "tv": "TV",
+    "tvTag": "TV",
+    "off": "Off",
+    "inMediaWindow": "Picture in the media window",
+    "quieter": "Quieter",
+    "louder": "Louder",
+    "volume": "Volume {percent} percent",
+    "tapToStart": "Tap here to start the sound"
+  }
+}

@@ -53,8 +53,26 @@ export interface ActionDefinition {
   sensitive?: boolean;
 }
 
+/**
+ * Eine Eingabe passt nicht – unbekannter Sender, fehlende Angabe. Der Kern meldet
+ * das dem Aufrufer als dessen Fehler, nicht als Störung des Systems.
+ */
+export class InvalidInput extends Error {}
+
 export type ActionParams = Record<string, string | number | boolean>;
 export type ActionHandler = (params: ActionParams) => Promise<unknown> | unknown;
+
+/** Ein Aufruf an eine vom Plugin bereitgestellte Adresse. */
+export interface PluginRequest {
+  params: Record<string, string>;
+  query: Record<string, string>;
+  body: unknown;
+  /** Wird ausgelöst, wenn der Aufrufer die Verbindung beendet – wichtig bei Datenströmen. */
+  signal: AbortSignal;
+}
+
+/** Antwortet mit einer gewöhnlichen Web-Antwort; ihr Rumpf darf ein fortlaufender Datenstrom sein. */
+export type RouteHandler = (request: PluginRequest) => Promise<Response> | Response;
 
 export interface Logger {
   info(message: string): void;
@@ -72,6 +90,10 @@ export interface PluginContext<C> {
   datapoints: { set(update: DatapointUpdate): void };
   /** Meldet an, was man mit dem Plugin tun kann. */
   actions: { register(definition: ActionDefinition, handler: ActionHandler): void };
+  /** Listen und Verzeichnisse des Plugins, abrufbar unter `/api/v1/resources/<Instanz>/<Name>`. */
+  resources: { set(name: string, value: unknown): void };
+  /** Eigene Adressen des Plugins unter `/api/v1/p/<Instanz>/…`, etwa für Datenströme. */
+  routes: { get(path: string, handler: RouteHandler): void; post(path: string, handler: RouteHandler): void };
   /** Wird aufgerufen, wenn ein schreibbarer Datenpunkt dieser Instanz gesetzt werden soll. */
   onCommand(handler: (id: string, value: DatapointValue) => Promise<void>): void;
   /** Meldet die Instanz als Quelle für Verlaufsdaten an. */
