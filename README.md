@@ -93,7 +93,37 @@ Die Oberfläche benutzt dieselbe Schnittstelle wie jedes andere Programm. Alle P
 | `GET /layouts/{id}` | Layout |
 | WebSocket `/stream` | Änderungen in Echtzeit; abonnieren mit `{ "op": "sub", "topics": ["dp/*"] }` |
 
-Die API ist noch **ohne Zugriffsschutz** und deshalb nur für das eigene Heimnetz gedacht.
+### Zugriffsschutz
+
+Ohne Einrichtung ist die API offen: Jeder im Netz kann lesen und schalten. Der Kern weist beim Start darauf hin. Zugänge werden so eingerichtet:
+
+1. Je Zugang ein Token erzeugen:
+
+   ```bash
+   npm run token
+   ```
+
+2. In `data/config.json` die Zugänge mit ihrer Stufe benennen:
+
+   ```json
+   "access": { "tokens": [{ "name": "kueche", "role": "control" }, { "name": "flur", "role": "read" }] }
+   ```
+
+3. In `data/secrets.json` die Tokens dazu eintragen:
+
+   ```json
+   "api": { "kueche": "…", "flur": "…" }
+   ```
+
+| Stufe | Darf |
+|---|---|
+| `read` | lesen |
+| `control` | lesen, schalten, Aktionen auslösen |
+| `admin` | zusätzlich einrichten (noch ohne Funktion) |
+
+Programme schicken das Token in der Kopfzeile `Authorization: Bearer …`. Eine Anzeige wird freigeschaltet, indem man die Adresse einmal mit `#token=…` am Ende öffnet; sie merkt sich den Zugang und entfernt das Token wieder aus der Adresszeile.
+
+Der Schutz regelt, wer etwas darf. Er verschlüsselt nichts – außerhalb des eigenen Heimnetzes gehört HTTPS davor.
 
 ## Entwickeln
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { getJson } from './api.ts';
+import { AccessDenied, adoptTokenFromAddress, getJson } from './api.ts';
 import { connect, connected, subscribe } from './store.ts';
 import { widgets } from './widgets/index.ts';
 
@@ -16,6 +16,7 @@ interface Layout {
 
 const layout = ref<Layout>();
 const error = ref('');
+const denied = ref(false);
 
 /** Sammelt alle Datenpunkt-Kennungen, die in den Widget-Einstellungen vorkommen. */
 function collectIds(value: unknown, found: Set<string>): void {
@@ -29,6 +30,11 @@ function collectIds(value: unknown, found: Set<string>): void {
 }
 
 onMounted(async () => {
+  adoptTokenFromAddress();
+  // Wird das Token an eine schon geöffnete Seite angehängt, lädt der Browser nicht neu – das holen wir nach.
+  window.addEventListener('hashchange', () => {
+    if (adoptTokenFromAddress()) location.reload();
+  });
   try {
     layout.value = await getJson<Layout>('/layouts/main');
     const ids = new Set<string>();
@@ -36,6 +42,7 @@ onMounted(async () => {
     subscribe([...ids]);
     connect();
   } catch (cause) {
+    denied.value = cause instanceof AccessDenied;
     error.value = cause instanceof Error ? cause.message : String(cause);
   }
 });
@@ -47,7 +54,10 @@ function place(widget: Widget) {
 </script>
 
 <template>
-  <p v-if="error" class="notice">Das Layout konnte nicht geladen werden: {{ error }}</p>
+  <p v-if="denied" class="notice">
+    Diese Anzeige ist noch nicht freigeschaltet ({{ error }}) Öffnen Sie die Adresse einmal mit dem Zusatz „#token=“ und dem Zugangstoken am Ende – danach merkt sich die Anzeige den Zugang.
+  </p>
+  <p v-else-if="error" class="notice">Das Layout konnte nicht geladen werden: {{ error }}</p>
   <main
     v-else-if="layout"
     class="grid"

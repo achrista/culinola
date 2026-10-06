@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { loadConfig, loadSecrets } from './config.ts';
+import { loadAccess, loadConfig, loadSecrets } from './config.ts';
 
 let dir: string;
 beforeEach(() => {
@@ -31,6 +31,28 @@ describe('loadConfig', () => {
   it('nennt die Datei, wenn "sources" fehlt', () => {
     writeFileSync(join(dir, 'config.json'), JSON.stringify({ layouts: {} }));
     expect(() => loadConfig()).toThrow(/config\.json: "sources" fehlt/);
+  });
+});
+
+describe('loadAccess', () => {
+  const base = { port: 8090, sources: [], layouts: {} };
+
+  it('liefert ohne Angabe keine Zugänge', () => {
+    expect(loadAccess(base, {})).toEqual([]);
+  });
+
+  it('führt Namen, Stufe und Token zusammen', () => {
+    const access = loadAccess({ ...base, access: { tokens: [{ name: 'kueche', role: 'control' }] } }, { api: { kueche: 'ein-langes-geheimes-token' } });
+    expect(access).toEqual([{ name: 'kueche', role: 'control', token: 'ein-langes-geheimes-token' }]);
+  });
+
+  it('bricht ab, wenn zu einem Zugang das Token fehlt', () => {
+    expect(() => loadAccess({ ...base, access: { tokens: [{ name: 'kueche', role: 'control' }] } }, {})).toThrow(/fehlt das Token/);
+  });
+
+  it('lehnt unbekannte Stufen und zu kurze Tokens ab', () => {
+    expect(() => loadAccess({ ...base, access: { tokens: [{ name: 'kueche', role: 'chef' }] } }, { api: { kueche: 'ein-langes-geheimes-token' } })).toThrow(/Stufe/);
+    expect(() => loadAccess({ ...base, access: { tokens: [{ name: 'kueche', role: 'read' }] } }, { api: { kueche: 'kurz' } })).toThrow(/zu kurz/);
   });
 });
 

@@ -1,5 +1,6 @@
 import type { Datapoint } from '@culinola/sdk';
 import { reactive, ref } from 'vue';
+import { accessToken } from './api.ts';
 
 /** Aktueller Stand aller abonnierten Datenpunkte, laufend vom Kern aktualisiert. */
 export const datapoints = reactive(new Map<string, Datapoint>());
@@ -17,7 +18,8 @@ export function subscribe(ids: readonly string[]): void {
 
 export function connect(): void {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  socket = new WebSocket(`${protocol}//${location.host}/api/v1/stream`);
+  const token = accessToken();
+  socket = new WebSocket(`${protocol}//${location.host}/api/v1/stream${token ? `?token=${encodeURIComponent(token)}` : ''}`);
   socket.addEventListener('open', () => {
     connected.value = true;
     socket!.send(JSON.stringify({ op: 'sub', topics }));

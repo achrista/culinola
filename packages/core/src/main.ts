@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 import type { Logger } from '@culinola/sdk';
 import { ActionRegistry, InvalidParams } from './actions.ts';
-import { loadConfig, loadSecrets } from './config.ts';
+import { loadAccess, loadConfig, loadSecrets } from './config.ts';
 import { PluginHost } from './plugins.ts';
 import { DatapointRegistry } from './registry.ts';
 import { buildServer } from './server.ts';
@@ -17,15 +17,18 @@ const log: Logger = {
 function loadOrExit() {
   try {
     const loaded = loadConfig();
-    return { ...loaded, secrets: loadSecrets(loaded.dataDir) };
+    const secrets = loadSecrets(loaded.dataDir);
+    return { ...loaded, secrets, access: loadAccess(loaded.config, secrets) };
   } catch (error) {
     log.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }
 
-const { config, dataDir, demo, secrets } = loadOrExit();
+const { config, dataDir, demo, secrets, access } = loadOrExit();
 if (demo) log.warn(`Keine config.json in ${dataDir} gefunden – Culinola läuft mit erfundenen Beispielwerten.`);
+if (access.length === 0) log.warn('Die API ist ohne Zugriffsschutz: Jeder im Netz kann lesen und schalten. Zugänge lassen sich in config.json unter "access" einrichten.');
+else log.info(`Zugriffsschutz aktiv: ${access.map((entry) => `${entry.name} (${entry.role})`).join(', ')}`);
 
 const registry = new DatapointRegistry();
 const actions = new ActionRegistry();
@@ -51,7 +54,7 @@ actions.register(
 await plugins.startAll(config.sources);
 
 const uiDir = resolve(import.meta.dirname, '../../ui/dist');
-const server = await buildServer({ config, registry, plugins, actions, log, uiDir });
+const server = await buildServer({ config, registry, plugins, actions, log, access, uiDir });
 await server.listen({ port: config.port, host: '0.0.0.0' });
 log.info(`Culinola läuft auf http://localhost:${config.port}`);
 

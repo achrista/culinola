@@ -3,6 +3,7 @@ import fastifyStatic from '@fastify/static';
 import fastifyWebsocket from '@fastify/websocket';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Datapoint, DatapointValue, Logger } from '@culinola/sdk';
+import { type AccessToken, authorize, bearerToken, requiredRole } from './access.ts';
 import { type ActionRegistry, InvalidParams, UnknownAction } from './actions.ts';
 import type { AppConfig } from './config.ts';
 import type { PluginHost } from './plugins.ts';
@@ -17,11 +18,13 @@ export interface ServerDeps {
   plugins: PluginHost;
   actions: ActionRegistry;
   log: Logger;
+  /** Zugelassene Zugänge; leer = API offen. */
+  access: readonly AccessToken[];
   /** Ordner mit der gebauten Oberfläche; fehlt er, läuft nur die API. */
   uiDir?: string;
 }
 
-export async function buildServer({ config, registry, plugins, actions, log, uiDir }: ServerDeps): Promise<FastifyInstance> {
+export async function buildServer({ config, registry, plugins, actions, log, access, uiDir }: ServerDeps): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   await app.register(fastifyWebsocket);
 
@@ -41,7 +44,18 @@ export async function buildServer({ config, registry, plugins, actions, log, uiD
     }
   };
 
-  app.get('/api/v1/status', () => ({ sources: plugins.status, datapoints: registry.all().length }));
+  // Zugriffsschutz für alles unter /api. Nur der Echtzeitkanal nimmt das Token als
+  // Adresszusatz an, weil Browser dort keine eigene Kopfzeile mitschicken können;
+  // überall sonst bleibt es aus der Adresse heraus, damit es in keinem Protokoll landet.
+  app.addHook('onRequest', async (request, reply) => {
+    if (!request.url.startsWith('/api/')) return;
+    const fromAddress = request.url.startsWith('/api/v1/stream') ? (request.query as { token?: string } | undefined)?.token : undefined;
+    const presented = bearerToken(request.headers.authorization) ?? fromAddress;
+    const result = authorize(access, presented, requiredRole(request.method));
+    if (!result.ok) return reply.code(result.status).send({ error: result.error });
+  });
+
+  app.get('/api/v1/status', () => ({ sources: plugins.status, datapoints: registry.all().length, protected: access.length > 0 }));
 
   app.get('/api/v1/datapoints', () => registry.all());
 
