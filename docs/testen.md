@@ -100,6 +100,7 @@ Das Folgende lässt sich nicht nachstellen und wird an der eigenen Installation 
 - Fernsehen: Bild und Ton über go2rtc und ffmpeg, Umschalten zwischen Sendern
 - Ton der Anzeige am vorgesehenen Bildschirm: Radio, Klingelton der Eieruhr, Start ohne vorheriges Antippen
 - Artikelfenster im vorgesehenen Browser und Vollbildmodus der Anzeige
+- Google: Anmeldung mit `npm run google:login` am echten Konto, danach nennt der Kern beim Start die Kalender des Kontos
 
 ## Vor einer Lieferung
 

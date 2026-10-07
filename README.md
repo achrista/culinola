@@ -124,6 +124,10 @@ Das Wetter kommt aus Datenpunkten – etwa aus openHAB, das sie von einem Wetter
 
 Die Wettersymbole stammen aus dem Satz Meteocons (MIT) und werden ohne dessen Bewegungen gezeigt.
 
+### Google-Konto
+
+Kalender und Erinnerungen kommen aus einem Google-Konto. Das Plugin `source-google` braucht dafür einen eigenen Zugang bei Google und eine einmalige Anmeldung mit `npm run google:login`; die Schritte stehen in [docs/google-einrichten.md](docs/google-einrichten.md). Culinola erhält nur Lesezugriff. Dieser Stand prüft die Anmeldung und nennt die Kalender des Kontos – Termine und Erinnerungen folgen.
+
 ### Eieruhr
 
 Mit `{ "id": "timer", "plugin": "timer" }` als Quelle und `"timer": "timer"` in den Angaben der Uhr wird die Uhr zur Eieruhr: Antippen öffnet die Auswahl der Dauer. Solange die Eieruhr läuft, steht sie groß an der Stelle der Uhrzeit, und die Uhrzeit rückt an die Stelle des Datums. Ist die Zeit um, klingelt die Anzeige und zählt danach mit Minuszeichen weiter – so sieht man, wie lange etwas schon nachkocht –, begleitet von einem kurzen Ton alle zwei Sekunden. Antippen schaltet sie aus; sonst endet sie nach der Nachlaufzeit von selbst (`overrunSeconds` in den Angaben der Quelle, Vorgabe 120). Statt rückwärts läuft sie als Stoppuhr auch vorwärts.
