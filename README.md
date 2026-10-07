@@ -79,7 +79,7 @@ Die Anzeige ist ein Raster. Jedes Widget steht mit `at: [Spalte, Zeile, Breite, 
 
 | Typ | Zeigt | Wichtigste Angaben |
 |---|---|---|
-| `clock` | Uhrzeit mit Sekunden und Datum; Antippen stellt die Eieruhr | `timer` (Eieruhr-Instanz), `alarmSeconds` |
+| `clock` | Uhrzeit mit Sekunden und Datum; Antippen stellt die Eieruhr | `timer` (Eieruhr-Instanz) |
 | `value-tile` | Messwert mit Statuspunkt und Verlaufslinie | `datapoint`, `label`, `secondary`, `unit`, `decimals`, `factor`, `warn`, `map` |
 | `switches` | Feld von Schaltern, das sich dem Platz anpasst | `items: [{ datapoint, label }]` |
 | `chart` | Zeitverlauf für heute, Woche, Monat | `title`, `series: [{ datapoint, label, area, forecast }]` |
@@ -126,7 +126,7 @@ Die Wettersymbole stammen aus dem Satz Meteocons (MIT) und werden ohne dessen Be
 
 ### Eieruhr
 
-Mit `{ "id": "timer", "plugin": "timer" }` als Quelle und `"timer": "timer"` in den Angaben der Uhr wird die Uhr zur Eieruhr: Antippen öffnet die Auswahl der Dauer, die laufende Zeit steht neben der Uhrzeit. Ist die Zeit um, klingelt die Anzeige `alarmSeconds` Sekunden lang (Vorgabe 120) und zeigt es an, bis jemand die Uhr antippt. Statt rückwärts läuft sie als Stoppuhr auch vorwärts.
+Mit `{ "id": "timer", "plugin": "timer" }` als Quelle und `"timer": "timer"` in den Angaben der Uhr wird die Uhr zur Eieruhr: Antippen öffnet die Auswahl der Dauer. Solange die Eieruhr läuft, steht sie groß an der Stelle der Uhrzeit, und die Uhrzeit rückt an die Stelle des Datums. Ist die Zeit um, klingelt die Anzeige und zählt danach mit Minuszeichen weiter – so sieht man, wie lange etwas schon nachkocht –, begleitet von einem kurzen Ton alle zwei Sekunden. Antippen schaltet sie aus; sonst endet sie nach der Nachlaufzeit von selbst (`overrunSeconds` in den Angaben der Quelle, Vorgabe 120). Statt rückwärts läuft sie als Stoppuhr auch vorwärts.
 
 Die Eieruhr lebt im Kern, nicht in der Anzeige: Sie übersteht ein Neuladen und einen Neustart, alle Anzeigen zeigen dieselbe, und sie lässt sich über die Aktionen `timer.start` (`minutes`, `seconds`), `timer.stopwatch`, `timer.add` (`seconds`) und `timer.stop` auch von außen stellen. Damit die Restzeit stimmt, müssen die Uhren von Kern und Anzeigerechner gleich gehen – bei beiden also die Zeit aus dem Netz beziehen.
 

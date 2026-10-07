@@ -22,6 +22,16 @@ describe('settle', () => {
     expect(settle(running, NOW + 60_000)).toEqual({ mode: 'done', end: NOW + 60_000, duration: 60 });
   });
 
+  it('lässt die abgelaufene Eieruhr die Nachlaufzeit lang weiterlaufen und beendet sie dann', () => {
+    const done = settle(countdown(NOW, 60), NOW + 60_000);
+    expect(settle(done, NOW + 60_000 + 119_999)).toBe(done);
+    expect(settle(done, NOW + 60_000 + 120_000)).toEqual({ mode: 'idle' });
+    expect(settle(done, NOW + 60_000 + 29_999, 30)).toBe(done);
+    expect(settle(done, NOW + 60_000 + 30_000, 30)).toEqual({ mode: 'idle' });
+    // Ohne Nachlaufzeit ist die Eieruhr mit dem Ablauf zu Ende
+    expect(settle(countdown(NOW, 60), NOW + 60_000, 0)).toEqual({ mode: 'idle' });
+  });
+
   it('lässt Stoppuhr und Ruhezustand unberührt', () => {
     expect(settle(stopwatch(NOW), NOW + 1e9)).toEqual({ mode: 'up', since: NOW });
     expect(settle({ mode: 'idle' }, NOW)).toEqual({ mode: 'idle' });
@@ -59,6 +69,11 @@ describe('restore', () => {
 
   it('meldet eine Eieruhr, die während des Neustarts abgelaufen ist', () => {
     expect(restore({ mode: 'down', end: NOW - 5000, duration: 60 }, NOW)).toEqual({ mode: 'done', end: NOW - 5000, duration: 60 });
+  });
+
+  it('vergisst eine Eieruhr, deren Nachlaufzeit während des Neustarts endete', () => {
+    expect(restore({ mode: 'done', end: NOW - 121_000, duration: 60 }, NOW)).toEqual({ mode: 'idle' });
+    expect(restore({ mode: 'down', end: NOW - 3_600_000, duration: 60 }, NOW)).toEqual({ mode: 'idle' });
   });
 
   it('setzt die Stoppuhr fort, aber keine aus der Zukunft oder von vorgestern', () => {

@@ -1,18 +1,30 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { definePlugin } from '@culinola/sdk';
-import { countdown, extend, restore, settle, stopwatch, type TimerState } from './timer.ts';
+import { countdown, DEFAULT_OVERRUN, extend, restore, settle, stopwatch, type TimerState } from './timer.ts';
+
+interface Config {
+  /** So viele Sekunden zählt die abgelaufene Eieruhr weiter, wenn niemand sie ausschaltet. */
+  overrunSeconds: number;
+}
 
 /**
  * Eieruhr und Stoppuhr. Der Zustand liegt im Kern und nicht in der Anzeige: So zeigen
  * ihn alle Anzeigen gleich, er übersteht ein Neuladen, und er lässt sich auch über die
  * API oder per Sprache stellen.
  */
-export default definePlugin({
+export default definePlugin<Config>({
   id: 'timer',
+
+  parseConfig(raw) {
+    const overrun = (raw as { overrunSeconds?: unknown }).overrunSeconds ?? DEFAULT_OVERRUN;
+    if (typeof overrun !== 'number' || !Number.isFinite(overrun) || overrun < 0 || overrun > 3600) throw new Error('"overrunSeconds" muss eine Zahl von 0 bis 3600 sein.');
+    return { overrunSeconds: overrun };
+  },
 
   start(context) {
     const { log } = context;
+    const overrun = context.config.overrunSeconds;
     const file = join(context.storageDir, 'state.json');
 
     let saved: unknown;
@@ -23,14 +35,18 @@ export default definePlugin({
     }
     let state: TimerState = { mode: 'idle' };
     let alarm: NodeJS.Timeout | undefined;
+    let stopping = false;
 
     const iso = (time: number | undefined) => (time ? new Date(time).toISOString() : '');
     const apply = (next: TimerState) => {
       const before = state.mode;
       state = next;
       clearTimeout(alarm);
-      if (state.mode === 'down') alarm = setTimeout(() => apply(settle(state, Date.now())), Math.max(0, state.end - Date.now()));
+      // Der nächste Wechsel kommt von selbst: beim Ablauf und am Ende der Nachlaufzeit
+      const due = state.mode === 'down' ? state.end : state.mode === 'done' ? state.end + overrun * 1000 : undefined;
+      if (due !== undefined) alarm = setTimeout(() => apply(settle(state, Date.now(), overrun)), Math.max(0, due - Date.now()));
       if (state.mode === 'done' && before !== 'done') log.info('Die Eieruhr ist abgelaufen.');
+      if (state.mode === 'idle' && before === 'done' && !stopping) log.info('Die Nachlaufzeit der Eieruhr ist um.');
       try {
         writeFileSync(file, JSON.stringify(state));
       } catch (error) {
@@ -42,7 +58,7 @@ export default definePlugin({
       context.datapoints.set({ id: 'duration', value: state.mode === 'down' || state.mode === 'done' ? state.duration : 0, unit: 's', label: 'Eieruhr: gestellte Dauer' });
     };
 
-    apply(restore(saved, Date.now()));
+    apply(restore(saved, Date.now(), overrun));
     context.signal.addEventListener('abort', () => clearTimeout(alarm));
 
     context.actions.register(
@@ -72,12 +88,14 @@ export default definePlugin({
         description: 'Verlängert die laufende Eieruhr um die angegebenen Sekunden; eine negative Angabe verkürzt sie.',
         params: { seconds: { type: 'number', description: 'Sekunden, z. B. 60 für eine Minute mehr', required: true } },
       },
-      ({ seconds }) => apply(extend(state, Date.now(), Number(seconds))),
+      ({ seconds }) => apply(extend(state, Date.now(), Number(seconds), overrun)),
     );
 
-    context.actions.register({ name: 'timer.stop', description: 'Hält Eieruhr oder Stoppuhr an und beendet das Klingeln.' }, () => {
+    context.actions.register({ name: 'timer.stop', description: 'Hält Eieruhr oder Stoppuhr an und beendet Klingeln und Nachlaufzeit.' }, () => {
       if (state.mode !== 'idle') log.info('Eieruhr angehalten.');
+      stopping = true;
       apply({ mode: 'idle' });
+      stopping = false;
     });
   },
 });

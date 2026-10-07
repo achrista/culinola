@@ -7,10 +7,12 @@ export type TimerState =
   | { mode: 'down'; end: number; duration: number }
   /** Stoppuhr: zählt seit `since` vorwärts. */
   | { mode: 'up'; since: number }
-  /** Abgelaufen und noch nicht quittiert. */
+  /** Abgelaufen: Die Eieruhr meldet sich und zählt weiter, bis jemand sie ausschaltet oder die Nachlaufzeit um ist. */
   | { mode: 'done'; end: number; duration: number };
 
 export const MAX_SECONDS = 24 * 60 * 60;
+/** So lange läuft eine abgelaufene Eieruhr weiter, wenn niemand sie ausschaltet – Zeit zum Nachkochen. */
+export const DEFAULT_OVERRUN = 120;
 
 /** Stellt die Eieruhr auf eine Dauer. */
 export function countdown(now: number, seconds: number): TimerState {
@@ -28,26 +30,27 @@ export function stopwatch(now: number): TimerState {
  * Verlängert oder verkürzt die laufende Eieruhr. Nach dem Ablauf stellt eine
  * Verlängerung sie neu – so lässt sich beim Klingeln „noch eine Minute“ geben.
  */
-export function extend(state: TimerState, now: number, seconds: number): TimerState {
+export function extend(state: TimerState, now: number, seconds: number, overrun = DEFAULT_OVERRUN): TimerState {
   if (!Number.isFinite(seconds) || seconds === 0) throw new InvalidInput('Die Angabe "seconds" fehlt.');
   if (state.mode === 'done' && seconds > 0) return countdown(now, seconds);
   if (state.mode !== 'down') throw new InvalidInput('Es läuft keine Eieruhr, die sich verlängern ließe.');
   const end = state.end + Math.round(seconds) * 1000;
   if (end - now > MAX_SECONDS * 1000) throw new InvalidInput('Die Dauer darf höchstens 24 Stunden betragen.');
-  return settle({ mode: 'down', end, duration: Math.max(1, state.duration + Math.round(seconds)) }, now);
+  return settle({ mode: 'down', end, duration: Math.max(1, state.duration + Math.round(seconds)) }, now, overrun);
 }
 
-/** Macht aus einer abgelaufenen Eieruhr eine, die sich meldet. */
-export function settle(state: TimerState, now: number): TimerState {
-  return state.mode === 'down' && state.end <= now ? { mode: 'done', end: state.end, duration: state.duration } : state;
+/** Macht aus einer abgelaufenen Eieruhr eine, die sich meldet – und beendet sie, wenn auch die Nachlaufzeit (in Sekunden) um ist. */
+export function settle(state: TimerState, now: number, overrun = DEFAULT_OVERRUN): TimerState {
+  const next: TimerState = state.mode === 'down' && state.end <= now ? { mode: 'done', end: state.end, duration: state.duration } : state;
+  return next.mode === 'done' && now >= next.end + overrun * 1000 ? { mode: 'idle' } : next;
 }
 
 /** Liest einen gespeicherten Zustand; alles Unlesbare gilt als „läuft nicht“. */
-export function restore(raw: unknown, now: number): TimerState {
+export function restore(raw: unknown, now: number, overrun = DEFAULT_OVERRUN): TimerState {
   const saved = (raw ?? {}) as { mode?: unknown; end?: unknown; since?: unknown; duration?: unknown };
   const time = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value > 0;
   if ((saved.mode === 'down' || saved.mode === 'done') && time(saved.end) && time(saved.duration)) {
-    return settle({ mode: saved.mode, end: saved.end, duration: saved.duration }, now);
+    return settle({ mode: saved.mode, end: saved.end, duration: saved.duration }, now, overrun);
   }
   // Eine Stoppuhr aus der Zukunft oder von vorgestern stammt nicht aus einem gewöhnlichen Neustart
   if (saved.mode === 'up' && time(saved.since) && saved.since <= now && now - saved.since < MAX_SECONDS * 1000) return { mode: 'up', since: saved.since };

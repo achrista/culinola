@@ -11,7 +11,10 @@
     },
     {
       "id": "timer",
-      "plugin": "timer"
+      "plugin": "timer",
+      "config": {
+        "overrunSeconds": 30
+      }
     },
     {
       "id": "recipes",
@@ -60,20 +63,19 @@
           "at": [
             0,
             0,
-            12,
+            6,
             3
           ],
           "config": {
-            "timer": "timer",
-            "alarmSeconds": 20
+            "timer": "timer"
           }
         },
         {
           "type": "weather",
           "at": [
-            12,
+            6,
             0,
-            12,
+            15,
             3
           ],
           "config": {

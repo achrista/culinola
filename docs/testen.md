@@ -53,8 +53,9 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 
 **Uhr und Eieruhr**
 - [ ] Uhrzeit mit Sekunden und Datum stimmen.
-- [ ] Antippen öffnet die Auswahl. Eine Voreinstellung wählen, mit −10 s auf 10 Sekunden verkürzen, starten: Die Auswahl schließt sich, die Restzeit läuft neben der Uhr.
-- [ ] Nach Ablauf steht „Zeit ist um“ rot neben der Uhr, der Ton klingelt. Antippen schaltet beides aus.
+- [ ] Antippen öffnet die Auswahl. Eine Voreinstellung wählen, mit −10 s auf 10 Sekunden verkürzen, starten: Die Auswahl schließt sich, die Restzeit steht groß an der Stelle der Uhrzeit, die Uhrzeit mit Sekunden darunter an der Stelle des Datums.
+- [ ] Nach Ablauf klingelt es einige Sekunden; die Anzeige wird rot und zählt mit Minuszeichen weiter, dazu alle zwei Sekunden ein kurzer Ton. Antippen schaltet alles aus, Uhrzeit und Datum stehen wieder da.
+- [ ] Noch einmal ablaufen lassen und nicht antippen: Nach 30 Sekunden (in der Testinstanz; sonst 120) endet die Eieruhr von selbst.
 - [ ] Stoppuhr starten: Die Zeit läuft vorwärts. Seite neu laden: Sie läuft weiter. Stoppen.
 
 **Messwerte und Diagramm**

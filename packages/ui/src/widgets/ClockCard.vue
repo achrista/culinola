@@ -5,19 +5,22 @@ import { postJson } from '../api.ts';
 import { region } from '../i18n.ts';
 import { datapoints } from '../store.ts';
 
-/** Uhr mit Datum. Mit einer Eieruhr-Instanz stellt Antippen die Eieruhr oder startet die Stoppuhr. */
+/**
+ * Uhr mit Datum. Mit einer Eieruhr-Instanz stellt Antippen die Eieruhr oder startet die
+ * Stoppuhr; solange eine läuft, nimmt sie den Platz der Uhrzeit ein und die Uhrzeit den des Datums.
+ */
 const props = defineProps<{
   config: {
     /** Instanz des Plugins `timer`; ohne die Angabe ist die Uhr nur eine Uhr. */
     timer?: string;
-    /** So lange klingelt eine abgelaufene Eieruhr, wenn niemand sie ausschaltet. */
-    alarmSeconds?: number;
   };
 }>();
 
 const DURATION_KEY = 'culinola.timer.seconds';
 const PRESETS = [1, 2, 3, 5, 8, 10, 15, 20, 30, 45, 60, 90];
 const MAX_SECONDS = 24 * 60 * 60;
+/** So lange klingelt es nach dem Ablauf, bevor nur noch ein kurzer Ton an die Eieruhr erinnert. */
+const RING_SECONDS = 6;
 
 const { t } = useI18n();
 const now = ref(new Date());
@@ -30,6 +33,7 @@ const parts = computed(() => {
   return { hm: `${pick('hour')}:${pick('minute')}`, sec: pick('second'), dayPeriod: pick('dayPeriod') };
 });
 const date = computed(() => new Intl.DateTimeFormat(region.value, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(now.value));
+const time = computed(() => new Intl.DateTimeFormat(region.value, { timeStyle: 'medium' }).format(now.value));
 
 // --- Eieruhr ---------------------------------------------------------------
 
@@ -38,13 +42,13 @@ const text = (id: string) => {
   return typeof value === 'string' ? value : '';
 };
 const mode = computed(() => text('state') || 'idle');
-/** Sekunden auf der Anzeige: Rest bei der Eieruhr, verstrichene Zeit bei der Stoppuhr. */
+/** Sekunden auf der Anzeige: Rest bei der Eieruhr, verstrichene Zeit bei der Stoppuhr und nach dem Ablauf. */
 const shownSeconds = computed(() => {
   if (mode.value === 'down') return Math.max(0, Math.ceil((Date.parse(text('end')) - now.value.getTime()) / 1000));
+  if (mode.value === 'done') return Math.max(0, Math.floor((now.value.getTime() - Date.parse(text('end'))) / 1000));
   if (mode.value === 'up') return Math.max(0, Math.floor((now.value.getTime() - Date.parse(text('since'))) / 1000));
   return 0;
 });
-const ringing = computed(() => mode.value === 'done' && now.value.getTime() - Date.parse(text('end')) < (props.config.alarmSeconds ?? 120) * 1000);
 
 function readout(seconds: number): string {
   const two = (value: number) => String(value).padStart(2, '0');
@@ -52,6 +56,8 @@ function readout(seconds: number): string {
   const rest = `${two(Math.floor((seconds % 3600) / 60))}:${two(seconds % 60)}`;
   return hours ? `${hours}:${rest}` : rest;
 }
+/** Nach dem Ablauf zählt die Eieruhr mit Minuszeichen weiter – so sieht man, wie lange etwas schon nachkocht. */
+const timerText = computed(() => (mode.value === 'done' ? `−${readout(shownSeconds.value)}` : readout(shownSeconds.value)));
 
 const open = ref(false);
 const failed = ref('');
@@ -94,16 +100,17 @@ function tap() {
   else open.value = true;
 }
 
-// Der Klingelton wird erzeugt, nicht abgespielt: keine Tondatei, keine fremden Rechte.
+// Die Töne werden erzeugt, nicht abgespielt: keine Tondatei, keine fremden Rechte.
 let sound: AudioContext | undefined;
 function unlockSound() {
   sound ??= new AudioContext();
   void sound.resume();
 }
-function beep() {
+/** Spielt kurze Töne hintereinander: drei als Klingeln, einen als Erinnerung. */
+function beep(count: number) {
   if (!sound) unlockSound();
   if (sound?.state !== 'running') return;
-  for (let index = 0; index < 3; index++) {
+  for (let index = 0; index < count; index++) {
     const at = sound.currentTime + index * 0.22;
     const tone = sound.createOscillator();
     const level = sound.createGain();
@@ -119,12 +126,11 @@ function beep() {
 }
 
 let ticker: number | undefined;
-let ticks = 0;
 onMounted(() => {
   ticker = window.setInterval(() => {
     now.value = new Date();
-    if (ringing.value && ticks++ % 2 === 0) beep();
-    if (!ringing.value) ticks = 0;
+    // Abgelaufen: erst klingeln, danach alle zwei Sekunden ein kurzer Ton, bis jemand antippt oder die Nachlaufzeit um ist
+    if (mode.value === 'done' && shownSeconds.value % 2 === 0) beep(shownSeconds.value < RING_SECONDS ? 3 : 1);
   }, 1000);
 });
 const onKey = (event: KeyboardEvent) => {
@@ -141,25 +147,25 @@ onUnmounted(() => {
 <template>
   <section class="clock" :class="{ done: mode === 'done' }">
     <component :is="props.config.timer ? 'button' : 'div'" class="face" :aria-label="props.config.timer ? t(mode === 'done' ? 'timer.tapToStop' : 'timer.set') : undefined" @click="props.config.timer && tap()">
-      <span class="now">
-        <span class="time">
-          <span class="hm">{{ parts.hm }}</span>
+      <template v-if="mode === 'idle'">
+        <span class="big">
+          <span>{{ parts.hm }}</span>
           <span class="sec">{{ parts.sec }}</span>
           <span v-if="parts.dayPeriod" class="sec">{{ parts.dayPeriod }}</span>
         </span>
-        <span class="date">{{ date }}</span>
-      </span>
-      <span v-if="mode !== 'idle'" class="timer" role="timer">
-        <span class="what">{{ t(mode === 'up' ? 'timer.stopwatch' : mode === 'done' ? 'timer.done' : 'timer.title') }}</span>
-        <span class="left">{{ readout(shownSeconds) }}</span>
-      </span>
+        <span class="small">{{ date }}</span>
+      </template>
+      <template v-else>
+        <span class="big timer" :class="{ long: timerText.length > 6 }" role="timer" :aria-label="t(mode === 'up' ? 'timer.stopwatch' : mode === 'done' ? 'timer.done' : 'timer.title')">{{ timerText }}</span>
+        <span class="small time">{{ time }}</span>
+      </template>
     </component>
 
     <Teleport to="body">
       <div v-if="open" class="backdrop" @click.self="open = false">
         <div class="dialog" role="dialog" aria-modal="true" :aria-label="t('timer.title')">
           <h2>{{ t(mode === 'up' ? 'timer.stopwatch' : 'timer.title') }}</h2>
-          <p class="big">{{ readout(mode === 'idle' ? chosen : shownSeconds) }}</p>
+          <p class="readout">{{ mode === 'idle' ? readout(chosen) : timerText }}</p>
 
           <template v-if="mode === 'idle'">
             <div class="presets">
@@ -204,65 +210,55 @@ onUnmounted(() => {
   padding: 0 8px;
   background: none;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
   text-align: left;
 }
-.now {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-.time {
+/* Die große Zeile richtet sich nach Höhe und Breite der Kachel, damit sie auch in eine schmale passt. */
+.big {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: 0.08em;
   font-family: var(--font-num);
   font-weight: var(--num-weight);
+  font-size: clamp(36px, min(62cqh, 34cqw), 140px);
   line-height: 0.9;
-}
-.hm {
-  font-size: clamp(40px, 62cqh, 140px);
-}
-.sec {
-  font-size: clamp(20px, 28cqh, 64px);
-}
-.date {
-  color: var(--mute);
-  font-size: clamp(14px, 12cqh, 22px);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+.sec {
+  font-size: 0.45em;
+}
+.small {
+  max-width: 100%;
+  color: var(--mute);
+  font-size: clamp(13px, 12cqh, 22px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .timer {
-  flex: none;
-  padding: 4px 10px;
-  border-radius: var(--radius);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
   color: var(--accent);
 }
-.what {
-  font-size: clamp(12px, 11cqh, 18px);
-  font-weight: 600;
+/* Mit Stunden wird die Anzeige länger und deshalb kleiner gesetzt */
+.timer.long {
+  font-size: clamp(30px, min(50cqh, 26cqw), 110px);
 }
-.left {
+.time {
   font-family: var(--font-num);
-  font-weight: 400;
-  font-size: clamp(24px, 36cqh, 80px);
-  line-height: 1;
+  font-size: clamp(18px, 26cqh, 48px);
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 /* Abgelaufen: Die Anzeige macht auf sich aufmerksam, bis jemand sie antippt */
 .done .timer {
-  background: var(--alarm);
-  color: #fff;
+  color: var(--alarm);
   animation: ring 1s steps(2, jump-none) infinite;
 }
 @keyframes ring {
   50% {
-    opacity: 0.55;
+    opacity: 0.45;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -299,7 +295,7 @@ h2 {
   font-size: 20px;
   font-weight: 600;
 }
-.big {
+.readout {
   margin: 0;
   font-family: var(--font-num);
   font-weight: var(--num-weight);
@@ -357,7 +353,7 @@ h2 {
   .presets {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-  .big {
+  .readout {
     font-size: 72px;
   }
 }
