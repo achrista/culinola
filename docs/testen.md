@@ -49,6 +49,7 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 **Start**
 - [ ] Die Seite lädt, alle Kacheln stehen an ihrem Platz, nichts überlappt.
 - [ ] An der Stelle des unbekannten Widgets steht ein Hinweis mit dessen Namen.
+- [ ] `?layout=zweites` an der Adresse zeigt das zweite Layout (Uhr und ein Messwert), `?layout=fehlt` eine Meldung, dass es dieses Layout nicht gibt.
 - [ ] Kern beenden: Die Meldung „Keine Verbindung zum Kern“ erscheint. Kern starten: Sie verschwindet ohne Neuladen.
 
 **Uhr und Eieruhr**
@@ -60,6 +61,7 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 
 **Messwerte und Diagramm**
 - [ ] Kacheln zeigen Wert, Einheit und Statuspunkt; die Werte ändern sich ohne Neuladen.
+- [ ] Die zwei flachen Kacheln (Waschen, Bad) zeigen Punkt, Name, Nebenwert und Wert in einer Zeile, ohne dass etwas abgeschnitten ist.
 - [ ] Das Diagramm zeigt „Heute“ von 0 bis 24 Uhr mit der Markierung für jetzt; Woche und Monat lassen sich wählen.
 
 **Wetter**

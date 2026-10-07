@@ -173,11 +173,30 @@
             18,
             3,
             6,
-            2
+            1
           ],
           "config": {
             "datapoint": "demo:waschen",
             "label": "Waschen"
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            18,
+            4,
+            6,
+            1
+          ],
+          "config": {
+            "datapoint": "demo:temp_bad",
+            "label": "Bad",
+            "secondary": "demo:feuchte_wohnen",
+            "decimals": 1,
+            "warn": {
+              "highWarn": 24,
+              "highAlarm": 26
+            }
           }
         },
         {
@@ -387,6 +406,37 @@
           ],
           "config": {
             "source": "demo"
+          }
+        }
+      ]
+    },
+    "zweites": {
+      "grid": {
+        "columns": 12,
+        "rows": 6
+      },
+      "widgets": [
+        {
+          "type": "clock",
+          "at": [
+            0,
+            0,
+            6,
+            2
+          ]
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            0,
+            2,
+            4,
+            1
+          ],
+          "config": {
+            "datapoint": "demo:temp_aussen",
+            "label": "Außen",
+            "decimals": 1
           }
         }
       ]

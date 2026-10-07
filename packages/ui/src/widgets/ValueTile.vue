@@ -93,6 +93,8 @@ const sparkline = computed(() => {
 
 <template>
   <section class="tile">
+    <!-- Die innere Hülle trägt die Anordnung, damit sie sich nach der Größe der Kachel richten kann -->
+    <div class="tile-row">
     <header>
       <span class="name">{{ config.label ?? main?.label ?? config.datapoint }}</span>
       <span v-if="secondary && secondaryConfig" class="secondary">{{ formatValue(scale(secondary.value, secondaryConfig.factor), secondaryConfig.decimals) }} {{ secondaryConfig.unit ?? secondary.unit }}</span>
@@ -103,6 +105,7 @@ const sparkline = computed(() => {
       <span class="unit">{{ unit }}</span>
       <svg v-if="sparkline && mapped === undefined" class="spark" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><polyline :points="sparkline" /></svg>
     </div>
+    </div>
   </section>
 </template>
 
@@ -111,13 +114,17 @@ const sparkline = computed(() => {
   container-type: size;
   box-sizing: border-box;
   min-width: 0;
-  padding: 7px 12px;
   border-radius: var(--radius);
   background: var(--card);
+  overflow: hidden;
+}
+.tile-row {
+  box-sizing: border-box;
+  height: 100%;
+  padding: 7px 12px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  overflow: hidden;
 }
 header {
   display: flex;
@@ -167,7 +174,7 @@ header {
 .value {
   font-family: var(--font-num);
   font-weight: var(--num-weight);
-  font-size: clamp(24px, 52cqh, 72px);
+  font-size: clamp(24px, 43cqh, 72px);
   line-height: 0.9;
   white-space: nowrap;
 }
@@ -189,6 +196,39 @@ header {
 /* Schmale Kachel: die Verlaufslinie weicht zuerst */
 @container (max-width: 200px) {
   .spark {
+    display: none;
+  }
+}
+/* Flache Kachel: alles in einer Zeile – Punkt, Name, Nebenwert, Wert. So passen doppelt so viele Werte auf dieselbe Fläche. */
+@container (max-height: 58px) {
+  .tile-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 0 10px;
+  }
+  header {
+    flex: 1;
+    min-width: 0;
+  }
+  .dot {
+    order: -1;
+    margin-left: 0;
+  }
+  .name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .value {
+    font-size: clamp(20px, 74cqh, 36px);
+  }
+  .spark {
+    display: none;
+  }
+}
+@container (max-height: 58px) and (max-width: 190px) {
+  .secondary {
     display: none;
   }
 }

@@ -81,7 +81,7 @@ async function run(action: string, params: Record<string, unknown> = {}) {
 }
 .now {
   flex: none;
-  width: 170px;
+  width: 150px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -113,7 +113,7 @@ async function run(action: string, params: Record<string, unknown> = {}) {
   flex: 1;
   min-width: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
   grid-auto-rows: minmax(48px, 1fr);
   gap: var(--gap);
 }
@@ -132,10 +132,14 @@ async function run(action: string, params: Record<string, unknown> = {}) {
   background: var(--accent);
   color: var(--on-accent);
 }
+/* Lange Sendernamen dürfen auf zwei Zeilen umbrechen, statt abgeschnitten zu werden */
 .label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.15;
+  text-align: center;
 }
 .tv {
   flex: none;

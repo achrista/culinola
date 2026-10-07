@@ -77,10 +77,12 @@ Alles Eigene liegt im Ordner `data/`, der nicht ins Repository gelangt. Ein ande
 
 Die Anzeige ist ein Raster. Jedes Widget steht mit `at: [Spalte, Zeile, Breite, Höhe]` darin, gezählt ab 0.
 
+Unter `layouts` dürfen mehrere Layouts stehen. Eine Anzeige zeigt `main`, mit dem Adresszusatz `?layout=name` ein anderes – so bekommt der Flur ein eigenes Bild, oder ein neuer Entwurf lässt sich neben dem bisherigen ansehen.
+
 | Typ | Zeigt | Wichtigste Angaben |
 |---|---|---|
 | `clock` | Uhrzeit mit Sekunden und Datum; Antippen stellt die Eieruhr | `timer` (Eieruhr-Instanz) |
-| `value-tile` | Messwert mit Statuspunkt und Verlaufslinie | `datapoint`, `label`, `secondary`, `unit`, `decimals`, `factor`, `warn`, `map` |
+| `value-tile` | Messwert mit Statuspunkt und Verlaufslinie; eine Rasterzeile hoch zeigt sie alles in einer Zeile | `datapoint`, `label`, `secondary`, `unit`, `decimals`, `factor`, `warn`, `map` |
 | `switches` | Feld von Schaltern, das sich dem Platz anpasst | `items: [{ datapoint, label }]` |
 | `chart` | Zeitverlauf für heute, Woche, Monat | `title`, `series: [{ datapoint, label, area, forecast }]` |
 | `note` | Hält einen Platz frei und beschriftet ihn | `title`, `text` |

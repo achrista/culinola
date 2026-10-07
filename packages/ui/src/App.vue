@@ -48,7 +48,9 @@ onMounted(async () => {
   });
   try {
     applySite(await getJson<SiteSettings>('/site'));
-    layout.value = await getJson<Layout>('/layouts/main');
+    // Welches Layout diese Anzeige zeigt, sagt der Adresszusatz ?layout=name; ohne ihn gilt "main"
+    const wanted = new URLSearchParams(location.search).get('layout') ?? 'main';
+    layout.value = await getJson<Layout>(`/layouts/${encodeURIComponent(wanted)}`);
     const ids = new Set<string>();
     collectIds(layout.value.widgets, ids);
     subscribe([...ids]);
