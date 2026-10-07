@@ -1,7 +1,8 @@
 import { definePlugin } from '@culinola/sdk';
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
-import { type Address, hasAttachments, type MailEntry, mailDocument, newestFirst, senderOf, type StructureNode } from './mail.ts';
+import { type Address, hasAttachments, type MailEntry, newestFirst, senderOf, type StructureNode } from './mail.ts';
+import { readableMessage } from './message.ts';
 
 interface Account {
   id: string;
@@ -147,20 +148,7 @@ export default definePlugin<Config>({
           return message ? message.source : undefined;
         });
         if (!source) return Response.json({ error: 'Die Nachricht gibt es im Postfach nicht mehr.' }, { status: 404 });
-        const mail = await simpleParser(source);
-        const people = (field: typeof mail.to) => (Array.isArray(field) ? field : field ? [field] : []).map((entry) => entry.text).join(', ');
-        const result = {
-          account: account.id,
-          uid,
-          subject: mail.subject ?? '',
-          from: mail.from?.text ?? '',
-          to: people(mail.to),
-          date: (mail.date ?? new Date(listed?.date ?? Date.now())).toISOString(),
-          ...(mail.html ? { html: mailDocument(mail.html) } : {}),
-          text: mail.text ?? '',
-          // Bilder im Text sind keine Anlagen
-          attachments: mail.attachments.filter((entry) => !entry.related).map((entry) => ({ name: entry.filename ?? entry.contentType, size: entry.size })),
-        };
+        const result = { account: account.id, uid, ...readableMessage(await simpleParser(source), listed?.date ?? new Date().toISOString()) };
         opened.set(key, result);
         if (opened.size > KEEP_OPENED) opened.delete(opened.keys().next().value!);
         return Response.json(result);
