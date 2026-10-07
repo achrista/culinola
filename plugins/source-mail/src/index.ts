@@ -1,16 +1,17 @@
 import { definePlugin } from '@culinola/sdk';
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
-import { type Address, hasAttachments, type MailEntry, newestFirst, senderOf, type StructureNode } from './mail.ts';
+import { type Address, hasAttachments, loginOf, type MailEntry, newestFirst, senderOf, type StructureNode } from './mail.ts';
 import { readableMessage } from './message.ts';
 
 interface Account {
   id: string;
   name: string;
-  host: string;
+  /** Server und Anmeldename; fehlen sie hier, stehen sie bei den Geheimnissen. */
+  host?: string;
   port: number;
   secure: boolean;
-  user: string;
+  user?: string;
   folder: string;
 }
 
@@ -40,10 +41,8 @@ export default definePlugin<Config>({
     if (!Array.isArray(config.accounts) || config.accounts.length === 0) throw new Error('"accounts" fehlt oder ist leer.');
     const accounts = (config.accounts as Partial<Account>[]).map((entry) => {
       if (!ACCOUNT_ID.test(entry.id ?? '')) throw new Error(`Konto "${entry.name ?? '?'}": "id" fehlt oder enthält anderes als Kleinbuchstaben, Ziffern und Bindestriche.`);
-      if (!entry.host) throw new Error(`Konto "${entry.id}": "host" fehlt – die Adresse des IMAP-Servers.`);
-      if (!entry.user) throw new Error(`Konto "${entry.id}": "user" fehlt – der Anmeldename, meist die Mailadresse.`);
       const port = entry.port ?? 993;
-      return { id: entry.id!, name: entry.name ?? entry.user, host: entry.host, port, secure: entry.secure ?? port === 993, user: entry.user, folder: entry.folder ?? 'INBOX' };
+      return { id: entry.id!, name: entry.name ?? entry.id!, ...(entry.host ? { host: entry.host } : {}), port, secure: entry.secure ?? port === 993, ...(entry.user ? { user: entry.user } : {}), folder: entry.folder ?? 'INBOX' };
     });
     if (new Set(accounts.map((account) => account.id)).size !== accounts.length) throw new Error('Eine Konto-Kennung ist doppelt vergeben.');
     const number = (value: unknown, fallback: number, min: number, max: number) => (typeof value === 'number' ? Math.min(max, Math.max(min, value)) : fallback);
@@ -58,9 +57,8 @@ export default definePlugin<Config>({
 
     /** Verbindet sich mit einem Postfach, erledigt eine Aufgabe und meldet sich wieder ab. */
     async function withMailbox<T>(account: Account, task: (client: ImapFlow) => Promise<T>): Promise<T> {
-      const password = context.secrets.get(account.id);
-      if (!password) throw new Error(`Das Kennwort fehlt. Es gehört in secrets.json unter "${context.instanceId}": { "${account.id}": "…" }.`);
-      const client = new ImapFlow({ host: account.host, port: account.port, secure: account.secure, auth: { user: account.user, pass: password }, logger: false, connectionTimeout: 15_000, greetingTimeout: 10_000, socketTimeout: 60_000 });
+      const login = loginOf(account, (name) => context.secrets.get(name), context.instanceId);
+      const client = new ImapFlow({ host: login.host, port: account.port, secure: account.secure, auth: { user: login.user, pass: login.password }, logger: false, connectionTimeout: 15_000, greetingTimeout: 10_000, socketTimeout: 60_000 });
       // Ohne diesen Empfänger würde ein Abbruch der Verbindung den ganzen Kern beenden
       client.on('error', () => undefined);
       await client.connect();

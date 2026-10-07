@@ -76,3 +76,27 @@ export function mailDocument(html: string, remoteImages = false): string {
     '</body></html>',
   ].join('');
 }
+
+/** Anmeldedaten eines Postfachs. */
+export interface Login {
+  host: string;
+  user: string;
+  password: string;
+}
+
+/**
+ * Stellt die Anmeldung eines Kontos zusammen. Server und Anmeldename dürfen in der Konfiguration
+ * stehen oder – damit config.json frei von persönlichen Angaben bleibt – bei den Geheimnissen,
+ * als "<Konto>.host" und "<Konto>.user". Das Kennwort steht immer dort: als "<Konto>.password"
+ * oder, kürzer, unter dem Namen des Kontos.
+ */
+export function loginOf(account: { id: string; host?: string; user?: string }, secret: (name: string) => string | undefined, section: string): Login {
+  const host = account.host || secret(`${account.id}.host`);
+  const user = account.user || secret(`${account.id}.user`);
+  const password = secret(`${account.id}.password`) || secret(account.id);
+  const where = `secrets.json unter "${section}"`;
+  if (!host) throw new Error(`Der Server fehlt: "host" beim Konto in config.json oder "${account.id}.host" in ${where}.`);
+  if (!user) throw new Error(`Der Anmeldename fehlt: "user" beim Konto in config.json oder "${account.id}.user" in ${where}.`);
+  if (!password) throw new Error(`Das Kennwort fehlt: "${account.id}" oder "${account.id}.password" in ${where}.`);
+  return { host, user, password };
+}

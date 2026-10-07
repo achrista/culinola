@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasAttachments, mailDocument, newestFirst, senderOf } from './mail.ts';
+import { hasAttachments, loginOf, mailDocument, newestFirst, senderOf } from './mail.ts';
 
 describe('hasAttachments', () => {
   const text = { type: 'text/plain' };
@@ -41,6 +41,27 @@ describe('newestFirst', () => {
     const entry = (account: string, uid: number, date: string) => ({ account, uid, date, from: '', subject: '', unread: false, attachments: false, size: 0 });
     const list = newestFirst([entry('a', 1, '2026-10-07T08:00:00Z'), entry('b', 7, '2026-10-07T12:00:00Z'), entry('a', 2, '2026-10-07T10:00:00Z'), entry('b', 8, '2026-10-07T12:00:00Z')], 3);
     expect(list.map((item) => `${item.account}${item.uid}`)).toEqual(['b8', 'b7', 'a2']);
+  });
+});
+
+describe('loginOf', () => {
+  const secrets = (values: Record<string, string>) => (name: string) => values[name];
+
+  it('nimmt Server und Anmeldename aus der Konfiguration und das Kennwort aus den Geheimnissen', () => {
+    expect(loginOf({ id: 'privat', host: 'imap.example.org', user: 'ich@example.org' }, secrets({ privat: 'geheim' }), 'mail')).toEqual({ host: 'imap.example.org', user: 'ich@example.org', password: 'geheim' });
+  });
+
+  it('holt, was in der Konfiguration fehlt, aus den Geheimnissen', () => {
+    const all = secrets({ 'privat.host': 'imap.example.org', 'privat.user': 'ich@example.org', 'privat.password': 'geheim' });
+    expect(loginOf({ id: 'privat' }, all, 'mail')).toEqual({ host: 'imap.example.org', user: 'ich@example.org', password: 'geheim' });
+    expect(loginOf({ id: 'privat', host: 'anderer.example.org' }, all, 'mail').host).toBe('anderer.example.org');
+  });
+
+  it('sagt, was fehlt und wohin es gehört', () => {
+    expect(() => loginOf({ id: 'privat', user: 'ich' }, secrets({ privat: 'x' }), 'mail')).toThrow(/Server fehlt.*"privat\.host" in secrets\.json unter "mail"/);
+    expect(() => loginOf({ id: 'privat', host: 'h' }, secrets({ privat: 'x' }), 'mail')).toThrow(/Anmeldename fehlt.*"privat\.user"/);
+    expect(() => loginOf({ id: 'privat', host: 'h', user: 'u' }, secrets({}), 'post')).toThrow(/Kennwort fehlt.*unter "post"/);
+    expect(() => loginOf({ id: 'privat', host: 'h', user: 'u' }, secrets({ privat: '' }), 'mail')).toThrow(/Kennwort fehlt/);
   });
 });
 

@@ -157,7 +157,7 @@ Das Plugin `source-mail` zeigt die neuesten Nachrichten aus einem oder mehreren 
     "perAccount": 30, "refreshMinutes": 5 } }
 ```
 
-Die Kennwörter stehen in `secrets.json` unter der Kennung der Quelle und des Kontos: `{ "mail": { "privat": "…", "verein": "…" } }`. Bei Anbietern mit Zwei-Faktor-Anmeldung (etwa Google) ist das ein App-Kennwort, nicht das Kennwort des Kontos.
+Die Kennwörter stehen in `secrets.json` unter der Kennung der Quelle und des Kontos: `{ "mail": { "privat": "…", "verein": "…" } }`. Auch Anmeldename und Server dürfen dort stehen statt in `config.json` – als `"privat.user"` und `"privat.host"`. So enthält `config.json` keine persönlichen Angaben und lässt sich weitergeben. Bei Anbietern mit Zwei-Faktor-Anmeldung (etwa Google) ist das ein App-Kennwort, nicht das Kennwort des Kontos.
 
 - Das Plugin liest nur. Es öffnet die Postfächer ohne Schreibrecht, markiert nichts als gelesen und löscht nichts; ungelesene Nachrichten stehen fett in der Liste.
 - Ohne `port` gilt 993 mit Verschlüsselung von Anfang an; bei einem anderen Port wird die Verbindung nachträglich verschlüsselt, wenn der Server das anbietet. `folder` wählt einen anderen Ordner als den Posteingang.
