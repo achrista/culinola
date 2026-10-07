@@ -14,7 +14,9 @@ Die Oberfläche erscheint deutsch oder englisch; genannt sind die englischen Bez
    - Google Calendar API: <https://console.cloud.google.com/apis/library/calendar-json.googleapis.com>
    - People API: <https://console.cloud.google.com/apis/library/people.googleapis.com>
 3. **Zustimmungsseite einrichten:** <https://console.cloud.google.com/auth/overview> → **Get started**. App name `Culinola`, eigene Adresse als Support-Adresse; Audience **External**; eigene Adresse als Kontakt; Richtlinie bestätigen, **Create**.
-4. **Auf „In production“ stellen:** links **Audience** → **Publish app**. Im Zustand „Testing“ verfällt die Anmeldung alle sieben Tage. Eine Prüfung durch Google ist für die eigene Nutzung nicht nötig.
+4. **Zugang für das eigene Konto freigeben** – auf der Seite **Audience** einer von zwei Wegen:
+   - **Testbetrieb:** unter **Test users** das eigene Google-Konto eintragen. Das geht sofort, die Anmeldung verfällt aber alle sieben Tage und muss dann mit `npm run google:login` wiederholt werden.
+   - **Dauerbetrieb:** **Publish app**. Google gibt den Knopf erst frei, wenn auf der Seite **Branding** eine Startseite und eine Datenschutzerklärung auf einer eigenen Domain eingetragen sind und diese Domain unter den autorisierten Domains steht. Eine Prüfung durch Google ist für die eigene Nutzung nicht nötig; ein Logo sollte man nicht hochladen, weil es eine Prüfung auslöst.
 5. **Zugang erzeugen:** links **Clients** → **Create client** → Application type **Desktop app**, Name `Culinola`, **Create**. Im Fenster danach **Download JSON** – später zeigt Google das Geheimnis nicht mehr an.
 6. **Datei ablegen:** die heruntergeladene Datei als `client.json` in den Ordner `data/google` legen.
 
