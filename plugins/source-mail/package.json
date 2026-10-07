@@ -1,0 +1,16 @@
+{
+  "name": "@culinola/plugin-source-mail",
+  "version": "0.0.0",
+  "private": true,
+  "description": "E-Mails aus einem oder mehreren IMAP-Postfächern, nur lesend.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@culinola/sdk": "*",
+    "imapflow": "^2.2.7",
+    "mailparser": "^3.9.36"
+  }
+}

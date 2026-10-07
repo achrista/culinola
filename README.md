@@ -93,6 +93,7 @@ Unter `layouts` dürfen mehrere Layouts stehen. Eine Anzeige zeigt `main`, mit d
 | `weather` | Wetterlage mit Symbol, Windrose, UV-Index und Vorhersage ab heute | `temperature`, `condition`, `code`, `wind`, `uv`, `sunrise`, `sunset`, `days` |
 | `calendar` | Die nächsten Termine, nach Tagen gegliedert | `source` (Google-Instanz), `title` |
 | `reminders` | Anstehende Geburtstage und andere wiederkehrende Tage; Antippen zeigt die Telefonnummern | `source` (Google-Instanz), `title` |
+| `mail` | E-Mails aller eingerichteten Postfächer, das Neueste zuerst; Antippen zeigt die Nachricht | `source` (Mail-Instanz), `title` |
 | `recipes` | Ein zufällig gewähltes Rezept mit Bild im Wechsel; Antippen öffnet es, der Pfeil die ganze Liste | `source` (Rezept-Instanz), `title`, `seconds` |
 
 `map` übersetzt Zustandswerte in Text, etwa `{ "0": "aus", "1": "läuft", "3": "fertig" }`.
@@ -141,6 +142,26 @@ Kalender und Erinnerungen kommen aus einem Google-Konto. Das Plugin `source-goog
 - Tage, die an keinem Kontakt hängen – ein Namenstag, der allen dieses Namens gilt, der Hochzeitstag eines Paares –, stehen als jährlich wiederkehrende ganztägige Termine in einem eigenen Kalender. Vorgabe ist ein Kalender namens `Erinnerungen`; andere nennt `reminderCalendars`. Der Titel nennt Art und Namen („Namenstag Andreas“); steht in der Beschreibung `Jahr: 1959`, errechnet die Anzeige das Jubiläum.
 - Ein Ereignis darf hinter seiner Art einen Namen tragen – „Geburtstag Rosa“ an einem Kontakt, der für eine ganze Familie steht. Dann gilt der Tag dieser Person.
 - Wer in der Kontaktgruppe (dem Label) `Verstorben` ist oder einen Todestag hat, gilt als verstorben; die Anzeige schreibt dann „wäre … geworden“. Der Name der Gruppe lässt sich mit `deceasedGroup` ändern.
+
+### E-Mail
+
+Das Plugin `source-mail` zeigt die neuesten Nachrichten aus einem oder mehreren IMAP-Postfächern, zusammen in einer Liste nach Eingang:
+
+```json
+{ "id": "mail", "plugin": "source-mail", "config": {
+    "accounts": [
+      { "id": "privat", "name": "Privat", "host": "imap.example.org", "user": "ich@example.org" },
+      { "id": "verein", "name": "Verein", "host": "mail.example.net", "port": 143, "user": "vorstand" }
+    ],
+    "perAccount": 30, "refreshMinutes": 5 } }
+```
+
+Die Kennwörter stehen in `secrets.json` unter der Kennung der Quelle und des Kontos: `{ "mail": { "privat": "…", "verein": "…" } }`. Bei Anbietern mit Zwei-Faktor-Anmeldung (etwa Google) ist das ein App-Kennwort, nicht das Kennwort des Kontos.
+
+- Das Plugin liest nur. Es öffnet die Postfächer ohne Schreibrecht, markiert nichts als gelesen und löscht nichts; ungelesene Nachrichten stehen fett in der Liste.
+- Ohne `port` gilt 993 mit Verschlüsselung von Anfang an; bei einem anderen Port wird die Verbindung nachträglich verschlüsselt, wenn der Server das anbietet. `folder` wählt einen anderen Ordner als den Posteingang.
+- Antippen zeigt die Nachricht: als Text oder als HTML. HTML läuft abgeschottet – ohne Skripte, ohne Formulare und ohne Nachladen von außen, also auch ohne die Zählbilder, mit denen Absender das Öffnen bemerken. Bilder, die in der Nachricht selbst stecken, erscheinen.
+- Anlagen zeigt Culinola nicht. Eine Büroklammer in der Liste sagt, dass es welche gibt; die geöffnete Nachricht nennt ihre Namen.
 
 ### Eieruhr
 

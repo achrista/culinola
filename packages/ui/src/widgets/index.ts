@@ -2,6 +2,7 @@ import type { Component } from 'vue';
 import CalendarCard from './CalendarCard.vue';
 import ChartCard from './ChartCard.vue';
 import ClockCard from './ClockCard.vue';
+import MailCard from './MailCard.vue';
 import MediaWindow from './MediaWindow.vue';
 import NewsCard from './NewsCard.vue';
 import NoteCard from './NoteCard.vue';
@@ -28,4 +29,5 @@ export const widgets: Record<string, Component> = {
   video: VideoTile,
   weather: WeatherCard,
   'media-window': MediaWindow,
+  mail: MailCard,
 };

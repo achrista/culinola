@@ -65,6 +65,29 @@ function publishAgenda(context: { resources: { set(name: string, value: unknown)
   context.datapoints.set({ id: 'updated', value: new Date().toISOString() });
 }
 
+/** Erfundene Nachrichten zweier Postfächer – in der Form, in der sie auch das Mail-Plugin liefert. */
+function publishMail(context: {
+  resources: { set(name: string, value: unknown): void };
+  routes: { get(path: string, handler: (request: { params: Record<string, string> }) => Response): void };
+}): void {
+  const ago = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
+  const frame = (html: string) => `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'"></head><body style="font-family:sans-serif;font-size:18px">${html}</body></html>`;
+  const mails = [
+    { account: 'privat', uid: 12, from: 'Stadtwerke', subject: 'Ihre Abrechnung für September', date: ago(25), unread: true, attachments: true, body: { html: frame('<h2>Ihre Abrechnung</h2><p>Guten Tag,<br>anbei erhalten Sie die Abrechnung für <b>September</b>.</p><script>parent.document.title = "EINGESCHLEUST"</script><img src="https://example.org/zaehler.gif" alt="Zählbild"><p><a href="https://example.org">Zum Kundenbereich</a></p>'), text: 'Ihre Abrechnung', files: [{ name: 'Abrechnung-September.pdf', size: 184_320 }] } },
+    { account: 'verein', uid: 4, from: 'Sportverein', subject: 'Training fällt am Donnerstag aus', date: ago(190), unread: true, attachments: false, body: { text: 'Hallo zusammen,\n\ndas Training am Donnerstag fällt aus, die Halle ist belegt.\n\nViele Grüße\nder Vorstand', files: [] } },
+    { account: 'privat', uid: 11, from: 'Tante Rosa', subject: 'Fotos vom Wochenende', date: ago(60 * 26), unread: false, attachments: true, body: { text: 'Die Bilder hängen an. Liebe Grüße!', files: [{ name: 'garten.jpg', size: 2_411_724 }, { name: 'kaffee.jpg', size: 1_874_001 }] } },
+    { account: 'privat', uid: 10, from: '', subject: '', date: ago(60 * 24 * 9), unread: false, attachments: false, body: { text: 'Eine Nachricht ohne Absender und ohne Betreff.', files: [] } },
+    ...Array.from({ length: 8 }, (_, index) => ({ account: 'verein', uid: 3 - index, from: 'Rundbrief', subject: `Mitteilungen Nr. ${20 - index}`, date: ago(60 * 24 * (10 + index * 7)), unread: false, attachments: false, body: { text: 'Text des Rundbriefs.', files: [] as { name: string; size: number }[] } })),
+  ];
+  context.resources.set('messages', mails.map(({ body: _body, ...entry }) => entry));
+  context.resources.set('accounts', [{ id: 'privat', name: 'Privat' }, { id: 'verein', name: 'Verein', error: 'Beispiel einer Störung' }]);
+  context.routes.get('/message/:account/:uid', (request) => {
+    const mail = mails.find((entry) => entry.account === request.params.account && String(entry.uid) === request.params.uid);
+    if (!mail) return Response.json({ error: 'Nachricht nicht gefunden.' }, { status: 404 });
+    return Response.json({ subject: mail.subject, from: mail.from ? `${mail.from} <absender@example.org>` : '', to: 'kueche@example.org', date: mail.date, ...('html' in mail.body ? { html: mail.body.html } : {}), text: mail.body.text, attachments: mail.body.files });
+  });
+}
+
 export default definePlugin({
   id: 'connector-demo',
 
@@ -104,6 +127,7 @@ export default definePlugin({
 
     publish();
     publishAgenda(context);
+    publishMail(context);
     const timer = setInterval(publish, TICK_MS);
     context.signal.addEventListener('abort', () => clearInterval(timer));
 

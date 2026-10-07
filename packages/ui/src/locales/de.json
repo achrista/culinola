@@ -152,5 +152,20 @@
       "plain": "{name} am {date}",
       "withYears": "{name} am {date}, vor {years} Jahren"
     }
+  },
+  "mail": {
+    "title": "E-Mail",
+    "none": "Keine Nachrichten",
+    "unknownSender": "(unbekannter Absender)",
+    "noSubject": "(ohne Betreff)",
+    "hasAttachments": "mit Anlagen",
+    "from": "Von",
+    "to": "An",
+    "date": "Datum",
+    "attachments": "Anlagen",
+    "attachmentsHint": "werden hier nicht angezeigt",
+    "loading": "Die Nachricht wird geholt …",
+    "failed": "Die Nachricht ist nicht verfügbar: {error}",
+    "trouble": "nicht erreichbar: {accounts}"
   }
 }

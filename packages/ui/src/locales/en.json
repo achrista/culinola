@@ -152,5 +152,20 @@
       "plain": "{name} on {date}",
       "withYears": "{name} on {date}, {years} years ago"
     }
+  },
+  "mail": {
+    "title": "E-mail",
+    "none": "No messages",
+    "unknownSender": "(unknown sender)",
+    "noSubject": "(no subject)",
+    "hasAttachments": "has attachments",
+    "from": "From",
+    "to": "To",
+    "date": "Date",
+    "attachments": "Attachments",
+    "attachmentsHint": "are not shown here",
+    "loading": "Fetching the message …",
+    "failed": "The message is not available: {error}",
+    "trouble": "not reachable: {accounts}"
   }
 }

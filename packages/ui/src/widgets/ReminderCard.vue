@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getJson } from '../api.ts';
 import { region } from '../i18n.ts';
+import { vScrollHome } from '../scroll.ts';
 import { datapoints } from '../store.ts';
 import DetailOverlay from './DetailOverlay.vue';
 
@@ -55,7 +56,7 @@ const dial = (number: string) => `tel:${number.replace(/[^\d+]/g, '')}`;
 <template>
   <section class="reminders">
     <h3>{{ props.config.title ?? t('reminders.title') }}</h3>
-    <ul v-if="reminders.length">
+    <ul v-if="reminders.length" v-scroll-home>
       <li v-for="entry in reminders" :key="entry.contact + entry.kind + entry.date + entry.name">
         <button :class="{ today: entry.inDays === 0, past: entry.inDays < 0 }" @click="opened = entry">
           <span class="text">{{ sentence(entry) }}</span>
@@ -104,7 +105,6 @@ h3 {
   margin: 0;
   padding: 0;
   list-style: none;
-  overflow: hidden;
 }
 .reminders > ul button {
   width: 100%;

@@ -40,7 +40,7 @@ npm run test:instance
 
 Sie läuft auf <http://localhost:8191>, neben einer eigenen Installation auf Port 8090. Die Vorlage liegt in `testing/instance` und wird bei jedem Start frisch in einen Wegwerfordner gelegt; was dort verändert wird, ist nach dem nächsten Start vergessen.
 
-Die Testinstanz enthält: erfundene Messwerte, Schalter, Wetterdaten, Termine und Erinnerungen, Eieruhr, drei Rezepte (mit Bild, ohne Angaben, mit kaputten Angaben), Nachrichten aus zwei echten Feeds und einem unerreichbaren, einen Radiosender und absichtlich ein unbekanntes Widget. Nachrichten und Radio brauchen Internet.
+Die Testinstanz enthält: erfundene Messwerte, Schalter, Wetterdaten, Termine, Erinnerungen und E-Mails, Eieruhr, drei Rezepte (mit Bild, ohne Angaben, mit kaputten Angaben), Nachrichten aus zwei echten Feeds und einem unerreichbaren, einen Radiosender und absichtlich ein unbekanntes Widget. Nachrichten und Radio brauchen Internet.
 
 ## Prüfliste Oberfläche
 
@@ -73,6 +73,12 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] Termine: „Heute“ beginnt mit dem laufenden mehrtägigen Besuch (ohne Uhrzeit), darunter der Abendtermin; „Morgen“ zeigt den ganztägigen Termin vor denen mit Uhrzeit; der Termin ohne Titel heißt „(ohne Titel)“.
 - [ ] Erinnerungen: gestern grau, heute fett mit „heute“; Sätze mit Alter („wird … Jahre alt“), für Verstorbene („wäre … geworden“), Namenstag, Hochzeitstag und eine eigene Bezeichnung.
 - [ ] Antippen einer Erinnerung zeigt den Satz und die Telefonnummern groß; bei einem Kontakt ohne Nummer steht der Hinweis darauf, bei Verstorbenen nichts.
+
+**E-Mail**
+- [ ] Die Liste zeigt Absender, Betreff und Zeit, das Neueste oben; ungelesene fett, Nachrichten mit Anlagen mit Büroklammer, rechts das Postfach. Neben der Überschrift steht, dass „Verein“ nicht erreichbar ist.
+- [ ] Die Liste lässt sich mit dem Finger oder Mausrad verschieben und kehrt nach einer Minute an den Anfang zurück; ebenso Termine und Erinnerungen.
+- [ ] „Ihre Abrechnung“ öffnen: Kopfangaben, die Anlage mit Namen und Größe, der formatierte Text. Der Titel des Browserfensters lautet weiter „Culinola“, das fremde Bild fehlt, der Verweis führt nirgendwohin.
+- [ ] Eine Textnachricht öffnen: Zeilenumbrüche bleiben erhalten. Die Nachricht ohne Absender und Betreff zeigt die Platzhalter.
 
 **Schalter**
 - [ ] Antippen schaltet um, der Zustand ist sofort sichtbar und nach dem Neuladen derselbe.
@@ -107,6 +113,7 @@ Das Folgende lässt sich nicht nachstellen und wird an der eigenen Installation 
 - Fernsehen: Bild und Ton über go2rtc und ffmpeg, Umschalten zwischen Sendern
 - Ton der Anzeige am vorgesehenen Bildschirm: Radio, Klingelton der Eieruhr, Start ohne vorheriges Antippen
 - Artikelfenster im vorgesehenen Browser und Vollbildmodus der Anzeige
+- E-Mail: Abruf aus einem echten Postfach, Öffnen einer HTML-Nachricht mit eingebetteten Bildern, Verhalten bei falschem Kennwort
 - Google: Anmeldung mit `npm run google:login` am echten Konto; danach zeigen die Kacheln die echten Termine und die Erinnerungen aus den Kontakten
 
 ## Vor einer Lieferung

@@ -61,6 +61,14 @@ body {
   overflow: hidden;
 }
 
+/* Listen, die länger sind als ihre Kachel: mit dem Finger verschiebbar, mit schmaler Leiste am Rand */
+.scroll-list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
 button {
   font: inherit;
   color: inherit;

@@ -25,6 +25,7 @@
     "check": "npm run typecheck && npm run test && npm run licenses"
   },
   "devDependencies": {
+    "@types/mailparser": "^3.9.0",
     "@types/node": "^22.0.0",
     "license-checker-rseidelsohn": "^5.0.1",
     "typescript": "^6.0.3",
