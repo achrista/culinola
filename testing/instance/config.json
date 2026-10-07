@@ -265,7 +265,7 @@
             24,
             0,
             10,
-            10
+            6
           ],
           "config": {
             "source": "recipes"
@@ -363,6 +363,30 @@
                 "min": "demo:tag4_min"
               }
             ]
+          }
+        },
+        {
+          "type": "calendar",
+          "at": [
+            24,
+            6,
+            10,
+            4
+          ],
+          "config": {
+            "source": "demo"
+          }
+        },
+        {
+          "type": "reminders",
+          "at": [
+            34,
+            13,
+            14,
+            3
+          ],
+          "config": {
+            "source": "demo"
           }
         }
       ]

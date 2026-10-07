@@ -98,5 +98,55 @@
       "veryHigh": "UV exposure very high",
       "extreme": "UV exposure extreme"
     }
+  },
+  "calendar": {
+    "title": "Appointments",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "allDay": "all day",
+    "none": "No appointments in the coming days",
+    "untitled": "(no title)"
+  },
+  "reminders": {
+    "title": "Reminders",
+    "none": "Nothing coming up",
+    "today": "today",
+    "tomorrow": "tomorrow",
+    "yesterday": "yesterday",
+    "noPhone": "No phone number is stored for this contact.",
+    "birthday": {
+      "living": {
+        "plain": "{name}'s birthday is on {date}.",
+        "withYears": "{name} turns {years} on {date}."
+      },
+      "deceased": {
+        "plain": "{name}'s birthday would have been on {date}.",
+        "withYears": "{name} would have turned {years} on {date}."
+      }
+    },
+    "death": {
+      "plain": "{name} died on {date}.",
+      "withYears": "{name} died {years} years ago on {date}."
+    },
+    "nameday": {
+      "plain": "{name}'s name day is on {date}.",
+      "withYears": "{name}'s name day is on {date}."
+    },
+    "wedding": {
+      "plain": "{name}: wedding anniversary on {date}",
+      "withYears": "{name}: wedding anniversary no. {years} on {date}"
+    },
+    "baptism": {
+      "plain": "{name}: baptism day on {date}",
+      "withYears": "{name}: baptised {years} years ago on {date}"
+    },
+    "anniversary": {
+      "plain": "{name}: anniversary on {date}",
+      "withYears": "{name}: anniversary no. {years} on {date}"
+    },
+    "other": {
+      "plain": "{name}: {label} on {date}",
+      "withYears": "{name}: {label} on {date}, {years} years ago"
+    }
   }
 }

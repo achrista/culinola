@@ -43,8 +43,10 @@ anderen Rechner anmelden und den Ordner `data/google` auf den Server kopieren.
 { "id": "google", "plugin": "source-google" }
 ```
 
-Beim Start meldet der Kern, welche Kalender das Konto sieht; dieselbe Liste steht unter
-`/api/v1/resources/google/calendars`.
+Ohne weitere Angaben zeigt Culinola den Hauptkalender des Kontos. Welche Kalender das Konto
+sieht, steht unter `/api/v1/resources/google/calendars`; weitere lassen sich mit
+`"config": { "calendars": ["primary", "Name des Kalenders"] }` hinzunehmen. Alle Angaben
+beschreibt die README im Abschnitt „Google-Konto“.
 
 ## Zugriff wieder entziehen
 

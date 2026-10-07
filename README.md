@@ -89,6 +89,8 @@ Die Anzeige ist ein Raster. Jedes Widget steht mit `at: [Spalte, Zeile, Breite, 
 | `media-window` | Fernsehbild beim Fernsehsender, Logo beim Radiosender | `source` (Radio-Instanz), `video` (Video-Instanz), `idle` |
 | `news` | Eine Meldung mit Bild, reihum aus allen Feeds; Antippen öffnet den Artikel | `source` (Nachrichten-Instanz), `feeds`, `seconds`, `closeAfter` |
 | `weather` | Wetterlage mit Symbol, Windrose, UV-Index und Vorhersage ab heute | `temperature`, `condition`, `code`, `wind`, `uv`, `sunrise`, `sunset`, `days` |
+| `calendar` | Die nächsten Termine, nach Tagen gegliedert | `source` (Google-Instanz), `title` |
+| `reminders` | Anstehende Geburtstage und andere wiederkehrende Tage; Antippen zeigt die Telefonnummern | `source` (Google-Instanz), `title` |
 | `recipes` | Ein zufällig gewähltes Rezept mit Bild im Wechsel; Antippen öffnet es, der Pfeil die ganze Liste | `source` (Rezept-Instanz), `title`, `seconds` |
 
 `map` übersetzt Zustandswerte in Text, etwa `{ "0": "aus", "1": "läuft", "3": "fertig" }`.
@@ -126,7 +128,16 @@ Die Wettersymbole stammen aus dem Satz Meteocons (MIT) und werden ohne dessen Be
 
 ### Google-Konto
 
-Kalender und Erinnerungen kommen aus einem Google-Konto. Das Plugin `source-google` braucht dafür einen eigenen Zugang bei Google und eine einmalige Anmeldung mit `npm run google:login`; die Schritte stehen in [docs/google-einrichten.md](docs/google-einrichten.md). Culinola erhält nur Lesezugriff. Dieser Stand prüft die Anmeldung und nennt die Kalender des Kontos – Termine und Erinnerungen folgen.
+Kalender und Erinnerungen kommen aus einem Google-Konto. Das Plugin `source-google` braucht dafür einen eigenen Zugang bei Google und eine einmalige Anmeldung mit `npm run google:login`; die Schritte stehen in [docs/google-einrichten.md](docs/google-einrichten.md). Culinola erhält nur Lesezugriff.
+
+```json
+{ "id": "google", "plugin": "source-google", "config": { "calendars": ["primary", "Familie"], "days": 14, "leadDays": 3 } }
+```
+
+- **Termine** kommen aus den unter `calendars` genannten Kalendern (Name oder Kennung; `primary` ist der Hauptkalender und zugleich die Vorgabe), `days` Tage voraus.
+- **Erinnerungen** kommen aus den Kontakten: der Geburtstag und die Ereignisse eines Kontakts (Namenstag, Hochzeitstag, Taufe, Todestag, Jahrestag oder eine eigene Bezeichnung). Sie erscheinen `leadDays` Tage vorher und bleiben bis zum Tag danach. Ist das Jahr eingetragen, nennt die Anzeige das Alter.
+- Ein Ereignis darf hinter seiner Art einen Namen tragen – „Geburtstag Rosa“ an einem Kontakt, der für eine ganze Familie steht. Dann gilt der Tag dieser Person.
+- Wer in der Kontaktgruppe (dem Label) `Verstorben` ist oder einen Todestag hat, gilt als verstorben; die Anzeige schreibt dann „wäre … geworden“. Der Name der Gruppe lässt sich mit `deceasedGroup` ändern.
 
 ### Eieruhr
 

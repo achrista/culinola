@@ -33,6 +33,38 @@ function hourOf(time: number): number {
   return date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600;
 }
 
+/** Erfundene Termine und Erinnerungen, vom heutigen Tag aus gerechnet – in der Form, in der sie auch aus einem Google-Konto kommen. */
+function publishAgenda(context: { resources: { set(name: string, value: unknown): void }; datapoints: { set(update: { id: string; value: DatapointValue }): void } }): void {
+  const day = (offset: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+  const at = (offset: number, time: string) => new Date(`${day(offset)}T${time}:00`).toISOString();
+  const event = (id: string, title: string, start: string, end: string, allDay = false) => ({ id, title, start, end, allDay, calendar: 'Familie' });
+  context.resources.set('events', [
+    event('1', 'Besuch aus Hamburg', day(-1), day(2), true),
+    event('2', 'Elternabend', at(0, '23:30'), at(0, '23:59')),
+    event('3', 'Papiertonne', day(1), day(2), true),
+    event('4', 'Zahnarzt', at(1, '09:15'), at(1, '10:00')),
+    event('5', 'Chorprobe', at(1, '19:30'), at(1, '21:00')),
+    event('6', 'Wochenmarkt', at(3, '08:00'), at(3, '09:00')),
+    event('7', '', at(5, '14:00'), at(5, '15:00')),
+  ]);
+  const year = new Date().getFullYear();
+  const phones = [{ label: 'Mobil', number: '0151 5550100' }, { label: 'Privat', number: '0821 5550101' }];
+  const reminder = (name: string, kind: string, inDays: number, extra: object = {}) => ({ contact: `demo/${name}`, name, kind, date: day(inDays), inDays, deceased: false, phones, ...extra });
+  context.resources.set('reminders', [
+    reminder('Tante Rosa', 'birthday', -1, { years: 71 }),
+    reminder('Jonas Beispiel', 'birthday', 0, { years: year - 2014 }),
+    reminder('Opa Karl', 'birthday', 1, { years: 98, deceased: true, phones: [] }),
+    reminder('Marlene', 'nameday', 2, { phones: [] }),
+    reminder('Karl & Rosa Beispiel', 'wedding', 3, { years: 40 }),
+    reminder('Haus', 'other', 3, { label: 'Einzug', years: 12, phones: [] }),
+  ]);
+  context.datapoints.set({ id: 'updated', value: new Date().toISOString() });
+}
+
 export default definePlugin({
   id: 'connector-demo',
 
@@ -71,6 +103,7 @@ export default definePlugin({
     };
 
     publish();
+    publishAgenda(context);
     const timer = setInterval(publish, TICK_MS);
     context.signal.addEventListener('abort', () => clearInterval(timer));
 

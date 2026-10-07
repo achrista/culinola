@@ -98,5 +98,55 @@
       "veryHigh": "UV-Belastung sehr hoch",
       "extreme": "UV-Belastung extrem"
     }
+  },
+  "calendar": {
+    "title": "Termine",
+    "today": "Heute",
+    "tomorrow": "Morgen",
+    "allDay": "ganztägig",
+    "none": "Keine Termine in den nächsten Tagen",
+    "untitled": "(ohne Titel)"
+  },
+  "reminders": {
+    "title": "Erinnerungen",
+    "none": "Keine aktuellen Termine",
+    "today": "heute",
+    "tomorrow": "morgen",
+    "yesterday": "gestern",
+    "noPhone": "Zu diesem Kontakt ist keine Telefonnummer hinterlegt.",
+    "birthday": {
+      "living": {
+        "plain": "{name} hat am {date} Geburtstag.",
+        "withYears": "{name} wird am {date} {years} Jahre alt."
+      },
+      "deceased": {
+        "plain": "{name} hätte am {date} Geburtstag gehabt.",
+        "withYears": "{name} wäre am {date} {years} Jahre alt geworden."
+      }
+    },
+    "death": {
+      "plain": "{name} hat am {date} Todestag.",
+      "withYears": "{name} ist am {date} vor {years} Jahren gestorben."
+    },
+    "nameday": {
+      "plain": "{name} hat am {date} Namenstag.",
+      "withYears": "{name} hat am {date} Namenstag."
+    },
+    "wedding": {
+      "plain": "{name}: Hochzeitstag am {date}",
+      "withYears": "{name}: {years}. Hochzeitstag am {date}"
+    },
+    "baptism": {
+      "plain": "{name}: Tauftag am {date}",
+      "withYears": "{name}: Taufe am {date} vor {years} Jahren"
+    },
+    "anniversary": {
+      "plain": "{name}: Jahrestag am {date}",
+      "withYears": "{name}: {years}. Jahrestag am {date}"
+    },
+    "other": {
+      "plain": "{name}: {label} am {date}",
+      "withYears": "{name}: {label} am {date}, vor {years} Jahren"
+    }
   }
 }
