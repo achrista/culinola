@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type ApiPerson, occasions, upcoming } from './reminders.ts';
+import { type ApiPerson, calendarOccasions, occasions, upcoming } from './reminders.ts';
 import { sortEvents, toEvents } from './calendar.ts';
 
 const groups = [
@@ -52,6 +52,39 @@ describe('occasions', () => {
 
   it('wertet das Jahr 1900 und früher als unbekannt', () => {
     expect(occasions([person({ birthdays: [{ date: { year: 1900, month: 4, day: 1 } }] })], groups, 'Verstorben')[0]).not.toHaveProperty('year');
+  });
+});
+
+describe('calendarOccasions', () => {
+  const yearly = ['RRULE:FREQ=YEARLY'];
+
+  it('liest jährliche ganztägige Termine mit Art, Namen und Jahr', () => {
+    const list = calendarOccasions([
+      { id: 'a', summary: 'Namenstag Andreas', start: { date: '2026-11-30' }, recurrence: yearly },
+      { id: 'b', summary: 'Hochzeitstag Karl & Rosa', description: 'Jahr: 1959\nverstorben\nAus ACInfo übernommen.', start: { date: '2026-10-03' }, recurrence: yearly },
+      { id: 'c', summary: 'Einzug ins Haus', description: 'year: 2014', start: { date: '2026-04-14' }, recurrence: ['RRULE:FREQ=YEARLY;INTERVAL=1'] },
+    ]);
+    expect(list).toEqual([
+      { contact: 'calendar/a', name: 'Andreas', kind: 'nameday', day: 30, month: 11, deceased: false, phones: [] },
+      { contact: 'calendar/b', name: 'Karl & Rosa', kind: 'wedding', day: 3, month: 10, year: 1959, deceased: true, phones: [] },
+      { contact: 'calendar/c', name: 'Einzug ins Haus', kind: 'other', label: '', day: 14, month: 4, year: 2014, deceased: false, phones: [] },
+    ]);
+  });
+
+  it('lässt alles andere aus: einmalige, wöchentliche, abgesagte Termine und solche mit Uhrzeit', () => {
+    expect(
+      calendarOccasions([
+        { id: '1', summary: 'Einmalig', start: { date: '2026-05-01' } },
+        { id: '2', summary: 'Wöchentlich', start: { date: '2026-05-01' }, recurrence: ['RRULE:FREQ=WEEKLY'] },
+        { id: '3', summary: 'Abgesagt', status: 'cancelled', start: { date: '2026-05-01' }, recurrence: yearly },
+        { id: '4', summary: 'Mit Uhrzeit', start: {}, recurrence: yearly },
+        { id: '5', start: { date: '2026-05-01' }, recurrence: yearly },
+      ]),
+    ).toEqual([]);
+  });
+
+  it('nimmt einen Titel, der nur aus der Art besteht, als Ganzes', () => {
+    expect(calendarOccasions([{ id: 'x', summary: 'Hochzeitstag', start: { date: '2026-08-08' }, recurrence: yearly }])[0]).toMatchObject({ name: 'Hochzeitstag', kind: 'other' });
   });
 });
 

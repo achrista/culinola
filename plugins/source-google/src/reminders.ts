@@ -108,6 +108,46 @@ export function occasions(people: readonly ApiPerson[], groups: readonly ApiGrou
   return result;
 }
 
+/** Ein Termin eines Kalenders, wie ihn Google ohne Auflösung der Wiederholungen liefert. */
+export interface ApiYearlyEvent {
+  id?: string;
+  status?: string;
+  summary?: string;
+  description?: string;
+  start?: { date?: string };
+  recurrence?: string[];
+}
+
+/**
+ * Liest wiederkehrende Tage aus einem Kalender: jeden ganztägigen Termin, der sich jährlich
+ * wiederholt. Der Titel nennt Art und Namen („Namenstag Andreas“, „Hochzeitstag Karl & Rosa“);
+ * steht in der Beschreibung „Jahr: 1959“, lässt sich daraus das Jubiläum errechnen.
+ */
+export function calendarOccasions(items: readonly ApiYearlyEvent[]): Occasion[] {
+  const result: Occasion[] = [];
+  for (const item of items) {
+    const date = /^(\d{4})-(\d{2})-(\d{2})$/.exec(item.start?.date ?? '');
+    const title = item.summary?.trim();
+    if (item.status === 'cancelled' || !date || !title || !item.recurrence?.some((rule) => /FREQ=YEARLY/i.test(rule))) continue;
+    const kind = KINDS.find(([pattern]) => pattern.test(title));
+    const who = kind ? title.replace(kind[0], '').trim() : '';
+    const year = Number(/\b(?:Jahr|year):\s*(\d{4})\b/i.exec(item.description ?? '')?.[1]);
+    result.push({
+      contact: `calendar/${item.id ?? title}`,
+      // Ohne erkennbare Art steht der ganze Titel als Bezeichnung da
+      name: who || title,
+      kind: kind && who ? kind[1] : 'other',
+      ...(kind && who ? {} : { label: '' }),
+      day: Number(date[3]),
+      month: Number(date[2]),
+      ...(year > 1900 ? { year } : {}),
+      deceased: /\b(verstorben|deceased)\b/i.test(item.description ?? ''),
+      phones: [],
+    });
+  }
+  return result;
+}
+
 const leap = (year: number) => (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
 const iso = (year: number, month: number, day: number) => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 

@@ -43,6 +43,8 @@ function sentence(entry: Reminder): string {
   const date = new Intl.DateTimeFormat(region.value, { day: 'numeric', month: 'numeric' }).format(new Date(`${entry.date}T00:00:00`));
   const values = { name: entry.name, date, years: entry.years ?? 0, label: entry.label ?? '' };
   const form = entry.years ? 'withYears' : 'plain';
+  // Ein Tag ohne erkennbare Art steht nur mit seinem Titel da
+  if (entry.kind === 'other' && !entry.label) return t(`reminders.untitled.${form}`, values);
   if (entry.kind === 'birthday') return t(`reminders.birthday.${entry.deceased ? 'deceased' : 'living'}.${form}`, values);
   return t(`reminders.${entry.kind}.${form}`, values);
 }

@@ -147,6 +147,10 @@
     "other": {
       "plain": "{name}: {label} am {date}",
       "withYears": "{name}: {label} am {date}, vor {years} Jahren"
+    },
+    "untitled": {
+      "plain": "{name} am {date}",
+      "withYears": "{name} am {date}, vor {years} Jahren"
     }
   }
 }

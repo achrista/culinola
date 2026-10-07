@@ -1,11 +1,13 @@
 import { definePlugin } from '@culinola/sdk';
 import { AccessTokens, LoginRequired, readClient, readToken } from './auth.ts';
 import { type ApiEvent, type CalendarEvent, sortEvents, toEvents } from './calendar.ts';
-import { type ApiGroup, type ApiPerson, type Occasion, occasions, upcoming } from './reminders.ts';
+import { type ApiGroup, type ApiPerson, type ApiYearlyEvent, calendarOccasions, type Occasion, occasions, upcoming } from './reminders.ts';
 
 interface Config {
   /** Kalender, deren Termine gezeigt werden: Name oder Kennung; "primary" ist der Hauptkalender des Kontos. */
   calendars: string[];
+  /** Kalender, deren jährlich wiederkehrende ganztägige Termine als Erinnerungen gelten – für Tage, die an keinem Kontakt hängen. */
+  reminderCalendars: string[];
   /** So viele Tage voraus werden Termine geholt. */
   days: number;
   /** So viele Tage vor einem Geburtstag oder anderen Tag aus den Kontakten erscheint die Erinnerung. */
@@ -42,6 +44,7 @@ export default definePlugin<Config>({
     };
     return {
       calendars: config.calendars?.length ? config.calendars : ['primary'],
+      reminderCalendars: Array.isArray(config.reminderCalendars) ? config.reminderCalendars.filter((entry): entry is string => typeof entry === 'string' && !!entry) : ['Erinnerungen'],
       days: number(config.days, 14, 1, 366, 'days'),
       leadDays: number(config.leadDays, 3, 0, 60, 'leadDays'),
       deceasedGroup: typeof config.deceasedGroup === 'string' && config.deceasedGroup ? config.deceasedGroup : 'Verstorben',
@@ -72,6 +75,7 @@ export default definePlugin<Config>({
     };
 
     let chosen: { id: string; name: string }[] = [];
+    let yearly: { id: string; name: string }[] = [];
     let known: Occasion[] = [];
     let contactsRead = 0;
     let trouble = '';
@@ -86,7 +90,8 @@ export default definePlugin<Config>({
         if (hit) chosen.push({ id: hit.id, name: hit.name });
         else log.warn(`Kalender "${wanted}" gibt es in diesem Konto nicht. Vorhanden sind: ${all.map((entry) => entry.name).join(', ')}`);
       }
-      log.info(`Bei Google angemeldet. Gezeigt werden: ${chosen.map((entry) => entry.name).join(', ') || 'keine Kalender'}`);
+      yearly = all.filter((entry) => config.reminderCalendars.some((wanted) => entry.id === wanted || entry.name.toLowerCase() === wanted.toLowerCase())).map((entry) => ({ id: entry.id, name: entry.name }));
+      log.info(`Bei Google angemeldet. Termine aus: ${chosen.map((entry) => entry.name).join(', ') || 'keinem Kalender'}${yearly.length ? `; Erinnerungen zusätzlich aus: ${yearly.map((entry) => entry.name).join(', ')}` : ''}`);
     };
 
     const loadEvents = async () => {
@@ -112,7 +117,14 @@ export default definePlugin<Config>({
         page = data.nextPageToken ?? '';
       } while (page);
       const { contactGroups = [] } = await get<{ contactGroups?: ApiGroup[] }>(`${PEOPLE}/contactGroups?pageSize=500`);
-      known = occasions(people, contactGroups, config.deceasedGroup);
+      const fromCalendars = await Promise.all(
+        yearly.map(async (calendar) => {
+          // Ohne Auflösung der Wiederholungen: Gebraucht wird der Termin selbst mit seiner Regel, nicht jedes einzelne Jahr
+          const { items = [] } = await get<{ items?: ApiYearlyEvent[] }>(`${CALENDAR}/calendars/${encodeURIComponent(calendar.id)}/events?singleEvents=false&maxResults=2500&fields=items(id,status,summary,description,start,recurrence)`);
+          return calendarOccasions(items);
+        }),
+      );
+      known = [...occasions(people, contactGroups, config.deceasedGroup), ...fromCalendars.flat()];
       contactsRead = Date.now();
     };
 
@@ -139,7 +151,7 @@ export default definePlugin<Config>({
     };
 
     await refresh();
-    if (known.length) log.info(`${known.length} wiederkehrende Tage aus den Kontakten gelesen.`);
+    if (known.length) log.info(`${known.length} wiederkehrende Tage aus Kontakten und Kalendern gelesen.`);
     const timer = setInterval(() => void refresh(), config.refreshMinutes * 60_000);
     context.signal.addEventListener('abort', () => clearInterval(timer));
   },

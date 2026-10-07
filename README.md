@@ -138,6 +138,7 @@ Kalender und Erinnerungen kommen aus einem Google-Konto. Das Plugin `source-goog
 
 - **Termine** kommen aus den unter `calendars` genannten Kalendern (Name oder Kennung; `primary` ist der Hauptkalender und zugleich die Vorgabe), `days` Tage voraus.
 - **Erinnerungen** kommen aus den Kontakten: der Geburtstag und die Ereignisse eines Kontakts (Namenstag, Hochzeitstag, Taufe, Todestag, Jahrestag oder eine eigene Bezeichnung). Sie erscheinen `leadDays` Tage vorher und bleiben bis zum Tag danach. Ist das Jahr eingetragen, nennt die Anzeige das Alter.
+- Tage, die an keinem Kontakt hängen – ein Namenstag, der allen dieses Namens gilt, der Hochzeitstag eines Paares –, stehen als jährlich wiederkehrende ganztägige Termine in einem eigenen Kalender. Vorgabe ist ein Kalender namens `Erinnerungen`; andere nennt `reminderCalendars`. Der Titel nennt Art und Namen („Namenstag Andreas“); steht in der Beschreibung `Jahr: 1959`, errechnet die Anzeige das Jubiläum.
 - Ein Ereignis darf hinter seiner Art einen Namen tragen – „Geburtstag Rosa“ an einem Kontakt, der für eine ganze Familie steht. Dann gilt der Tag dieser Person.
 - Wer in der Kontaktgruppe (dem Label) `Verstorben` ist oder einen Todestag hat, gilt als verstorben; die Anzeige schreibt dann „wäre … geworden“. Der Name der Gruppe lässt sich mit `deceasedGroup` ändern.
 
