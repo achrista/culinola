@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { postJson } from '../api.ts';
 import { region } from '../i18n.ts';
+import { beep, unlockSound } from '../sound.ts';
 import { datapoints } from '../store.ts';
 
 /**
@@ -100,31 +101,6 @@ function tap() {
   else open.value = true;
 }
 
-// Die Töne werden erzeugt, nicht abgespielt: keine Tondatei, keine fremden Rechte.
-let sound: AudioContext | undefined;
-function unlockSound() {
-  sound ??= new AudioContext();
-  void sound.resume();
-}
-/** Spielt kurze Töne hintereinander: drei als Klingeln, einen als Erinnerung. */
-function beep(count: number) {
-  if (!sound) unlockSound();
-  if (sound?.state !== 'running') return;
-  for (let index = 0; index < count; index++) {
-    const at = sound.currentTime + index * 0.22;
-    const tone = sound.createOscillator();
-    const level = sound.createGain();
-    tone.frequency.value = 1320;
-    level.gain.setValueAtTime(0, at);
-    level.gain.linearRampToValueAtTime(0.5, at + 0.01);
-    level.gain.setValueAtTime(0.5, at + 0.12);
-    level.gain.linearRampToValueAtTime(0, at + 0.16);
-    tone.connect(level).connect(sound.destination);
-    tone.start(at);
-    tone.stop(at + 0.18);
-  }
-}
-
 let ticker: number | undefined;
 onMounted(() => {
   ticker = window.setInterval(() => {
@@ -140,7 +116,6 @@ window.addEventListener('keydown', onKey);
 onUnmounted(() => {
   window.clearInterval(ticker);
   window.removeEventListener('keydown', onKey);
-  void sound?.close();
 });
 </script>
 

@@ -91,7 +91,7 @@ Unter `layouts` dürfen mehrere Layouts stehen. Eine Anzeige zeigt `main`, mit d
 | `media-window` | Fernsehbild beim Fernsehsender, Logo beim Radiosender | `source` (Radio-Instanz), `video` (Video-Instanz), `idle` |
 | `news` | Eine Meldung mit Bild, reihum aus allen Feeds; Antippen öffnet den Artikel | `source` (Nachrichten-Instanz), `feeds`, `seconds`, `closeAfter` |
 | `weather` | Wetterlage mit Symbol, Windrose, UV-Index und Vorhersage ab heute | `temperature`, `condition`, `code`, `wind`, `uv`, `sunrise`, `sunset`, `days` |
-| `calls` | Anrufe und Nachrichten des Anrufbeantworters in einer Liste; Antippen zeigt Einzelheiten und spielt die Nachricht ab | `source` (FRITZ!Box-Instanz), `title` |
+| `calls` | Anrufe und Nachrichten des Anrufbeantworters in einer Liste; Antippen zeigt Einzelheiten und spielt die Nachricht ab | `source` (FRITZ!Box-Instanz), `title`, `sound` |
 | `calendar` | Die nächsten Termine, nach Tagen gegliedert | `source` (Google-Instanz), `title` |
 | `reminders` | Anstehende Geburtstage und andere wiederkehrende Tage; Antippen zeigt die Telefonnummern | `source` (Google-Instanz), `title` |
 | `mail` | E-Mails aller eingerichteten Postfächer, das Neueste zuerst; Antippen zeigt die Nachricht | `source` (Mail-Instanz), `title` |
@@ -177,7 +177,7 @@ Die Anmeldung steht in `secrets.json`: `{ "fritzbox": { "user": "…", "password
 - Angenommene, verpasste, ausgehende und abgewiesene Anrufe stehen mit den Nachrichten des Anrufbeantworters in einer Liste, das Neueste zuerst. Namen kommen aus dem Telefonbuch der FRITZ!Box.
 - Bei einem Anrufer ohne Namen steht dabei, woher die Nummer kommt: der Ort des Ortsnetzes („Augsburg“), bei Nummern aus dem Ausland Ort und Land („Wien, Österreich“), sonst die Art der Nummer („Mobilfunk“). `country` nennt das eigene Land (Vorgabe `DE`), `language` die Sprache der Namen (Vorgabe `de`).
 - Antippen zeigt Nummer, Zeit, Dauer und Gerät. Hat der Anrufbeantworter eine Nachricht aufgenommen, spielt die Anzeige sie ab; die Aufnahme kommt über den Kern von der FRITZ!Box.
-- Mit dem Anrufmonitor der FRITZ!Box zeigt die Kachel sofort, wenn es klingelt, und die Liste aktualisiert sich gleich nach dem Auflegen. Er wird einmalig an einem angeschlossenen Telefon mit `#96*5*` eingeschaltet; `"monitor": false` verzichtet darauf.
+- Mit dem Anrufmonitor der FRITZ!Box zeigt die Kachel sofort, wenn es klingelt, und gibt dazu einen kurzen Ton (abschaltbar mit `"sound": false` an der Kachel), und die Liste aktualisiert sich gleich nach dem Auflegen. Er wird einmalig an einem angeschlossenen Telefon mit `#96*5*` eingeschaltet; `"monitor": false` verzichtet darauf.
 - Das Plugin ändert an der FRITZ!Box nichts.
 
 ### Eieruhr

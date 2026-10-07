@@ -6,6 +6,7 @@ import { shortWhen } from '../format.ts';
 import { region } from '../i18n.ts';
 import { mediaUrl } from '../media.ts';
 import { vScrollHome } from '../scroll.ts';
+import { chime } from '../sound.ts';
 import { datapoints } from '../store.ts';
 import DetailOverlay from './DetailOverlay.vue';
 
@@ -26,7 +27,14 @@ interface Call {
  * Anrufe und Nachrichten des Anrufbeantworters in einer Liste, das Neueste zuerst.
  * Antippen zeigt die Einzelheiten und spielt eine aufgenommene Nachricht ab.
  */
-const props = defineProps<{ config: { source?: string; title?: string } }>();
+const props = defineProps<{
+  config: {
+    source?: string;
+    title?: string;
+    /** Kurzer Ton, wenn es zu klingeln beginnt; mit false bleibt die Anzeige still. */
+    sound?: boolean;
+  };
+}>();
 
 const { t } = useI18n();
 const source = computed(() => props.config.source ?? 'fritzbox');
@@ -53,6 +61,14 @@ const ringing = computed(() => {
   const place = datapoints.get(`${source.value}:ringingPlace`)?.value;
   return typeof place === 'string' && place ? `${number} · ${place}` : number;
 });
+
+// Ein kurzer Ton, sobald es zu klingeln beginnt – einmal je Anruf, nicht solange es klingelt
+watch(
+  () => datapoints.get(`${source.value}:ringing`)?.value,
+  (now, before) => {
+    if (now && !before && props.config.sound !== false) chime();
+  },
+);
 
 const who = (call: Call) => call.name || call.number || t('calls.unknown');
 const duration = (call: Call) => (call.minutes > 0 ? t('calls.minutes', { n: call.minutes }) : '');
