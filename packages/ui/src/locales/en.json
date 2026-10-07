@@ -167,5 +167,25 @@
     "loading": "Fetching the message …",
     "failed": "The message is not available: {error}",
     "trouble": "not reachable: {accounts}"
+  },
+  "calls": {
+    "title": "Calls",
+    "none": "No calls",
+    "unknown": "Unknown",
+    "message": "Message on the answering machine",
+    "minutes": "{n} min",
+    "ringing": "Ringing: {who}",
+    "what": "Type",
+    "when": "Time",
+    "duration": "Duration",
+    "device": "Device",
+    "kind": {
+      "incoming": "answered",
+      "missed": "missed",
+      "outgoing": "outgoing",
+      "rejected": "rejected",
+      "active": "in progress",
+      "voicemail": "Message on the answering machine"
+    }
   }
 }

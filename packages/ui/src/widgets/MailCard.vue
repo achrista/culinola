@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getJson } from '../api.ts';
+import { shortWhen } from '../format.ts';
 import { region } from '../i18n.ts';
 import { vScrollHome } from '../scroll.ts';
 import { datapoints } from '../store.ts';
@@ -59,14 +60,6 @@ watch(() => datapoints.get(`${source.value}:updated`)?.value, load, { immediate:
 const accountName = (id: string) => accounts.value.find((account) => account.id === id)?.name ?? id;
 const broken = computed(() => accounts.value.filter((account) => account.error));
 
-/** Heute die Uhrzeit, in den letzten Tagen der Wochentag, sonst das Datum. */
-function when(date: string): string {
-  const time = new Date(date);
-  const days = Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(time).setHours(0, 0, 0, 0)) / 86_400_000);
-  if (days <= 0) return new Intl.DateTimeFormat(region.value, { hour: '2-digit', minute: '2-digit' }).format(time);
-  if (days < 7) return new Intl.DateTimeFormat(region.value, { weekday: 'short' }).format(time);
-  return new Intl.DateTimeFormat(region.value, { day: 'numeric', month: 'numeric' }).format(time);
-}
 const size = (bytes: number) => (bytes >= 1_048_576 ? `${new Intl.NumberFormat(region.value, { maximumFractionDigits: 1 }).format(bytes / 1_048_576)} MB` : `${Math.max(1, Math.round(bytes / 1024))} kB`);
 
 async function open(entry: MailEntry) {
@@ -91,7 +84,7 @@ async function open(entry: MailEntry) {
       <li v-for="entry in messages" :key="entry.account + entry.uid">
         <button :class="{ unread: entry.unread }" @click="open(entry)">
           <span class="from">{{ entry.from || t('mail.unknownSender') }}</span>
-          <span class="when">{{ when(entry.date) }}</span>
+          <span class="when">{{ shortWhen(entry.date) }}</span>
           <span class="subject">
             <!-- Büroklammer: Die Nachricht hat Anlagen -->
             <svg v-if="entry.attachments" class="clip" viewBox="0 0 24 24" role="img" :aria-label="t('mail.hasAttachments')"><path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l9-9a3.3 3.3 0 0 1 4.7 4.7l-9 9a1.7 1.7 0 0 1-2.4-2.4l8.3-8.3" /></svg>

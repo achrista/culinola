@@ -1,0 +1,15 @@
+{
+  "name": "@culinola/plugin-source-fritzbox",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Anrufliste der FRITZ!Box mit Nachrichten des Anrufbeantworters.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@culinola/sdk": "*",
+    "fast-xml-parser": "^5.11.2"
+  }
+}

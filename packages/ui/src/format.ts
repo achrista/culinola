@@ -12,3 +12,12 @@ export function formatValue(value: DatapointValue | undefined, decimals?: number
   const digits = decimals ?? (Math.abs(value) >= 100 ? 0 : 1);
   return new Intl.NumberFormat(region.value, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value);
 }
+
+/** Kurze Zeitangabe für Listen: heute die Uhrzeit, in den letzten Tagen der Wochentag, sonst das Datum. */
+export function shortWhen(date: string): string {
+  const time = new Date(date);
+  const days = Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(time).setHours(0, 0, 0, 0)) / 86_400_000);
+  if (days <= 0) return new Intl.DateTimeFormat(region.value, { hour: '2-digit', minute: '2-digit' }).format(time);
+  if (days < 7) return new Intl.DateTimeFormat(region.value, { weekday: 'short' }).format(time);
+  return new Intl.DateTimeFormat(region.value, { day: 'numeric', month: 'numeric' }).format(time);
+}

@@ -91,6 +91,7 @@ Unter `layouts` dürfen mehrere Layouts stehen. Eine Anzeige zeigt `main`, mit d
 | `media-window` | Fernsehbild beim Fernsehsender, Logo beim Radiosender | `source` (Radio-Instanz), `video` (Video-Instanz), `idle` |
 | `news` | Eine Meldung mit Bild, reihum aus allen Feeds; Antippen öffnet den Artikel | `source` (Nachrichten-Instanz), `feeds`, `seconds`, `closeAfter` |
 | `weather` | Wetterlage mit Symbol, Windrose, UV-Index und Vorhersage ab heute | `temperature`, `condition`, `code`, `wind`, `uv`, `sunrise`, `sunset`, `days` |
+| `calls` | Anrufe und Nachrichten des Anrufbeantworters in einer Liste; Antippen zeigt Einzelheiten und spielt die Nachricht ab | `source` (FRITZ!Box-Instanz), `title` |
 | `calendar` | Die nächsten Termine, nach Tagen gegliedert | `source` (Google-Instanz), `title` |
 | `reminders` | Anstehende Geburtstage und andere wiederkehrende Tage; Antippen zeigt die Telefonnummern | `source` (Google-Instanz), `title` |
 | `mail` | E-Mails aller eingerichteten Postfächer, das Neueste zuerst; Antippen zeigt die Nachricht | `source` (Mail-Instanz), `title` |
@@ -162,6 +163,21 @@ Die Kennwörter stehen in `secrets.json` unter der Kennung der Quelle und des Ko
 - Ohne `port` gilt 993 mit Verschlüsselung von Anfang an; bei einem anderen Port wird die Verbindung nachträglich verschlüsselt, wenn der Server das anbietet. `folder` wählt einen anderen Ordner als den Posteingang.
 - Antippen zeigt die Nachricht: als Text oder als HTML. Eine Nachricht, die ihren Text nur im Rich-Text-Format (RTF) mitbringt, erscheint als reiner Text mit ihren Absätzen. HTML läuft abgeschottet – ohne Skripte, ohne Formulare und ohne Nachladen von außen, also auch ohne die Zählbilder, mit denen Absender das Öffnen bemerken. Bilder, die in der Nachricht selbst stecken, erscheinen. Mit `"remoteImages": true` in den Angaben der Quelle lädt die Anzeige auch Bilder aus dem Netz nach; die Nachricht sieht dann aus wie gedacht, der Absender kann daran aber bemerken, dass sie geöffnet wurde. Alles andere bleibt auch dann gesperrt.
 - Anlagen zeigt Culinola nicht. Eine Büroklammer in der Liste sagt, dass es welche gibt; die geöffnete Nachricht nennt ihre Namen.
+
+### Anrufe
+
+Das Plugin `source-fritzbox` liest die Anrufliste einer FRITZ!Box:
+
+```json
+{ "id": "fritzbox", "plugin": "source-fritzbox", "config": { "host": "fritz.box", "max": 60 } }
+```
+
+Die Anmeldung steht in `secrets.json`: `{ "fritzbox": { "user": "…", "password": "…" } }`. Am besten legt man in der FRITZ!Box unter System → FRITZ!Box-Benutzer einen eigenen Benutzer dafür an, der nur „Sprachnachrichten, Faxnachrichten, FRITZ!App Fon und Anrufliste“ darf.
+
+- Angenommene, verpasste, ausgehende und abgewiesene Anrufe stehen mit den Nachrichten des Anrufbeantworters in einer Liste, das Neueste zuerst. Namen kommen aus dem Telefonbuch der FRITZ!Box.
+- Antippen zeigt Nummer, Zeit, Dauer und Gerät. Hat der Anrufbeantworter eine Nachricht aufgenommen, spielt die Anzeige sie ab; die Aufnahme kommt über den Kern von der FRITZ!Box.
+- Mit dem Anrufmonitor der FRITZ!Box zeigt die Kachel sofort, wenn es klingelt, und die Liste aktualisiert sich gleich nach dem Auflegen. Er wird einmalig an einem angeschlossenen Telefon mit `#96*5*` eingeschaltet; `"monitor": false` verzichtet darauf.
+- Das Plugin ändert an der FRITZ!Box nichts.
 
 ### Eieruhr
 

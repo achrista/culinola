@@ -1,5 +1,6 @@
 import type { Component } from 'vue';
 import CalendarCard from './CalendarCard.vue';
+import CallCard from './CallCard.vue';
 import ChartCard from './ChartCard.vue';
 import ClockCard from './ClockCard.vue';
 import MailCard from './MailCard.vue';
@@ -20,6 +21,7 @@ export const widgets: Record<string, Component> = {
   switches: SwitchField,
   chart: ChartCard,
   calendar: CalendarCard,
+  calls: CallCard,
   clock: ClockCard,
   note: NoteCard,
   news: NewsCard,

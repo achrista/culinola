@@ -167,5 +167,25 @@
     "loading": "Die Nachricht wird geholt …",
     "failed": "Die Nachricht ist nicht verfügbar: {error}",
     "trouble": "nicht erreichbar: {accounts}"
+  },
+  "calls": {
+    "title": "Anrufe",
+    "none": "Keine Anrufe",
+    "unknown": "Unbekannt",
+    "message": "Nachricht auf dem Anrufbeantworter",
+    "minutes": "{n} min",
+    "ringing": "Es klingelt: {who}",
+    "what": "Art",
+    "when": "Zeit",
+    "duration": "Dauer",
+    "device": "Gerät",
+    "kind": {
+      "incoming": "angenommen",
+      "missed": "verpasst",
+      "outgoing": "ausgehend",
+      "rejected": "abgewiesen",
+      "active": "läuft gerade",
+      "voicemail": "Nachricht auf dem Anrufbeantworter"
+    }
   }
 }

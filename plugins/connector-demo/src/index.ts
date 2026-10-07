@@ -88,6 +88,45 @@ function publishMail(context: {
   });
 }
 
+/** Erfundene Anrufliste – in der Form, in der sie auch das FRITZ!Box-Plugin liefert. */
+function publishCalls(context: {
+  resources: { set(name: string, value: unknown): void };
+  routes: { get(path: string, handler: (request: { params: Record<string, string> }) => Response): void };
+}): void {
+  const ago = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
+  const call = (id: string, kind: string, name: string, number: string, minutesAgo: number, minutes: number, voicemail = false) => ({ id, kind, name, number, date: ago(minutesAgo), minutes, device: voicemail ? 'Anrufbeantworter' : 'Küche', voicemail });
+  context.resources.set('calls', [
+    call('9', 'missed', '', '0821 5550177', 35, 0),
+    call('8', 'incoming', 'Jonas Beispiel', '0151 5550100', 140, 1, true),
+    call('7', 'incoming', 'Tante Rosa', '0821 5550101', 60 * 5, 23),
+    call('6', 'outgoing', 'Praxis Dr. Muster', '0821 5550123', 60 * 27, 4),
+    call('5', 'rejected', '', '0900 5550199', 60 * 50, 0),
+    call('4', 'missed', '', '', 60 * 24 * 4, 0),
+    ...Array.from({ length: 8 }, (_, index) => call(String(3 - index), 'incoming', '', `0821 55502${10 + index}`, 60 * 24 * (9 + index * 3), 2 + index)),
+  ]);
+  // Die „Aufnahme“ ist ein erzeugter Ton von einer Sekunde – so lässt sich das Abspielen prüfen
+  context.routes.get('/voicemail/:id', (request) => {
+    if (request.params.id !== '8') return Response.json({ error: 'Zu diesem Anruf gibt es keine Aufnahme.' }, { status: 404 });
+    const rate = 8000;
+    const samples = new Int16Array(rate);
+    for (let index = 0; index < samples.length; index++) samples[index] = Math.round(Math.sin((index / rate) * 2 * Math.PI * 440) * 9000 * Math.min(1, (samples.length - index) / 2000));
+    const header = Buffer.alloc(44);
+    header.write('RIFF', 0);
+    header.writeUInt32LE(36 + samples.byteLength, 4);
+    header.write('WAVEfmt ', 8);
+    header.writeUInt32LE(16, 16);
+    header.writeUInt16LE(1, 20);
+    header.writeUInt16LE(1, 22);
+    header.writeUInt32LE(rate, 24);
+    header.writeUInt32LE(rate * 2, 28);
+    header.writeUInt16LE(2, 32);
+    header.writeUInt16LE(16, 34);
+    header.write('data', 36);
+    header.writeUInt32LE(samples.byteLength, 40);
+    return new Response(new Uint8Array(Buffer.concat([header, Buffer.from(samples.buffer)])), { headers: { 'Content-Type': 'audio/wav' } });
+  });
+}
+
 export default definePlugin({
   id: 'connector-demo',
 
@@ -123,11 +162,13 @@ export default definePlugin({
       context.datapoints.set({ id: 'waschen', value: 'läuft', label: 'Waschmaschine' });
       publishWeather(now);
       for (const [id, on] of switches) context.datapoints.set({ id, value: on, writable: true });
+      context.datapoints.set({ id: 'ringing', value: Math.floor(now / 1000) % 180 < 20 ? '0821 5550101' : '' });
     };
 
     publish();
     publishAgenda(context);
     publishMail(context);
+    publishCalls(context);
     const timer = setInterval(publish, TICK_MS);
     context.signal.addEventListener('abort', () => clearInterval(timer));
 
