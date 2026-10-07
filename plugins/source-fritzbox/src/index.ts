@@ -1,6 +1,7 @@
 import { connect } from 'node:net';
 import { definePlugin } from '@culinola/sdk';
 import { type Call, loginResponse, parseCalls, parseMonitorLine, parseSession } from './fritz.ts';
+import { placeOf } from './place.ts';
 
 interface Config {
   /** Adresse der FRITZ!Box im Heimnetz. */
@@ -10,6 +11,10 @@ interface Config {
   refreshSeconds: number;
   /** Den Anrufmonitor der FRITZ!Box mithören: zeigt sofort, wenn es klingelt. */
   monitor: boolean;
+  /** Eigenes Land als Kürzel – danach werden Nummern ohne Ländervorwahl gelesen. */
+  country: string;
+  /** Sprache der Orts- und Ländernamen. */
+  language: string;
 }
 
 const NO_SESSION = '0000000000000000';
@@ -28,7 +33,7 @@ export default definePlugin<Config>({
     const host = typeof config.host === 'string' && config.host ? config.host : 'fritz.box';
     if (!/^[a-z0-9.-]+$/i.test(host)) throw new Error('"host" muss der Name oder die Adresse der FRITZ!Box sein, ohne http:// davor.');
     const number = (value: unknown, fallback: number, min: number, max: number) => (typeof value === 'number' ? Math.min(max, Math.max(min, value)) : fallback);
-    return { host, max: number(config.max, 60, 1, 400), refreshSeconds: number(config.refreshSeconds, 120, 15, 3600), monitor: config.monitor !== false };
+    return { host, max: number(config.max, 60, 1, 400), refreshSeconds: number(config.refreshSeconds, 120, 15, 3600), monitor: config.monitor !== false, country: /^[a-z]{2}$/i.test(config.country ?? '') ? config.country!.toUpperCase() : 'DE', language: /^[a-z]{2}$/i.test(config.language ?? '') ? config.language!.toLowerCase() : 'de' };
   },
 
   start(context) {
@@ -80,7 +85,9 @@ export default definePlugin<Config>({
           // Ohne gültige Sitzung kommt keine Liste, sondern eine Fehlerseite
           return body.includes('<root') ? body : undefined;
         });
-        ({ calls, recordings } = parseCalls(xml));
+        const parsed = parseCalls(xml);
+        recordings = parsed.recordings;
+        calls = await Promise.all(parsed.calls.map(async (call) => ({ ...call, place: await placeOf(call.number, config.country, config.language) })));
         if (trouble) log.info('Die FRITZ!Box ist wieder erreichbar.');
         trouble = '';
       } catch (error) {
@@ -122,7 +129,11 @@ export default definePlugin<Config>({
     function listen() {
       const ringing = new Map<string, string>();
       let hinted = false;
-      const show = () => context.datapoints.set({ id: 'ringing', value: [...ringing.values()].at(-1) ?? '', label: 'Anrufer, solange es klingelt' });
+      const show = () => {
+        const number = [...ringing.values()].at(-1) ?? '';
+        context.datapoints.set({ id: 'ringing', value: number, label: 'Anrufer, solange es klingelt' });
+        void placeOf(number, config.country, config.language).then((place) => context.datapoints.set({ id: 'ringingPlace', value: place, label: 'Herkunft des Anrufers, solange es klingelt' }));
+      };
       const open = () => {
         if (context.signal.aborted) return;
         const socket = connect(MONITOR_PORT, config.host);

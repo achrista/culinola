@@ -175,6 +175,7 @@ Das Plugin `source-fritzbox` liest die Anrufliste einer FRITZ!Box:
 Die Anmeldung steht in `secrets.json`: `{ "fritzbox": { "user": "…", "password": "…" } }`. Am besten legt man in der FRITZ!Box unter System → FRITZ!Box-Benutzer einen eigenen Benutzer dafür an, der nur „Sprachnachrichten, Faxnachrichten, FRITZ!App Fon und Anrufliste“ darf.
 
 - Angenommene, verpasste, ausgehende und abgewiesene Anrufe stehen mit den Nachrichten des Anrufbeantworters in einer Liste, das Neueste zuerst. Namen kommen aus dem Telefonbuch der FRITZ!Box.
+- Bei einem Anrufer ohne Namen steht dabei, woher die Nummer kommt: der Ort des Ortsnetzes („Augsburg“), bei Nummern aus dem Ausland Ort und Land („Wien, Österreich“), sonst die Art der Nummer („Mobilfunk“). `country` nennt das eigene Land (Vorgabe `DE`), `language` die Sprache der Namen (Vorgabe `de`).
 - Antippen zeigt Nummer, Zeit, Dauer und Gerät. Hat der Anrufbeantworter eine Nachricht aufgenommen, spielt die Anzeige sie ab; die Aufnahme kommt über den Kern von der FRITZ!Box.
 - Mit dem Anrufmonitor der FRITZ!Box zeigt die Kachel sofort, wenn es klingelt, und die Liste aktualisiert sich gleich nach dem Auflegen. Er wird einmalig an einem angeschlossenen Telefon mit `#96*5*` eingeschaltet; `"monitor": false` verzichtet darauf.
 - Das Plugin ändert an der FRITZ!Box nichts.

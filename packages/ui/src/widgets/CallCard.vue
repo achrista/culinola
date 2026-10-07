@@ -18,6 +18,8 @@ interface Call {
   minutes: number;
   device: string;
   voicemail: boolean;
+  /** Woher die Nummer kommt: Ort, Land oder Art der Nummer. */
+  place?: string;
 }
 
 /**
@@ -44,7 +46,12 @@ watch(() => datapoints.get(`${source.value}:updated`)?.value, load, { immediate:
 const ringing = computed(() => {
   const number = datapoints.get(`${source.value}:ringing`)?.value;
   if (typeof number !== 'string' || !number) return '';
-  return calls.value.find((call) => call.number === number && call.name)?.name ?? (number === '?' ? t('calls.unknown') : number);
+  const known = calls.value.find((call) => call.number === number && call.name)?.name;
+  if (known) return known;
+  if (number === '?') return t('calls.unknown');
+  // Bei einem unbekannten Anrufer hilft die Herkunft der Nummer
+  const place = datapoints.get(`${source.value}:ringingPlace`)?.value;
+  return typeof place === 'string' && place ? `${number} · ${place}` : number;
 });
 
 const who = (call: Call) => call.name || call.number || t('calls.unknown');
@@ -71,6 +78,8 @@ const dial = (number: string) => `tel:${number.replace(/[^\d+]/g, '')}`;
           <span class="more">
             <template v-if="call.voicemail">{{ t('calls.message') }}</template>
             <template v-else-if="call.name && call.number">{{ call.number }}</template>
+            <!-- Unbekannter Anrufer: woher die Nummer kommt -->
+            <template v-else-if="call.place">{{ call.place }}</template>
             <template v-else>{{ t(`calls.kind.${call.kind}`) }}</template>
           </span>
           <span class="length">{{ duration(call) }}</span>
@@ -85,6 +94,10 @@ const dial = (number: string) => `tel:${number.replace(/[^\d+]/g, '')}`;
         <dl>
           <dt>{{ t('calls.what') }}</dt>
           <dd>{{ t(opened.voicemail ? 'calls.kind.voicemail' : `calls.kind.${opened.kind}`) }}</dd>
+          <template v-if="opened.place">
+            <dt>{{ t('calls.place') }}</dt>
+            <dd>{{ opened.place }}</dd>
+          </template>
           <dt>{{ t('calls.when') }}</dt>
           <dd>{{ new Intl.DateTimeFormat(region, { dateStyle: 'full', timeStyle: 'short' }).format(new Date(opened.date)) }}</dd>
           <template v-if="opened.minutes">

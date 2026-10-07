@@ -75,7 +75,7 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] Antippen einer Erinnerung zeigt den Satz und die Telefonnummern groß; bei einem Kontakt ohne Nummer steht der Hinweis darauf, bei Verstorbenen nichts.
 
 **Anrufe**
-- [ ] Die Liste zeigt je Anruf Pfeil, Name oder Nummer, Zeit und Dauer; verpasste und abgewiesene mit rotem Zeichen, der Anruf ohne Nummer als „Unbekannt“.
+- [ ] Die Liste zeigt je Anruf Pfeil, Name oder Nummer, Zeit und Dauer; verpasste und abgewiesene mit rotem Zeichen, der Anruf ohne Nummer als „Unbekannt“. Bei Anrufern ohne Namen steht unter der Nummer die Herkunft: „Augsburg“, „Wien, Österreich“, „Sonderrufnummer“.
 - [ ] Alle drei Minuten steht für zwanzig Sekunden „Es klingelt: Tante Rosa“ über der Liste – der Name kommt aus einem früheren Anruf derselben Nummer.
 - [ ] Antippen zeigt Nummer, Art, Zeit, Dauer und Gerät. Beim Anruf mit Nachricht erscheint ein Abspielfeld, und ein Ton von einer Sekunde ist zu hören.
 

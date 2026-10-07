@@ -186,6 +186,7 @@
       "rejected": "abgewiesen",
       "active": "läuft gerade",
       "voicemail": "Nachricht auf dem Anrufbeantworter"
-    }
+    },
+    "place": "Herkunft"
   }
 }

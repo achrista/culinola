@@ -186,6 +186,7 @@
       "rejected": "rejected",
       "active": "in progress",
       "voicemail": "Message on the answering machine"
-    }
+    },
+    "place": "Origin"
   }
 }

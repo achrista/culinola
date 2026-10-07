@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@culinola/sdk": "*",
-    "fast-xml-parser": "^5.11.2"
+    "fast-xml-parser": "^5.11.2",
+    "libphonenumber-geo-carrier": "2.0.0",
+    "libphonenumber-js": "1.12.31"
   }
 }

@@ -96,11 +96,12 @@ function publishCalls(context: {
   const ago = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
   const call = (id: string, kind: string, name: string, number: string, minutesAgo: number, minutes: number, voicemail = false) => ({ id, kind, name, number, date: ago(minutesAgo), minutes, device: voicemail ? 'Anrufbeantworter' : 'Küche', voicemail });
   context.resources.set('calls', [
-    call('9', 'missed', '', '0821 5550177', 35, 0),
+    { ...call('9', 'missed', '', '0821 5550177', 35, 0), place: 'Augsburg' },
     call('8', 'incoming', 'Jonas Beispiel', '0151 5550100', 140, 1, true),
     call('7', 'incoming', 'Tante Rosa', '0821 5550101', 60 * 5, 23),
     call('6', 'outgoing', 'Praxis Dr. Muster', '0821 5550123', 60 * 27, 4),
-    call('5', 'rejected', '', '0900 5550199', 60 * 50, 0),
+    { ...call('5', 'rejected', '', '0900 5550199', 60 * 50, 0), place: 'Sonderrufnummer' },
+    { ...call('5b', 'missed', '', '0043 1 5550144', 60 * 70, 0), place: 'Wien, Österreich' },
     call('4', 'missed', '', '', 60 * 24 * 4, 0),
     ...Array.from({ length: 8 }, (_, index) => call(String(3 - index), 'incoming', '', `0821 55502${10 + index}`, 60 * 24 * (9 + index * 3), 2 + index)),
   ]);

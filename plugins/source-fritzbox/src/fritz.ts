@@ -18,6 +18,8 @@ export interface Call {
   device: string;
   /** Der Anrufbeantworter hat eine Nachricht aufgenommen. */
   voicemail: boolean;
+  /** Woher die Nummer kommt: Ort, Land oder Art der Nummer. Trägt der Kern nach. */
+  place?: string;
 }
 
 /**
