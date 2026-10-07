@@ -54,6 +54,14 @@ describe('mailDocument', () => {
     expect(policy).not.toMatch(/https?:|\*|script-src/);
   });
 
+  it('lässt auf Wunsch Bilder aus dem Netz zu – und sonst weiterhin nichts', () => {
+    const policy = /Content-Security-Policy" content="([^"]+)"/.exec(mailDocument('<p>x</p>', true))?.[1] ?? '';
+    expect(policy).toContain('img-src data: https: http:');
+    expect(policy).toContain("default-src 'none'");
+    expect(policy).not.toMatch(/script-src|connect-src|frame-src|\*/);
+    expect(mailDocument('<p>x</p>', true)).toContain('name="referrer" content="no-referrer"');
+  });
+
   it('stellt den eigenen Rahmen vor den Inhalt der Nachricht', () => {
     expect(page.indexOf('Content-Security-Policy')).toBeLessThan(page.indexOf('<p>Hallo</p>'));
     expect(page.indexOf('<base target="_blank">')).toBeLessThan(page.indexOf('<p>Hallo</p>'));

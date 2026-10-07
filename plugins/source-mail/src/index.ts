@@ -19,6 +19,8 @@ interface Config {
   /** So viele der neuesten Nachrichten werden je Konto geholt. */
   perAccount: number;
   refreshMinutes: number;
+  /** Bilder aus dem Netz in HTML-Nachrichten nachladen. Ohne die Angabe bleiben sie weg, weil Absender daran das Öffnen bemerken. */
+  remoteImages: boolean;
 }
 
 const ACCOUNT_ID = /^[a-z0-9][a-z0-9-]*$/;
@@ -34,7 +36,7 @@ export default definePlugin<Config>({
   id: 'source-mail',
 
   parseConfig(raw) {
-    const config = raw as { accounts?: unknown; perAccount?: unknown; refreshMinutes?: unknown };
+    const config = raw as { accounts?: unknown; perAccount?: unknown; refreshMinutes?: unknown; remoteImages?: unknown };
     if (!Array.isArray(config.accounts) || config.accounts.length === 0) throw new Error('"accounts" fehlt oder ist leer.');
     const accounts = (config.accounts as Partial<Account>[]).map((entry) => {
       if (!ACCOUNT_ID.test(entry.id ?? '')) throw new Error(`Konto "${entry.name ?? '?'}": "id" fehlt oder enthält anderes als Kleinbuchstaben, Ziffern und Bindestriche.`);
@@ -45,7 +47,7 @@ export default definePlugin<Config>({
     });
     if (new Set(accounts.map((account) => account.id)).size !== accounts.length) throw new Error('Eine Konto-Kennung ist doppelt vergeben.');
     const number = (value: unknown, fallback: number, min: number, max: number) => (typeof value === 'number' ? Math.min(max, Math.max(min, value)) : fallback);
-    return { accounts, perAccount: number(config.perAccount, 30, 1, 200), refreshMinutes: number(config.refreshMinutes, 5, 1, 1440) };
+    return { accounts, perAccount: number(config.perAccount, 30, 1, 200), refreshMinutes: number(config.refreshMinutes, 5, 1, 1440), remoteImages: config.remoteImages === true };
   },
 
   start(context) {
@@ -148,7 +150,7 @@ export default definePlugin<Config>({
           return message ? message.source : undefined;
         });
         if (!source) return Response.json({ error: 'Die Nachricht gibt es im Postfach nicht mehr.' }, { status: 404 });
-        const result = { account: account.id, uid, ...readableMessage(await simpleParser(source), listed?.date ?? new Date().toISOString()) };
+        const result = { account: account.id, uid, ...readableMessage(await simpleParser(source), listed?.date ?? new Date().toISOString(), config.remoteImages) };
         opened.set(key, result);
         if (opened.size > KEEP_OPENED) opened.delete(opened.keys().next().value!);
         return Response.json(result);

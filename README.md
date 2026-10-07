@@ -160,7 +160,7 @@ Die Kennwörter stehen in `secrets.json` unter der Kennung der Quelle und des Ko
 
 - Das Plugin liest nur. Es öffnet die Postfächer ohne Schreibrecht, markiert nichts als gelesen und löscht nichts; ungelesene Nachrichten stehen fett in der Liste.
 - Ohne `port` gilt 993 mit Verschlüsselung von Anfang an; bei einem anderen Port wird die Verbindung nachträglich verschlüsselt, wenn der Server das anbietet. `folder` wählt einen anderen Ordner als den Posteingang.
-- Antippen zeigt die Nachricht: als Text oder als HTML. Eine Nachricht, die ihren Text nur im Rich-Text-Format (RTF) mitbringt, erscheint als reiner Text mit ihren Absätzen. HTML läuft abgeschottet – ohne Skripte, ohne Formulare und ohne Nachladen von außen, also auch ohne die Zählbilder, mit denen Absender das Öffnen bemerken. Bilder, die in der Nachricht selbst stecken, erscheinen.
+- Antippen zeigt die Nachricht: als Text oder als HTML. Eine Nachricht, die ihren Text nur im Rich-Text-Format (RTF) mitbringt, erscheint als reiner Text mit ihren Absätzen. HTML läuft abgeschottet – ohne Skripte, ohne Formulare und ohne Nachladen von außen, also auch ohne die Zählbilder, mit denen Absender das Öffnen bemerken. Bilder, die in der Nachricht selbst stecken, erscheinen. Mit `"remoteImages": true` in den Angaben der Quelle lädt die Anzeige auch Bilder aus dem Netz nach; die Nachricht sieht dann aus wie gedacht, der Absender kann daran aber bemerken, dass sie geöffnet wurde. Alles andere bleibt auch dann gesperrt.
 - Anlagen zeigt Culinola nicht. Eine Büroklammer in der Liste sagt, dass es welche gibt; die geöffnete Nachricht nennt ihre Namen.
 
 ### Eieruhr

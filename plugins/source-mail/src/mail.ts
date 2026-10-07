@@ -59,11 +59,16 @@ export function newestFirst(entries: readonly MailEntry[], limit: number): MailE
  * braucht und was dem Absender etwas verraten würde: Skripte, Formulare und jedes Nachladen
  * von außen – auch der unsichtbaren Zählbilder. Bilder, die in der Nachricht selbst stecken, bleiben.
  * Die Anzeige legt das Ganze zusätzlich in einen abgeschotteten Rahmen.
+ *
+ * Mit `remoteImages` dürfen Bilder aus dem Netz nachgeladen werden – und nur Bilder. Die Nachricht
+ * sieht dann aus wie gedacht; der Absender kann daran aber bemerken, dass sie geöffnet wurde.
  */
-export function mailDocument(html: string): string {
+export function mailDocument(html: string, remoteImages = false): string {
   return [
     '<!doctype html><html><head><meta charset="utf-8">',
-    `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:">`,
+    `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:${remoteImages ? ' https: http:' : ''}; style-src 'unsafe-inline'; font-src data:">`,
+    // Auch nachgeladene Bilder erfahren nicht, von welcher Adresse im Heimnetz der Aufruf kam
+    '<meta name="referrer" content="no-referrer">',
     '<base target="_blank">',
     '<style>html{color-scheme:light}body{margin:16px;font-family:system-ui,sans-serif;font-size:18px;line-height:1.45;color:#14202b;background:#fff;overflow-wrap:anywhere}img{max-width:100%;height:auto}table{max-width:100%}</style>',
     '</head><body>',
