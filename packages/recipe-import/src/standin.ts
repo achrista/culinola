@@ -84,7 +84,7 @@ function toolAnswer(asked: StandInRequest) {
   const minutes = /(\d+)\s*min/i.exec(text)?.[1];
   if (/eieruhr|timer/i.test(text) && minutes) return call('timer__start', { minutes: Number(minutes) });
   if (/eieruhr|timer/i.test(text) && /aus|stopp/i.test(text)) return call('timer__stop', {});
-  const item = /(?:setz[et]?|schreib[et]?)\s+(.+?)\s+auf\s+die\s+(?:einkaufs)?liste/i.exec(text)?.[1];
+  const item = /(?:s[ei]tz[et]?|schreib[et]?)\s+(.+?)\s+auf\s+die\s+(?:einkaufs)?liste/i.exec(text)?.[1];
   if (item) return call('lists__add', { text: item });
   const station = /(?:spiel[et]?|schalte)\s+(.+?)(?:\s+ein)?$/i.exec(text)?.[1];
   if (/radio aus/i.test(text)) return call('radio__stop', {});

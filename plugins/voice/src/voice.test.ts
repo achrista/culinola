@@ -93,6 +93,16 @@ describe('Ein gesprochener Satz', () => {
     expect(english.calls[0]!.system).toContain('auf Englisch');
   });
 
+  it('gibt den vorigen Wortwechsel mit, damit eine Antwort auf eine Rückfrage verstanden wird', async () => {
+    const { client, calls } = scripted({ stop: 'tool_use', content: [use('t', 'timer__start', { minutes: 8 })] }, { stop: 'end_turn', content: [text('Die Eieruhr läuft.')] });
+    await ask('acht Minuten', { client, actions: ACTIONS, run: async () => undefined, history: [{ text: 'Stell die Eieruhr', reply: 'Wie lange soll sie laufen?' }] });
+    expect(calls[0]!.messages).toEqual([
+      { role: 'user', content: 'Stell die Eieruhr' },
+      { role: 'assistant', content: 'Wie lange soll sie laufen?' },
+      { role: 'user', content: 'acht Minuten' },
+    ]);
+  });
+
   it('hört auf, wenn das Modell kein Ende findet oder ablehnt', async () => {
     let ran = 0;
     const endless = scripted({ stop: 'tool_use', content: [use('x', 'timer__stop', {})] });
@@ -208,6 +218,9 @@ describe('Sprachsteuerung als Plugin', () => {
     const voice = start({ anthropicApiKey: 'schluessel-fuer-den-test' });
     expect(await voice.say({ text: 'Setze Nichts auf die Liste' })).toMatchObject({ status: 200, body: { reply: 'Das hat nicht geklappt.', actions: [{ action: 'lists.add', ok: false }] } });
     expect(await voice.say({ text: 'Wie geht es dir?' })).toMatchObject({ status: 200, body: { actions: [] } });
+    // Der vorige Wortwechsel kommt mit – höchstens drei, und nur vollständige
+    await voice.say({ text: 'acht Minuten', history: [{ text: 'a', reply: 'b' }, { text: 'c' }, 'unsinn', { text: 'Stell die Eieruhr', reply: 'Wie lange?' }] });
+    expect(standIn.requests.at(-1)!.messages.map((message) => message.content)).toEqual(['a', 'b', 'Stell die Eieruhr', 'Wie lange?', 'acht Minuten']);
     // Ein Werkzeug, das diese Anzeige nicht anbietet, wird gar nicht erst aufgerufen
     expect((await voice.say({ text: 'Spiele Bayern 2' })).body.reply).toBe('Das kann ich hier nicht.');
   });

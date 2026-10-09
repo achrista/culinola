@@ -12,6 +12,7 @@ interface Config {
 }
 
 const MAX_TEXT_CHARS = 500;
+const MAX_HISTORY = 3;
 const TIMEOUT_MS = 30_000;
 
 /**
@@ -54,6 +55,12 @@ export default definePlugin<Config>({
       const text = typeof (request.body as { text?: unknown } | null)?.text === 'string' ? (request.body as { text: string }).text.replace(/\s+/g, ' ').trim() : '';
       if (!text) return refuse(400, 'Es fehlt der Satz ("text").');
       if (text.length > MAX_TEXT_CHARS) return refuse(400, `Der Satz ist länger als ${MAX_TEXT_CHARS} Zeichen.`);
+      // Der vorige Wortwechsel, wenn die Anzeige nachfragt oder jemand wiederholt
+      const given = (request.body as { history?: unknown }).history;
+      const history = (Array.isArray(given) ? given : [])
+        .filter((turn): turn is { text: string; reply: string } => typeof turn?.text === 'string' && typeof turn?.reply === 'string' && !!turn.text.trim() && !!turn.reply.trim())
+        .slice(-MAX_HISTORY)
+        .map((turn) => ({ text: turn.text.slice(0, MAX_TEXT_CHARS), reply: turn.reply.slice(0, MAX_TEXT_CHARS) }));
       if (!apiKey) return refuse(503, 'Die Sprachsteuerung ist nicht eingerichtet: In secrets.json fehlt der Schlüssel der Claude-API.');
 
       // Die Anbindung an die Claude-API wird erst geladen, wenn jemand spricht
@@ -63,6 +70,7 @@ export default definePlugin<Config>({
           client: new Anthropic({ apiKey, maxRetries: 1, timeout: TIMEOUT_MS }),
           model: config.model,
           language: config.language,
+          history,
           // Die Sprachsteuerung steuert die anderen, nicht sich selbst
           actions: context.actions.list().filter((action) => !action.name.startsWith(`${context.instanceId}.`)),
           run: (name, params) => context.actions.run(name, params),

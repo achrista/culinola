@@ -31,6 +31,8 @@ export interface AskOptions {
   run(name: string, params: Record<string, unknown>): Promise<unknown>;
   /** Sprache der Antwort: de, en oder fr. */
   language?: string;
+  /** Was unmittelbar davor gesagt und geantwortet wurde – für Rückfragen und Wiederholungen. */
+  history?: { text: string; reply: string }[];
   now?: Date;
   signal?: AbortSignal;
 }
@@ -71,6 +73,8 @@ function instructions(language: string, now: Date): string {
 
 Führe aus, was gewünscht ist, mit den Werkzeugen, die dir zur Verfügung stehen. Nennt der Satz mehrere Dinge – etwa drei Sachen für die Einkaufsliste –, rufe das Werkzeug für jedes einzeln auf. Rate keine Angaben, die fehlen: Frag dann in einem Satz nach, statt etwas auszulösen.
 
+Stehen frühere Sätze im Gespräch, ist der letzte eine Antwort auf deine Rückfrage oder eine Wiederholung, weil du etwas nicht verstanden hast – nimm beides zusammen.
+
 Antworte danach mit einem einzigen kurzen Satz auf ${words.name}, der vorgelesen wird: ohne Aufzählung, ohne Sonderzeichen, ohne Kennungen oder Fachwörter. Sag, was du getan hast („Die Eieruhr läuft, acht Minuten.“), oder was nicht ging. Behaupte nichts, was die Werkzeuge nicht bestätigt haben. Passt kein Werkzeug, sag in einem Satz, dass du das nicht kannst, und nenne ein oder zwei Dinge, die gehen.
 
 Jetzt ist ${when}.`;
@@ -95,7 +99,13 @@ export async function ask(text: string, options: AskOptions): Promise<Answer> {
   const tools = toolsFromActions(options.actions);
   const actionOf = new Map(options.actions.map((action) => [toolName(action.name), action.name]));
   const done: Done[] = [];
-  const messages: Anthropic.MessageParam[] = [{ role: 'user', content: text }];
+  const messages: Anthropic.MessageParam[] = [
+    ...(options.history ?? []).flatMap((turn): Anthropic.MessageParam[] => [
+      { role: 'user', content: turn.text },
+      { role: 'assistant', content: turn.reply },
+    ]),
+    { role: 'user', content: text },
+  ];
 
   for (let round = 0; round < MAX_ROUNDS; round++) {
     const response = await options.client.messages.create(

@@ -93,6 +93,7 @@ export default definePlugin<Config>({
 
     const scan = () => {
       const next = new Map<string, Entry>();
+      const before = new Map([...recipes.values()].map((entry) => [entry.file, entry]));
       for (const file of files(folder)) {
         const way = relative(folder, file);
         try {
@@ -110,6 +111,10 @@ export default definePlugin<Config>({
         } catch (error) {
           if (!reported.has(way)) log.warn(`Rezept "${way}" nicht lesbar: ${error instanceof Error ? error.message : String(error)}`);
           reported.add(way);
+          // Die Datei ist noch da, nur gerade nicht lesbar – etwa weil ein anderes Programm sie festhält.
+          // Dann bleibt das Rezept mit seinem letzten Stand in der Liste, statt zu verschwinden.
+          const known = before.get(file);
+          if (known && !next.has(known.id)) next.set(known.id, known);
         }
       }
       recipes = next;

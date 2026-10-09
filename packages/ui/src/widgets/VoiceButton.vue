@@ -65,55 +65,78 @@ let recognition: Recognition | undefined;
 let hide: number | undefined;
 
 // Aktivierungswort: ein Sprachmodell im Browser hört mit; was es versteht, bleibt auf dem Gerät, bis das Wort fällt
+/** So lange wartet die Anzeige auf den Satz – ab dem Wort, und neu ab jedem Stück, das sie hört. */
 const ARMED_MS = 8000;
+/** So lange nach einem eigenen Ton oder Satz wertet die Anzeige nichts: Sie soll sich nicht selbst zuhören. */
+const ECHO_MS = 1200;
 const wakeWord = computed(() => props.config.wakeWord?.trim().toLowerCase() ?? '');
 const hasModel = computed(() => datapoints.get(`${source.value}:model`)?.value === true);
 const wake = ref<'off' | 'loading' | 'on' | 'failed'>('off');
 const hearing = ref(false);
 let wakeListener: WakeListener | undefined;
 let armedUntil = 0;
+let armTimer: number | undefined;
 let quietUntil = 0;
+/** Der letzte Wortwechsel, der nichts ausgelöst hat – er geht mit, wenn gleich darauf nachgesetzt wird. */
+let unresolved: { text: string; reply: string } | undefined;
 
+const armed = () => Date.now() < armedUntil;
 /** Solange die Anzeige selbst spricht oder schon etwas bearbeitet, hört sie nicht auf sich. */
 function deaf(): boolean {
-  if ('speechSynthesis' in window && speechSynthesis.speaking) quietUntil = Date.now() + 1500;
-  return state.value !== 'idle' && state.value !== 'answer' ? true : Date.now() < quietUntil;
+  if ('speechSynthesis' in window && speechSynthesis.speaking) quietUntil = Math.max(quietUntil, Date.now() + ECHO_MS);
+  return state.value === 'thinking' || state.value === 'listening' || Date.now() < quietUntil;
 }
-function showHearing(text: string) {
+function showHearing(text: string, keepReply = false) {
   window.clearTimeout(hide);
   open.value = true;
   typing.value = false;
   hearing.value = true;
   heard.value = text;
-  reply.value = '';
+  if (!keepReply) reply.value = '';
   trouble.value = '';
+}
+/** Räumt auf, wenn nach dem Warten nichts mehr kommt – und wartet weiter, solange noch gesprochen wird. */
+function watchArm() {
+  window.clearTimeout(armTimer);
+  armTimer = window.setTimeout(
+    () => {
+      if (armed()) return watchArm();
+      if (hearing.value && state.value !== 'thinking') close();
+    },
+    Math.max(250, armedUntil - Date.now()),
+  );
+}
+/** Wartet auf den nächsten Satz – nach einer kurzen Pause, in der eigener Ton oder eigene Sprache verklingt. */
+function arm(pause: number, keepReply = false) {
+  quietUntil = Math.max(quietUntil, Date.now() + pause);
+  armedUntil = Date.now() + pause + ARMED_MS;
+  showHearing('', keepReply);
+  watchArm();
 }
 function wakePartial(text: string) {
   if (deaf()) return;
-  if (Date.now() < armedUntil) return showHearing(text);
   const found = afterWakeWord(text, wakeWord.value);
-  if (found.woke) showHearing(found.command);
+  if (!found.woke && !armed()) return;
+  // Wer spricht, wird nicht mittendrin abgeschnitten: Die Wartezeit beginnt mit jedem gehörten Stück neu
+  armedUntil = Date.now() + ARMED_MS;
+  watchArm();
+  showHearing(found.woke ? found.command : text, !found.woke);
 }
 function wakeFinal(text: string) {
   if (deaf()) return;
-  if (Date.now() < armedUntil) {
-    armedUntil = 0;
-    hearing.value = false;
-    return void send(text);
-  }
   const found = afterWakeWord(text, wakeWord.value);
-  if (!found.woke) return;
-  if (found.command) {
-    hearing.value = false;
-    return void send(found.command);
+  if (!found.woke && !armed()) return;
+  const command = found.woke ? found.command : text;
+  // Mit dem Wort beginnt etwas Neues; ohne es wird nachgesetzt
+  if (found.woke) unresolved = undefined;
+  if (!command) {
+    // Nur das Wort: ein Ton als Zeichen, und der nächste Satz ist gemeint
+    chime();
+    return arm(600);
   }
-  // Nur das Wort: ein Ton als Zeichen, und der nächste Satz ist gemeint
-  armedUntil = Date.now() + ARMED_MS;
-  chime();
-  showHearing('');
-  hide = window.setTimeout(() => {
-    if (hearing.value && state.value !== 'thinking') close();
-  }, ARMED_MS);
+  armedUntil = 0;
+  window.clearTimeout(armTimer);
+  void send(command, true);
 }
 async function startWake() {
   if (wakeListener || wake.value === 'loading') return;
@@ -135,9 +158,20 @@ watch(
   { immediate: true },
 );
 
-function speak(text: string) {
-  if (props.config.speak === false || !('speechSynthesis' in window)) return;
+/** Liest vor und meldet, wenn es damit fertig ist – auch dann, wenn gar nicht vorgelesen wird. */
+function speak(text: string, done?: () => void) {
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    done?.();
+  };
+  if (props.config.speak === false || !('speechSynthesis' in window)) return finish();
   const utterance = new SpeechSynthesisUtterance(text);
+  utterance.onend = finish;
+  utterance.onerror = finish;
+  // Manche Browser melden das Ende nicht zuverlässig; dann gilt eine großzügige Schätzung
+  window.setTimeout(finish, 2500 + text.length * 110);
   utterance.lang = region.value;
   const language = region.value.split('-')[0]!;
   // Eine Stimme in der Sprache der Anzeige; die auf dem Gerät vorhandene geht vor, weil sie ohne Netz spricht
@@ -157,6 +191,8 @@ function close() {
   typing.value = false;
   hearing.value = false;
   armedUntil = 0;
+  window.clearTimeout(armTimer);
+  unresolved = undefined;
   state.value = 'idle';
 }
 /** Die Antwort bleibt kurz stehen und macht dann von selbst Platz – außer jemand tippt gerade. */
@@ -165,16 +201,32 @@ function hideSoon() {
   if (!typing.value) hide = window.setTimeout(close, HIDE_AFTER_MS);
 }
 
-async function send(text: string) {
+/**
+ * Schickt den Satz an den Kern und zeigt die Antwort. Kam er über das Aktivierungswort und hat nichts
+ * ausgelöst – nicht verstanden oder eine Rückfrage –, hört die Anzeige nach ihrer Antwort gleich weiter zu:
+ * Wiederholen oder antworten geht dann ohne das Wort.
+ */
+async function send(text: string, spoken = false) {
   open.value = true;
   hearing.value = false;
   heard.value = text;
   state.value = 'thinking';
   trouble.value = '';
+  const history = spoken && unresolved ? [unresolved] : [];
+  unresolved = undefined;
+  let again = false;
   try {
-    const answer = await postJson<Answer>(`/p/${encodeURIComponent(source.value)}/ask`, { text });
+    const answer = await postJson<Answer>(`/p/${encodeURIComponent(source.value)}/ask`, { text, history });
     reply.value = answer.reply;
-    speak(answer.reply);
+    again = spoken && wake.value === 'on' && answer.actions.length === 0;
+    if (again) unresolved = { text, reply: answer.reply };
+    state.value = 'answer';
+    hideSoon();
+    speak(answer.reply, () => {
+      // Nur wenn inzwischen nichts anderes begonnen hat
+      if (again && state.value === 'answer' && unresolved?.text === text) arm(ECHO_MS, true);
+    });
+    return;
   } catch (cause) {
     reply.value = '';
     trouble.value = cause instanceof Error ? cause.message : String(cause);

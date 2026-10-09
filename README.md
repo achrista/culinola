@@ -384,7 +384,7 @@ Voraussetzungen:
 
 #### Aktivierungswort
 
-Mit `"wakeWord": "computer"` in der Konfiguration der Kachel hört die Anzeige dauernd mit und führt aus, was nach dem Wort gesagt wird – „Computer, setz Milch auf die Einkaufsliste“. Fällt nur das Wort, antwortet ein Ton, und der nächste Satz ist gemeint.
+Mit `"wakeWord": "computer"` in der Konfiguration der Kachel hört die Anzeige dauernd mit und führt aus, was nach dem Wort gesagt wird – „Computer, setz Milch auf die Einkaufsliste“. Fällt nur das Wort, antwortet ein Ton, und der nächste Satz ist gemeint. Hat die Anzeige etwas nicht verstanden oder fragt sie nach, hört sie nach ihrer Antwort gleich weiter zu: Wiederholen oder antworten geht dann ohne das Wort.
 
 - **Das Zuhören geschieht auf dem Gerät.** Ein kleines Sprachmodell ([Vosk](https://alphacephei.com/vosk/), über `vosk-browser`, beides Apache-2.0) läuft im Browser der Anzeige und setzt das Gehörte in Text um; das Mikrofonsignal verlässt den Rechner nicht. Erst der Satz nach dem Aktivierungswort geht – als Text – an den Kern und von dort zum Zuordnen an Anthropic. Dieser Weg braucht keine Spracherkennung des Browsers und läuft damit auch dort, wo es keine gibt.
 - **Das Modell wird nicht mitgeliefert** (rund 45 MB je Sprache). Von <https://alphacephei.com/vosk/models> ein kleines Modell laden – für Deutsch `vosk-model-small-de-0.15` –, den entpackten Ordner in `model` umbenennen, als `model.tar.gz` packen (`tar -czf model.tar.gz model`) und in den Ordner der Instanz legen: `data/voice/model.tar.gz`. Nach einem Neustart meldet der Datenpunkt `voice:model`, dass es da ist.

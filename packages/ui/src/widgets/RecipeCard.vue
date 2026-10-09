@@ -365,7 +365,8 @@ function close() {
             <!-- eslint-disable-next-line vue/no-v-html -->
             <div class="text" v-html="html" />
           </template>
-          <p v-else class="hint">{{ failed ? t('recipes.failed', { error: failed }) : list.length ? t('recipes.choose') : '' }}</p>
+          <p v-else-if="failed" class="hint failed" role="alert">{{ t('recipes.failed', { error: failed }) }}</p>
+          <p v-else class="hint">{{ list.length ? t('recipes.choose') : '' }}</p>
         </article>
       </div>
     </DetailOverlay>
@@ -571,6 +572,11 @@ article .facts {
 }
 .hint {
   color: var(--mute);
+}
+/* Ein Rezept, das sich nicht öffnen lässt, soll nicht wie eine leere Seite aussehen */
+.hint.failed {
+  color: var(--alarm);
+  font-weight: 600;
 }
 /* Das Rezept, das gerade gekocht wird */
 /* Auf dem Bild bleibt die Zeile weiß, damit sie lesbar ist */
