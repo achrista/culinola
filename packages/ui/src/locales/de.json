@@ -82,7 +82,10 @@
     "addGo": "Übernehmen",
     "addBusy": "Das Rezept wird gelesen – das dauert bis zu einer Minute.",
     "addFailed": "Nicht hinzugefügt: {error}",
-    "added": "Hinzugefügt. | Hinzugefügt. | {n} Rezepte hinzugefügt: {titles}"
+    "added": "Hinzugefügt. | Hinzugefügt. | {n} Rezepte hinzugefügt: {titles}",
+    "cook": "Das koche ich",
+    "cookDone": "Fertig gekocht",
+    "cooking": "Wird gekocht"
   },
   "timer": {
     "title": "Eieruhr",

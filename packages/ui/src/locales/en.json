@@ -82,7 +82,10 @@
     "addGo": "Add",
     "addBusy": "Reading the recipe – this takes up to a minute.",
     "addFailed": "Not added: {error}",
-    "added": "Added. | Added. | {n} recipes added: {titles}"
+    "added": "Added. | Added. | {n} recipes added: {titles}",
+    "cook": "Cooking this",
+    "cookDone": "Done cooking",
+    "cooking": "Cooking now"
   },
   "timer": {
     "title": "Kitchen timer",

@@ -265,7 +265,7 @@ servings: 4
 
 Alle Angaben sind freiwillig; deutsche Feldnamen (`Titel`, `Kategorie`, `Stichworte`, `Zeit`, `Portionen`) gelten ebenso. Die Herkunft eines Rezepts – `source: Familienrezept` in den Angaben oder eine Zeile `Quelle: [Instagram](https://…)` im Text – steht in der Rezeptliste klein unter dem Titel. Fehlt der Titel, gilt die erste Überschrift, sonst der Dateiname. Bilder liegen neben dem Rezept und werden wie üblich eingebunden: `![Kuchen](bilder/kuchen.jpg)`. Das erste Bild – oder das in den Angaben unter `image` genannte – ist das Bild des Rezepts auf der Kachel. Die Kachel zeigt alle `seconds` Sekunden (Vorgabe 30) ein anderes, zufällig gewähltes Rezept mit Bild. Eingebettetes HTML wird nicht ausgeführt, sondern als Text gezeigt.
 
-In der Leseansicht lässt sich die Schrift in Stufen vergrößern; solange ein Rezept offen ist, hält die Anzeige den Bildschirm wach, soweit der Browser das zulässt (gesicherte Verbindung oder `localhost`). Das Bild aus den Angaben steht dort neben dem Text.
+In der Leseansicht lässt sich die Schrift in Stufen vergrößern; solange ein Rezept offen ist, hält die Anzeige den Bildschirm wach, soweit der Browser das zulässt (gesicherte Verbindung oder `localhost`). Das Bild aus den Angaben steht dort neben dem Text. „Das koche ich“ hält ein Rezept fest: Es bleibt auf der Kachel stehen, statt im Wechsel zu verschwinden, und ein Fingertipp öffnet es wieder – bis „Fertig gekocht“ gedrückt wird oder sechs Stunden um sind. Der Vermerk liegt im Kern (Datenpunkt `recipes:cooking`, Aktionen `recipes.cook` und `recipes.finish`), gilt also für alle Anzeigen und übersteht ein Neuladen.
 
 #### Neue Rezepte hinzufügen
 

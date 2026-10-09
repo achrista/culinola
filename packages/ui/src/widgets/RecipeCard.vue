@@ -52,6 +52,22 @@ const failed = ref('');
 const scale = ref(readScale());
 const broken = reactive(new Set<string>());
 
+// „Das koche ich gerade“: Dieses Rezept bleibt auf der Kachel stehen, bis es fertig gemeldet wird
+const cookingId = computed(() => {
+  const value = datapoints.get(`${source.value}:cooking`)?.value;
+  return typeof value === 'string' && value ? value : undefined;
+});
+const cooking = computed(() => list.value.find((entry) => entry.id === cookingId.value));
+/** Was die Kachel zeigt: das Rezept, das gekocht wird – sonst das gerade ausgeloste. */
+const shownOnTile = computed(() => cooking.value ?? featured.value);
+async function setCooking(id: string | undefined) {
+  try {
+    await postJson(id ? '/actions/recipes.cook' : '/actions/recipes.finish', id ? { recipe: id } : {});
+  } catch (cause) {
+    failed.value = cause instanceof Error ? cause.message : String(cause);
+  }
+}
+
 // Neue Rezepte: nur angeboten, wenn der Kern sie umwandeln kann
 const canAdd = computed(() => datapoints.get(`${source.value}:importReady`)?.value === true);
 const adding = ref(false);
@@ -114,8 +130,8 @@ let rotation: number | undefined;
 onMounted(() => {
   rotation = window.setInterval(
     () => {
-      // Solange jemand liest, bleibt die Kachel dahinter ruhig
-      if (!open.value) pick();
+      // Solange jemand liest oder kocht, bleibt die Kachel ruhig
+      if (!open.value && !cooking.value) pick();
     },
     Math.max(5, props.config.seconds ?? 30) * 1000,
   );
@@ -279,12 +295,12 @@ function close() {
 
 <template>
   <section class="recipes">
-    <button v-if="featured" class="feature" :class="{ plain: !picture(featured) }" :aria-label="t('recipes.open', { title: featured.title })" @click="show(featured.id)">
-      <img v-if="picture(featured)" :key="featured.id" :src="picture(featured)" alt="" @error="pictureFailed(featured)" />
+    <button v-if="shownOnTile" class="feature" :class="{ plain: !picture(shownOnTile), cooking: !!cooking }" :aria-label="t('recipes.open', { title: shownOnTile.title })" @click="show(shownOnTile.id)">
+      <img v-if="picture(shownOnTile)" :key="shownOnTile.id" :src="picture(shownOnTile)" alt="" @error="pictureFailed(shownOnTile)" />
       <span class="caption">
-        <span class="kicker"><TitleIcon name="pot" />{{ heading }}</span>
-        <strong>{{ featured.title }}</strong>
-        <span v-if="featured.category || featured.time" class="facts">{{ [featured.category, featured.time].filter(Boolean).join(' · ') }}</span>
+        <span class="kicker"><TitleIcon name="pot" />{{ cooking ? t('recipes.cooking') : heading }}</span>
+        <strong>{{ shownOnTile.title }}</strong>
+        <span v-if="shownOnTile.category || shownOnTile.time" class="facts">{{ [shownOnTile.category, shownOnTile.time].filter(Boolean).join(' · ') }}</span>
       </span>
     </button>
     <p v-else class="none">{{ heading }} – {{ t('recipes.count', 0) }}</p>
@@ -294,6 +310,7 @@ function close() {
       <template #actions>
         <button v-if="recipe || adding" class="back" @click="(recipe = undefined), (adding = false)">{{ t('recipes.list') }}</button>
         <button v-if="canAdd && !adding" :aria-label="t('recipes.add')" @click="startAdding">{{ t('recipes.addShort') }}</button>
+        <button v-if="recipe" class="cook" :class="{ on: cookingId === recipe.id }" :aria-pressed="cookingId === recipe.id" @click="setCooking(cookingId === recipe.id ? undefined : recipe.id)">{{ t(cookingId === recipe.id ? 'recipes.cookDone' : 'recipes.cook') }}</button>
         <button v-if="recipe" :aria-label="t('recipes.smaller')" :disabled="scale === SCALES[0]" @click="resize(-1)">A−</button>
         <button v-if="recipe" :aria-label="t('recipes.larger')" :disabled="scale === SCALES[SCALES.length - 1]" @click="resize(1)">A+</button>
       </template>
@@ -306,7 +323,7 @@ function close() {
           <ul>
             <li v-for="entry in shown" :key="entry.id">
               <button :class="{ active: recipe?.id === entry.id }" @click="show(entry.id)">
-                <strong>{{ entry.title }}</strong>
+                <strong>{{ entry.title }}<span v-if="cookingId === entry.id" class="now"> · {{ t('recipes.cooking') }}</span></strong>
                 <span v-if="entry.time || entry.category || entry.source">{{ [entry.category, entry.time, entry.source].filter(Boolean).join(' · ') }}</span>
               </button>
             </li>
@@ -554,6 +571,20 @@ article .facts {
 }
 .hint {
   color: var(--mute);
+}
+/* Das Rezept, das gerade gekocht wird */
+/* Auf dem Bild bleibt die Zeile weiß, damit sie lesbar ist */
+.cooking.plain .kicker {
+  color: var(--accent);
+}
+.now {
+  color: var(--accent);
+  font-size: 0.8em;
+  font-weight: 600;
+}
+.cook.on {
+  background: var(--accent);
+  color: var(--on-accent);
 }
 .notice {
   margin: 0 0 0.6em;

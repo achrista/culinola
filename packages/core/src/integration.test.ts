@@ -116,6 +116,19 @@ describe('Kern mit Plugins, API offen', () => {
     }
   });
 
+  it('merkt sich, welches Rezept gerade gekocht wird', async () => {
+    const cooking = async () => (await app.inject('/api/v1/datapoints/recipes:cooking')).json<Datapoint>().value;
+    expect(await cooking()).toBe('');
+    expect((await app.inject({ method: 'POST', url: '/api/v1/actions/recipes.cook', payload: { recipe: 'kuchen-kaesekuchen' } })).statusCode).toBe(200);
+    expect(await cooking()).toBe('kuchen-kaesekuchen');
+    const unknown = await app.inject({ method: 'POST', url: '/api/v1/actions/recipes.cook', payload: { recipe: 'gibt-es-nicht' } });
+    expect([unknown.statusCode, await cooking()]).toEqual([400, 'kuchen-kaesekuchen']);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/actions/recipes.finish', payload: {} })).statusCode).toBe(200);
+    expect(await cooking()).toBe('');
+    // Der Vermerk im Rezeptordner ist kein Rezept
+    expect((await app.inject('/api/v1/resources/recipes/list')).json<unknown[]>()).toHaveLength(1);
+  });
+
   it('reicht Dateien als rohe Bytes an ein Plugin, auch über einem Megabyte', async () => {
     const upload = (bytes: number) => app.inject({ method: 'POST', url: '/api/v1/p/recipes/import?name=Rezept.pdf', headers: { 'content-type': 'application/octet-stream' }, payload: Buffer.alloc(bytes, 1) });
     // Ohne hinterlegten Schlüssel endet der Weg beim Plugin – angekommen ist die Datei trotzdem

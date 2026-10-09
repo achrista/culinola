@@ -104,6 +104,7 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] Der Titel des Browserfensters lautet weiter „Culinola“, der Skript-Text steht als Text da, die zwei fremden Bilder fehlen.
 - [ ] Der Pfeil öffnet die Liste mit drei Rezepten; „Kaputte Kopfdaten“ lässt sich öffnen. Unter dem Streifenkuchen steht die Herkunft „Familienrezept“, unter der Linsensuppe „Beispielseite“.
 - [ ] A− und A+ ändern die Schriftgröße; sie bleibt nach dem Schließen erhalten.
+- [ ] „Das koche ich“ bei der Linsensuppe: Nach dem Schließen zeigen beide Kacheln die Linsensuppe mit „Wird gekocht“ und wechseln nicht mehr; Antippen öffnet sie wieder. „Fertig gekocht“ bringt den Wechsel zurück.
 - [ ] Eine Datei in den Rezeptordner der Testinstanz legen: Sie erscheint ohne Neustart in der Liste.
 - [ ] „+ Rezept“ in der Liste: Einen Text einfügen, dessen erste Zeile der Titel ist – nach „Übernehmen“ öffnet sich das neue Rezept mit dem Vermerk „Hinzugefügt.“ und steht in der Liste unter „Sonstiges“.
 - [ ] Ein Foto wählen (gern über 5 MB): Das Rezept trägt den Namen der Datei, das Foto steht in der Leseansicht neben dem Text und erscheint auf der Kachel.

@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, watch } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, watch, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve } from 'node:path';
-import { definePlugin } from '@culinola/sdk';
+import { definePlugin, InvalidInput } from '@culinola/sdk';
 import { ImportRefused, importInput, statusOf } from './importer.ts';
 import { inside, parseRecipe, recipeId, type RecipeInfo } from './library.ts';
 
@@ -29,6 +29,8 @@ const MAX_DEPTH = 4;
 const MAX_RECIPE_BYTES = 1_000_000;
 const SETTLE_MS = 500;
 const POLL_MS = 60_000;
+/** So lange bleibt ein Rezept als „wird gekocht“ stehen, wenn niemand es abmeldet. */
+const COOKING_MS = 6 * 3_600_000;
 
 export default definePlugin<Config>({
   id: 'recipes',
@@ -51,6 +53,31 @@ export default definePlugin<Config>({
     mkdirSync(folder, { recursive: true });
 
     let recipes = new Map<string, Entry>();
+
+    // „Das koche ich gerade“: Dieses Rezept bleibt auf allen Anzeigen stehen, statt im Wechsel zu verschwinden.
+    // Der Vermerk liegt im Kern, damit er ein Neuladen übersteht, und endet nach einigen Stunden von selbst.
+    const cookingFile = join(context.storageDir, '.kochen.json');
+    let cooking: { id: string; since: number } | undefined;
+    let release: NodeJS.Timeout | undefined;
+    const setCooking = (next: { id: string; since: number } | undefined, save = true) => {
+      cooking = next;
+      clearTimeout(release);
+      if (next) release = setTimeout(() => setCooking(undefined), Math.max(0, next.since + COOKING_MS - Date.now()));
+      context.datapoints.set({ id: 'cooking', value: next?.id ?? '', label: 'Rezept, das gerade gekocht wird' });
+      if (!save) return;
+      try {
+        writeFileSync(cookingFile, JSON.stringify(next ?? {}));
+      } catch (error) {
+        log.warn(`Vermerk zum Kochen nicht speicherbar: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    };
+    try {
+      const saved = JSON.parse(readFileSync(cookingFile, 'utf8')) as { id?: unknown; since?: unknown };
+      if (typeof saved.id === 'string' && typeof saved.since === 'number' && saved.since + COOKING_MS > Date.now()) cooking = { id: saved.id, since: saved.since };
+    } catch {
+      // Ohne gespeicherten Vermerk wird nichts gekocht.
+    }
+    context.signal.addEventListener('abort', () => clearTimeout(release));
     const reported = new Set<string>();
 
     const files = (dir: string, depth = 0): string[] => {
@@ -86,6 +113,8 @@ export default definePlugin<Config>({
         }
       }
       recipes = next;
+      // Ein Rezept, das es nicht mehr gibt, kann niemand mehr kochen
+      if (cooking && !recipes.has(cooking.id)) setCooking(undefined);
       context.resources.set(
         'list',
         [...recipes.values()].map(({ file: _file, ...entry }) => entry).sort((a, b) => a.title.localeCompare(b.title)),
@@ -97,6 +126,22 @@ export default definePlugin<Config>({
 
     scan();
     log.info(`${recipes.size} Rezepte in ${folder}`);
+    setCooking(cooking, false);
+
+    context.actions.register(
+      {
+        name: 'recipes.cook',
+        description: 'Merkt ein Rezept als „wird gerade gekocht“ vor: Es bleibt auf der Anzeige stehen, bis es fertig gemeldet wird.',
+        params: { recipe: { type: 'string', description: 'Kennung des Rezepts', required: true } },
+      },
+      ({ recipe }) => {
+        const entry = typeof recipe === 'string' ? recipes.get(recipe) : undefined;
+        if (!entry) throw new InvalidInput(`Das Rezept "${String(recipe)}" gibt es nicht.`);
+        setCooking({ id: entry.id, since: Date.now() });
+        log.info(`Wird gekocht: ${entry.title}`);
+      },
+    );
+    context.actions.register({ name: 'recipes.finish', description: 'Meldet das Kochen als beendet: Die Anzeige zeigt wieder wechselnde Rezepte.' }, () => setCooking(undefined));
 
     // Änderungen im Ordner kommen oft in Schüben; gelesen wird, wenn Ruhe eingekehrt ist.
     let settle: NodeJS.Timeout | undefined;
