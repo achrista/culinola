@@ -13,16 +13,31 @@ export interface Heard {
 }
 
 /**
+ * Macht Wörter vergleichbar: klein geschrieben, ohne Satzzeichen, Umlaute ausgeschrieben. So passt
+ * „hallo kueche“ aus der Konfiguration auf das „hallo küche“, das die Erkennung liefert – und umgekehrt.
+ */
+function fold(word: string): string {
+  return word
+    .toLowerCase()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[^\p{L}\p{N}]+/gu, '');
+}
+
+/**
  * Sucht das Aktivierungswort in einem erkannten Satz und gibt zurück, was danach kommt.
  * Fällt es mehrmals, gilt das letzte – „Computer … ach nein, Computer, Radio aus“.
  */
 export function afterWakeWord(text: string, word: string): Heard {
   const words = text.toLowerCase().split(/\s+/).filter(Boolean);
-  const wanted = word.toLowerCase().split(/\s+/).filter(Boolean);
+  const folded = words.map(fold);
+  const wanted = word.split(/\s+/).map(fold).filter(Boolean);
   if (!wanted.length) return { woke: false, command: '' };
   let found = -1;
   for (let at = 0; at + wanted.length <= words.length; at++) {
-    if (wanted.every((part, offset) => words[at + offset] === part)) found = at;
+    if (wanted.every((part, offset) => folded[at + offset] === part)) found = at;
   }
   if (found < 0) return { woke: false, command: '' };
   return { woke: true, command: words.slice(found + wanted.length).join(' ') };
