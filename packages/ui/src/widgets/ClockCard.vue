@@ -58,6 +58,8 @@ function readout(seconds: number): string {
   return hours ? `${hours}:${rest}` : rest;
 }
 /** Nach dem Ablauf zählt die Eieruhr mit Minuszeichen weiter – so sieht man, wie lange etwas schon nachkocht. */
+/** Ziffern stehen in gleich breiten Feldern – die Schrift selbst setzt die 1 schmaler als die 0. */
+const isDigit = (char: string) => char >= '0' && char <= '9';
 const timerText = computed(() => (mode.value === 'done' ? `−${readout(shownSeconds.value)}` : readout(shownSeconds.value)));
 
 const open = ref(false);
@@ -123,15 +125,15 @@ onUnmounted(() => {
   <section class="clock" :class="{ done: mode === 'done' }">
     <component :is="props.config.timer ? 'button' : 'div'" class="face" :aria-label="props.config.timer ? t(mode === 'done' ? 'timer.tapToStop' : 'timer.set') : undefined" @click="props.config.timer && tap()">
       <template v-if="mode === 'idle'">
-        <span class="big">
-          <span>{{ parts.hm }}</span>
-          <span class="sec">{{ parts.sec }}</span>
+        <span class="big" :class="{ period: !!parts.dayPeriod }">
+          <span><span v-for="(char, index) in parts.hm" :key="index" :class="{ digit: isDigit(char) }">{{ char }}</span></span>
+          <span class="sec"><span v-for="(char, index) in parts.sec" :key="index" :class="{ digit: isDigit(char) }">{{ char }}</span></span>
           <span v-if="parts.dayPeriod" class="sec">{{ parts.dayPeriod }}</span>
         </span>
         <span class="small">{{ date }}</span>
       </template>
       <template v-else>
-        <span class="big timer" :class="{ long: timerText.length > 6 }" role="timer" :aria-label="t(mode === 'up' ? 'timer.stopwatch' : mode === 'done' ? 'timer.done' : 'timer.title')">{{ timerText }}</span>
+        <span class="big timer" :class="{ long: timerText.length > 6 }" role="timer" :aria-label="t(mode === 'up' ? 'timer.stopwatch' : mode === 'done' ? 'timer.done' : 'timer.title')"><span><span v-for="(char, index) in timerText" :key="index" :class="{ digit: isDigit(char) }">{{ char }}</span></span></span>
         <span class="small time">{{ time }}</span>
       </template>
     </component>
@@ -196,20 +198,33 @@ onUnmounted(() => {
   justify-content: center;
   text-align: left;
 }
-/* Die große Zeile richtet sich nach Höhe und Breite der Kachel, damit sie auch in eine schmale passt. */
+/*
+ * Die große Zeile richtet sich nach Höhe und Breite der Kachel: Sie füllt die Höhe bis auf die Zeile mit dem
+ * Datum und die Breite bis auf einen kleinen Rand. Weil jede Ziffer ein gleich breites Feld hat, sind Stunden,
+ * Minuten und Sekunden zusammen immer knapp drei Geviert breit – um 11:11 Uhr wie um 20:08 Uhr.
+ */
 .big {
   display: flex;
   align-items: baseline;
   gap: 0.08em;
   font-family: var(--font-num);
   font-weight: var(--clock-weight);
-  font-size: clamp(36px, min(72cqh, 34cqw), 150px);
+  font-size: clamp(36px, min(86cqh, 32cqw), 170px);
   line-height: 0.9;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+.digit {
+  display: inline-block;
+  width: 0.52em;
+  text-align: center;
+}
 .sec {
   font-size: 0.45em;
+}
+/* Mit „AM“ oder „PM“ dahinter wird die Zeile länger */
+.big.period {
+  font-size: clamp(36px, min(86cqh, 26cqw), 170px);
 }
 .small {
   max-width: 100%;
@@ -219,8 +234,10 @@ onUnmounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Unter der laufenden Eieruhr steht die Uhrzeit größer als sonst das Datum – die Eieruhr selbst bleibt dafür etwas kleiner */
 .timer {
   color: var(--timer-ink);
+  font-size: clamp(36px, min(72cqh, 33cqw), 150px);
 }
 /* Mit Stunden wird die Anzeige länger und deshalb kleiner gesetzt */
 .timer.long {

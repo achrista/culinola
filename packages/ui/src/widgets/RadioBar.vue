@@ -37,7 +37,7 @@ async function run(action: string, params: Record<string, unknown> = {}) {
 <template>
   <section class="radio">
     <div class="now">
-      <span class="kind"><TitleIcon name="radio" />{{ current ? t(current.kind === 'video' ? 'radio.tv' : 'radio.radio') : t('radio.idle') }}</span>
+      <span class="kind"><TitleIcon name="radio" />{{ t(current?.kind === 'video' ? 'radio.tv' : 'radio.radio') }}</span>
       <span class="name">{{ current?.name ?? t('radio.off') }}</span>
       <span class="title">{{ current?.kind === 'video' ? t('radio.inMediaWindow') : title }}</span>
     </div>
