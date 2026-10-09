@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { moon, moonPhaseName, sunPosition, sunTimes } from './astro.ts';
+import { isNight, moon, moonPhaseName, sunPosition, sunTimes } from './astro.ts';
 import plugin from './index.ts';
 
 const utc = (text: string) => Date.parse(`${text}Z`);
@@ -58,6 +58,31 @@ describe('Sonnenstand', () => {
   });
 });
 
+describe('Nacht für die Anzeige', () => {
+  const times = sunTimes(utc('2026-10-09T10:00:00'), 48.4, 10.9);
+  const at = (base: number, minutes: number) => base + minutes * 60_000;
+
+  it('beginnt um den Abstand nach dem Untergang und endet um ihn vor dem Aufgang', () => {
+    expect(isNight(at(times.sunset!, 29), times, 30, -3)).toBe(false);
+    expect(isNight(at(times.sunset!, 31), times, 30, -5)).toBe(true);
+    expect(isNight(at(times.sunrise!, -31), times, 30, -5)).toBe(true);
+    expect(isNight(at(times.sunrise!, -29), times, 30, -3)).toBe(false);
+    expect(isNight(times.noon, times, 30, 35)).toBe(false);
+  });
+
+  it('folgt ohne Abstand genau Auf- und Untergang, mit negativem beginnt sie früher', () => {
+    expect(isNight(at(times.sunset!, 1), times, 0, -1)).toBe(true);
+    expect(isNight(at(times.sunset!, -1), times, 0, 0)).toBe(false);
+    expect(isNight(at(times.sunset!, -10), times, -15, 1)).toBe(true);
+  });
+
+  it('richtet sich nach dem Sonnenstand, wo die Sonne nicht auf- oder untergeht', () => {
+    const polar = sunTimes(utc('2026-12-21T12:00:00'), 78.2, 15.6);
+    expect(isNight(utc('2026-12-21T12:00:00'), polar, 30, -11)).toBe(true);
+    expect(isNight(utc('2026-06-21T00:00:00'), sunTimes(utc('2026-06-21T00:00:00'), 78.2, 15.6), 30, 12)).toBe(false);
+  });
+});
+
 describe('Mond', () => {
   it('trifft bekannte Voll- und Neumonde', () => {
     // Vollmond am 17. Oktober 2024, 11:26 Uhr; Neumond am 2. Oktober 2024, 18:49 Uhr Weltzeit
@@ -76,7 +101,9 @@ describe('Mond', () => {
 
 describe('Konfiguration', () => {
   it('verlangt einen Standort', () => {
-    expect(plugin.parseConfig!({ latitude: 48.4, longitude: 10.9 })).toEqual({ latitude: 48.4, longitude: 10.9 });
+    expect(plugin.parseConfig!({ latitude: 48.4, longitude: 10.9 })).toEqual({ latitude: 48.4, longitude: 10.9, nightOffsetMinutes: 30 });
+    expect(plugin.parseConfig!({ latitude: 48.4, longitude: 10.9, nightOffsetMinutes: 0 }).nightOffsetMinutes).toBe(0);
+    expect(() => plugin.parseConfig!({ latitude: 48.4, longitude: 10.9, nightOffsetMinutes: 600 })).toThrow();
     for (const raw of [{}, { latitude: 48.4 }, { latitude: 95, longitude: 10 }, { latitude: '48', longitude: 10 }, { latitude: 48, longitude: 200 }]) expect(() => plugin.parseConfig!(raw), JSON.stringify(raw)).toThrow();
   });
 });

@@ -166,7 +166,7 @@ Das Aussehen der Anzeige bestimmt ein Farbschema. Gewählt wird es in `config.js
 | `nacht` | Dunkel mit warmem Orange, die Kacheln durch eine feine Kante getrennt |
 | `spiegel` | Für die Anzeige hinter einem Spiegelglas: alles hell und kräftig auf Schwarz, ohne Kachelflächen |
 
-**Tag und Nacht.** Mit einem zweiten Schema für die Nacht wechselt die Anzeige von selbst: bei Sonnenuntergang auf das dunkle, bei Sonnenaufgang zurück. In der Konfiguration `"site": { "theme": "glut", "nightTheme": "nacht" }`, zum Ausprobieren an einer Anzeige `?theme=glut&night=nacht`. Wann die Sonne unter ist, sagt die Quelle `astro` (siehe [Sonne und Mond](#sonne-und-mond)); heißt sie anders, nennt `site.astro` ihre Kennung.
+**Tag und Nacht.** Mit einem zweiten Schema für die Nacht wechselt die Anzeige von selbst: eine halbe Stunde nach Sonnenuntergang auf das dunkle, eine halbe Stunde vor Sonnenaufgang zurück – der Abstand ist einstellbar (`nightOffsetMinutes` der Quelle `astro`). In der Konfiguration `"site": { "theme": "glut", "nightTheme": "nacht" }`, zum Ausprobieren an einer Anzeige `?theme=glut&night=nacht`. Wann für die Anzeige Nacht ist, sagt die Quelle `astro` (siehe [Sonne und Mond](#sonne-und-mond)); heißt sie anders, nennt `site.astro` ihre Kennung.
 
 Ein Schema besteht nur aus Werten – Farben, Rundung, Abstand, Schatten, Schrift der Überschriften, Farben der Uhr – in [theme.css](packages/ui/src/theme.css); ein eigenes ist ein weiterer Block dort.
 
@@ -340,10 +340,10 @@ Zu wissen: Die Vorlage wird zum Umwandeln an Anthropic übertragen, und jede Umw
 Das Plugin `source-astro` rechnet für den eigenen Standort Sonnenauf- und -untergang, Dämmerung, Sonnenstand und Mondphase – im Kern, ohne einen Dienst von außen:
 
 ```json
-{ "id": "astro", "plugin": "source-astro", "config": { "latitude": 48.37, "longitude": 10.9 } }
+{ "id": "astro", "plugin": "source-astro", "config": { "latitude": 48.37, "longitude": 10.9, "nightOffsetMinutes": 30 } }
 ```
 
-Die Kachel `sun-moon` zeichnet daraus den Tageslauf. Als Datenpunkte gibt es unter anderem `astro:day` (ob die Sonne über dem Horizont steht – daran hängt der Wechsel auf das Nachtschema), `astro:sunrise` und `astro:sunset`, `astro:dayLength`, `astro:sunAltitude`, `astro:moonPhase` und `astro:moonIllumination`. Sie lassen sich wie jeder andere Wert in Kacheln zeigen oder für Meldungen nutzen.
+Die Kachel `sun-moon` zeichnet daraus den Tageslauf. `nightOffsetMinutes` (Vorgabe 30) legt fest, wie lange nach Sonnenuntergang das Nachtschema beginnt und wie lange vor Sonnenaufgang es endet; `0` folgt genau der Sonne, ein negativer Wert zieht den Wechsel in den Tag hinein. Als Datenpunkte gibt es unter anderem `astro:day` (ob die Sonne über dem Horizont steht), `astro:night` (Nacht für die Anzeige, mit dem eingestellten Abstand – daran hängt der Wechsel auf das Nachtschema), `astro:sunrise` und `astro:sunset`, `astro:dayLength`, `astro:sunAltitude`, `astro:moonPhase` und `astro:moonIllumination`. Sie lassen sich wie jeder andere Wert in Kacheln zeigen oder für Meldungen nutzen.
 
 ### Solar-Prognose
 

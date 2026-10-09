@@ -75,7 +75,7 @@ onMounted(async () => {
       if (source && typeof (widget.config as { source?: unknown } | undefined)?.source !== 'string') ids.add(`${source}:*`);
     }
     // Für den Wechsel zwischen Tag- und Nachtschema braucht jede Anzeige den Sonnenstand, gleich welches Layout sie zeigt
-    if (nightTheme.value) ids.add(`${astroSource.value}:day`);
+    if (nightTheme.value) ids.add(`${astroSource.value}:night`);
     subscribe([...ids]);
     connect();
   } catch (cause) {
@@ -84,11 +84,12 @@ onMounted(async () => {
   }
 });
 
-// Tag und Nacht: Geht die Sonne unter, wechselt die Anzeige auf ihr Nachtschema – und am Morgen zurück
+// Tag und Nacht: Nach Sonnenuntergang wechselt die Anzeige auf ihr Nachtschema, vor Sonnenaufgang zurück –
+// wann genau, legt die Quelle fest
 watch(
-  () => (nightTheme.value ? datapoints.get(`${astroSource.value}:day`)?.value : undefined),
-  (day) => {
-    if (typeof day === 'boolean') setDaylight(day);
+  () => (nightTheme.value ? datapoints.get(`${astroSource.value}:night`)?.value : undefined),
+  (night) => {
+    if (typeof night === 'boolean') setDaylight(!night);
   },
 );
 

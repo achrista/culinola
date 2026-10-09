@@ -89,6 +89,17 @@ export function sunTimes(time: number, latitude: number, longitude: number): Sun
   };
 }
 
+/**
+ * Ob für die Anzeige Nacht ist: vom Sonnenuntergang bis zum Sonnenaufgang, auf beiden Seiten um einen Abstand
+ * verschoben – mit 30 Minuten beginnt die Nacht eine halbe Stunde nach dem Untergang und endet eine halbe
+ * Stunde vor dem Aufgang. Wo die Sonne an diesem Tag nicht auf- oder untergeht, entscheidet ihr Stand.
+ */
+export function isNight(time: number, times: SunTimes, offsetMinutes: number, altitude: number): boolean {
+  if (times.sunrise === undefined || times.sunset === undefined) return altitude <= -0.833;
+  const offset = offsetMinutes * 60_000;
+  return time < times.sunrise - offset || time >= times.sunset + offset;
+}
+
 export interface Moon {
   /** Lauf durch den Mondmonat: 0 Neumond, 0,25 zunehmender Halbmond, 0,5 Vollmond, 0,75 abnehmender Halbmond. */
   phase: number;

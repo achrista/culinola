@@ -144,7 +144,7 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 
 **Sonne und Mond** (Layout `haus`)
 - [ ] Drei Kacheln für drei Orte der Erde – Deutschland, Tokio, San Francisco –, damit immer eine den Tag und eine die Nacht zeigt: Am Tag wandert die Sonne mit Strahlenkranz über den Bogen, nachts der Mond in seiner Phase vor funkelnden Sternen; unten stehen Auf- und Untergang und die Tageslänge, oben was als Nächstes kommt und die Mondphase.
-- [ ] <http://localhost:8191/?layout=haus&theme=glut&night=nacht>: Ist in Deutschland die Sonne unter, zeigt die Anzeige das Schema „Nacht“, sonst „Glut“; ohne `night` bleibt es bei „Glut“.
+- [ ] <http://localhost:8191/?layout=haus&theme=glut&night=nacht>: Eine halbe Stunde nach Sonnenuntergang in Deutschland zeigt die Anzeige das Schema „Nacht“, bis eine halbe Stunde vor Sonnenaufgang – sonst „Glut“; ohne `night` bleibt es bei „Glut“.
 
 **Farbschema**
 - [ ] <http://localhost:8191/?theme=glut>, `schiefer`, `signal`, `nacht` und `spiegel` nacheinander: Jede Kachel bleibt lesbar, die Uhr trägt die Akzentfarbe (bei `signal` als Fläche), Überschriften, Schalter und Diagramm passen zum Schema. Ohne Zusatz gilt wieder „Klar“.
