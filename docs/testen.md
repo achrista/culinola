@@ -139,6 +139,9 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] Die Kachel „Kamera“ hat in der Testinstanz kein Bild, trägt aber ihren Namen. In der Radioleiste „Testbild“ wählen: Die Kachel heißt jetzt „Testbild“ – das Fernsehen hat sie übernommen. „Aus“ gibt sie der Kamera zurück.
 - [ ] Markise: ▼ fährt aus, die Prozentzahl daneben läuft bis 100; ■ hält an, ▲ fährt ein. Im Hauptbild heißen die Tasten „ein“ und „aus“.
 
+**Küche** (Layout `kueche`: <http://localhost:8191/?layout=kueche>)
+- [ ] Die ganze Aufteilung eines Küchenbildschirms auf einen Blick: links zwei Kameraflächen, Sonne und Mond und das Rezept mit Bild; in der Mitte Uhr, Wetter, Sprechen, sechzehn Messwerte, Diagramme, Anrufe, E-Mail, Schalter mit Markise und Radio; rechts Nachrichten, Termine, Erinnerungen und die Einkaufsliste. Nichts überlappt, nichts ist abgeschnitten – auch nicht mit `&theme=glut&night=nacht`.
+
 **Sonne und Mond** (Layout `haus`)
 - [ ] Drei Kacheln für drei Orte der Erde – Deutschland, Tokio, San Francisco –, damit immer eine den Tag und eine die Nacht zeigt: Am Tag wandert die Sonne mit Strahlenkranz über den Bogen, nachts der Mond in seiner Phase vor funkelnden Sternen; unten stehen Auf- und Untergang und die Tageslänge, oben was als Nächstes kommt und die Mondphase.
 - [ ] <http://localhost:8191/?layout=haus&theme=glut&night=nacht>: Ist in Deutschland die Sonne unter, zeigt die Anzeige das Schema „Nacht“, sonst „Glut“; ohne `night` bleibt es bei „Glut“.
