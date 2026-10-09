@@ -19,6 +19,8 @@ export interface StandIn {
   expireAccess(): void;
   /** Lässt auch die Erneuerungstoken verfallen. */
   expireRefresh(): void;
+  /** Legt fest, ob das Konto der Familie angehört – ein frisches Konto tut es noch nicht. */
+  setMember(member: boolean): void;
   /** Trennt alle offenen Echtzeitkanäle. */
   dropStreams(): void;
   /** Ändert einen Eintrag so, als hätte es jemand am Telefon getan. */
@@ -66,6 +68,7 @@ export async function startStandIn(port = 0): Promise<StandIn> {
   const refresh = new Set<string>();
   const streams = new Map<ServerResponse, number>();
   let serial = 0;
+  let member = true;
   let nextId = 500;
 
   const tokens = () => {
@@ -78,7 +81,7 @@ export async function startStandIn(port = 0): Promise<StandIn> {
     for (const [stream, id] of streams) if (id === listId) stream.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
   /** Das Konto ist Mitglied der Familie, nicht des Vereins – wie ein Küchenkonto in einer einzigen Gruppe. */
-  const allowed = (listId: number) => LISTS.some((list) => list.id === listId && list.groupId === 1);
+  const allowed = (listId: number) => member && LISTS.some((list) => list.id === listId && list.groupId === 1);
 
   const server = createServer((request, response) => {
     const chunks: Buffer[] = [];
@@ -107,8 +110,8 @@ export async function startStandIn(port = 0): Promise<StandIn> {
       }
       if (!access.has((request.headers.authorization ?? '').replace(/^Bearer /, ''))) return send(401, { error: 'Token ungültig oder abgelaufen' });
 
-      if (route === 'GET /groups') return send(200, { groups: GROUPS.filter((group) => group.id === 1) });
-      if (route === 'GET /groups/:id/lists') return id === 1 ? send(200, { lists: LISTS.filter((list) => list.groupId === id).map(({ groupId: _groupId, ...list }) => list) }) : send(403, { error: 'Keine Berechtigung' });
+      if (route === 'GET /groups') return send(200, { groups: GROUPS.filter((group) => member && group.id === 1) });
+      if (route === 'GET /groups/:id/lists') return id === 1 && member ? send(200, { lists: LISTS.filter((list) => list.groupId === id).map(({ groupId: _groupId, ...list }) => list) }) : send(403, { error: 'Keine Berechtigung' });
       if (route === 'GET /lists/:id/items') return allowed(id) ? send(200, { items: items.filter((item) => item.listId === id) }) : send(403, { error: 'Keine Berechtigung oder Liste nicht gefunden' });
       if (route === 'GET /lists/:id/events') {
         if (!allowed(id)) return send(403, { error: 'Keine Berechtigung' });
@@ -152,6 +155,7 @@ export async function startStandIn(port = 0): Promise<StandIn> {
     calls,
     expireAccess: () => access.clear(),
     expireRefresh: () => refresh.clear(),
+    setMember: (next) => void (member = next),
     dropStreams: () => {
       for (const stream of streams.keys()) stream.destroy();
     },

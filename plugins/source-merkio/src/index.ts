@@ -60,7 +60,7 @@ export default definePlugin<Config>({
     const setState = (next: string) => {
       if (next === state) return;
       state = next;
-      // ok – verbunden · login – Anmeldung fehlt oder wird abgelehnt · offline – Merkio nicht erreichbar
+      // ok – verbunden · nogroup – angemeldet, aber in keiner Gruppe · login – Anmeldung fehlt oder wird abgelehnt · offline – Merkio nicht erreichbar
       context.datapoints.set({ id: 'state', value: next, label: 'Merkio: Verbindung' });
     };
     const publish = () => {
@@ -128,8 +128,11 @@ export default definePlugin<Config>({
     };
 
     let announced = '';
-    /** Liest Gruppen und Listen und gleicht ab, was gezeigt wird; neue Listen bekommen ihren Echtzeitkanal. */
-    const discover = async () => {
+    /**
+     * Liest Gruppen und Listen und gleicht ab, was gezeigt wird; neue Listen bekommen ihren Echtzeitkanal.
+     * Gibt zurück, ob das Konto überhaupt einer Gruppe angehört.
+     */
+    const discover = async (): Promise<boolean> => {
       const { groups } = await client.request<{ groups: { id: number; name: string }[] }>('GET', '/groups');
       const available: ListInfo[] = [];
       for (const group of groups) {
@@ -156,21 +159,26 @@ export default definePlugin<Config>({
         }
       }
 
-      const summary = `${[...wanted.values()].map((list) => `${list.name} (${list.group})`).join(', ') || 'keine Liste'}|${missing.join(', ')}`;
+      const summary = `${groups.length}|${[...wanted.values()].map((list) => `${list.name} (${list.group})`).join(', ') || 'keine Liste'}|${missing.join(', ')}`;
       if (summary !== announced) {
         announced = summary;
-        log.info(`Bei Merkio angemeldet. Listen: ${summary.split('|')[0]}`);
-        if (missing.length) log.warn(`Nicht gefunden: ${missing.join(', ')}. Vorhanden sind: ${available.map((list) => `${list.name} (${list.group}, ${list.type})`).join(', ') || 'keine Listen'}`);
+        // Ein frisches Konto sieht nichts, bis es einer Gruppe beigetreten ist und dort bestätigt wurde
+        if (!groups.length) log.warn('Bei Merkio angemeldet, aber das Konto ist in keiner Gruppe Mitglied. In Merkio mit diesem Konto der Gruppe beitreten und den Beitritt dort bestätigen lassen.');
+        else log.info(`Bei Merkio angemeldet. Listen: ${summary.split('|')[1]}`);
+        if (groups.length && missing.length) log.warn(`Nicht gefunden: ${missing.join(', ')}. Vorhanden sind: ${available.map((list) => `${list.name} (${list.group}, ${list.type})`).join(', ') || 'keine Listen'}`);
       }
+      return groups.length > 0;
     };
 
     let timer: NodeJS.Timeout | undefined;
     const cycle = async () => {
       let wait = config.refreshMinutes * 60_000;
       try {
-        await discover();
+        const member = await discover();
         await Promise.all([...shown.keys()].map(loadItems));
-        setState('ok');
+        setState(member ? 'ok' : 'nogroup');
+        // Der Beitritt wird am Telefon bestätigt; bis dahin öfter nachsehen
+        if (!member) wait = Math.min(wait, RETRY_MS);
       } catch (error) {
         if (context.signal.aborted) return;
         const message = error instanceof Error ? error.message : String(error);

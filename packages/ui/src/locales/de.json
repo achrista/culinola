@@ -210,8 +210,10 @@
     "check": "{name} abhaken",
     "uncheck": "Haken bei {name} wegnehmen",
     "empty": "Alles erledigt.",
-    "noList": "Keine Liste eingerichtet.",
+    "noList": "Keine Liste gefunden.",
     "login": "Die Zugangsdaten für die Liste fehlen oder werden abgelehnt.",
-    "offline": "nicht verbunden"
+    "offline": "nicht verbunden",
+    "noGroup": "Das Konto für die Liste ist noch in keiner Gruppe Mitglied.",
+    "notFound": "Die Liste „{list}“ wurde nicht gefunden."
   }
 }

@@ -210,8 +210,10 @@
     "check": "Check off {name}",
     "uncheck": "Uncheck {name}",
     "empty": "All done.",
-    "noList": "No list set up.",
+    "noList": "No list found.",
     "login": "The sign-in details for the list are missing or rejected.",
-    "offline": "not connected"
+    "offline": "not connected",
+    "noGroup": "The account for the list is not a member of any group yet.",
+    "notFound": "The list “{list}” was not found."
   }
 }

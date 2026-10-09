@@ -131,7 +131,7 @@ function startAdding() {
         </button>
       </li>
     </ul>
-    <p v-else class="none">{{ state === 'login' ? t('checklist.login') : !loaded ? '' : list ? t('checklist.empty') : t('checklist.noList') }}</p>
+    <p v-else class="none">{{ state === 'login' ? t('checklist.login') : state === 'nogroup' ? t('checklist.noGroup') : !loaded ? '' : list ? t('checklist.empty') : props.config.list ? t('checklist.notFound', { list: props.config.list }) : t('checklist.noList') }}</p>
     <p v-if="failed && !adding" class="failed" role="alert">{{ failed }}</p>
 
     <DetailOverlay v-if="adding && list" :title="t('checklist.addTo', { list: list.name })" @close="adding = false">

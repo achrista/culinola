@@ -289,7 +289,7 @@ Am besten bekommt die Anzeige ein eigenes Merkio-Konto, das Mitglied der Familie
 
 Antippen hakt einen Eintrag ab; Abgehaktes bleibt einige Stunden durchgestrichen stehen, damit sich der Haken zurücknehmen lässt. „+“ öffnet ein Eingabefeld: „2 kg Mehl“ wird in Menge, Einheit und Namen zerlegt, und was schon abgehakt auf der Liste steht, wird wieder offen statt doppelt. Dasselbe geht über die Aktionen `lists.add` (`text`, `list`) und `lists.check` (`item`, `checked`).
 
-Das Plugin meldet sich mit Konto und Kennwort an, merkt sich Merkios Erneuerungstoken in `data/merkio/token.json` und meldet sich von selbst neu an, wenn es abgelaufen ist. Der Datenpunkt `merkio:state` sagt, wie es steht: `ok`, `login` (Zugangsdaten fehlen oder werden abgelehnt) oder `offline`. Mit `url` lässt sich eine eigene Merkio-Installation ansprechen, mit `refreshMinutes` (Vorgabe 5) der Abstand, in dem zusätzlich zum Echtzeitkanal alles neu gelesen wird.
+Das Plugin meldet sich mit Konto und Kennwort an, merkt sich Merkios Erneuerungstoken in `data/merkio/token.json` und meldet sich von selbst neu an, wenn es abgelaufen ist. Der Datenpunkt `merkio:state` sagt, wie es steht: `ok`, `nogroup` (angemeldet, aber das Konto ist noch in keiner Gruppe – in Merkio beitreten und bestätigen lassen), `login` (Zugangsdaten fehlen oder werden abgelehnt) oder `offline`. Mit `url` lässt sich eine eigene Merkio-Installation ansprechen, mit `refreshMinutes` (Vorgabe 5) der Abstand, in dem zusätzlich zum Echtzeitkanal alles neu gelesen wird.
 
 ## API
 

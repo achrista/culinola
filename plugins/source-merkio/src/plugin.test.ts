@@ -201,6 +201,15 @@ describe('Anmeldung bei Merkio', () => {
     expect(wrong.warnings.join('\n')).not.toContain('stimmt-nicht');
   });
 
+  it('sagt, wenn das Konto noch in keiner Gruppe Mitglied ist', async () => {
+    merkio = await startStandIn();
+    merkio.setMember(false);
+    const shown = start('ohne-gruppe', { lists: [{ name: 'Einkauf', group: 'Familie' }] });
+    await until(() => shown.datapoints.get('state') === 'nogroup', 'Meldung');
+    expect(shown.lists()).toEqual([]);
+    expect(shown.warnings).toEqual([expect.stringMatching(/in keiner Gruppe Mitglied/)]);
+  });
+
   it('bleibt ruhig, wenn Merkio nicht erreichbar ist', async () => {
     merkio = await startStandIn();
     const url = merkio.url;

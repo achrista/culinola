@@ -114,7 +114,7 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] „Einkauf“ zeigt die offenen Einträge in Spalten mit Menge dahinter, die Zahl der offenen im Kopf und „Kaffee“ durchgestrichen am Ende.
 - [ ] Antippen hakt ab: Der Eintrag wandert durchgestrichen ans Ende, die zweite Einkauf-Kachel zieht sofort nach. Nochmal antippen nimmt den Haken weg.
 - [ ] „+“: „2 kg Mehl“ erscheint als „Mehl 2 kg“; „kaffee“ macht den abgehakten Kaffee wieder offen, statt ihn doppelt einzutragen. Das Feld bleibt für weitere Einträge offen.
-- [ ] „Zu tun“ zeigt die Aufgabenliste, die Kachel mit der unbekannten Liste „Urlaub“ sagt „Keine Liste eingerichtet.“
+- [ ] „Zu tun“ zeigt die Aufgabenliste, die Kachel mit der unbekannten Liste „Urlaub“ sagt, dass diese Liste nicht gefunden wurde.
 
 **Sprache**
 - [ ] In `config.json` der Testinstanz `site` auf `{ "language": "en", "region": "en-US" }` stellen: Texte englisch, Uhr mit AM/PM, Datum in US-Schreibweise.
