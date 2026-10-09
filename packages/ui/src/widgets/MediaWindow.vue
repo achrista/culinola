@@ -34,7 +34,7 @@ const showsVideo = computed(() => station.value?.kind === 'video' || (!station.v
 
 <template>
   <component :is="showsVideo ? 'button' : 'section'" class="window" :class="{ full: full && showsVideo }" @click="showsVideo && (full = !full)">
-    <StreamPlayer v-if="station?.kind === 'video'" :source="videoSource" :stream="station.id" :muted="false" :volume="volume" />
+    <StreamPlayer v-if="station?.kind === 'video'" :source="videoSource" :stream="station.id" :muted="false" :volume="volume" :aspect="16 / 9" />
     <StreamPlayer v-else-if="!station && props.config.idle" :source="videoSource" :stream="props.config.idle" muted />
     <div v-else class="still">
       <img v-if="station?.image" :src="mediaUrl(station.image)" :alt="station.name" />

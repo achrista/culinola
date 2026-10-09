@@ -19,6 +19,12 @@ const props = defineProps<{
   muted?: boolean;
   /** Lautstärke 0 bis 1 für Quellen mit Ton. */
   volume?: number;
+  /**
+   * Seitenverhältnis, in dem das Bild gezeigt wird, etwa 16 / 9. Fernsehsender in Standardauflösung übertragen
+   * 720×576 Bildpunkte, die erst gestreckt ein Bild in 16:9 ergeben – der Browser weiß davon nichts und zeigte
+   * es sonst gestaucht. Ohne Angabe gilt das Verhältnis, das der Strom selbst mitbringt.
+   */
+  aspect?: number;
 }>();
 
 const { t } = useI18n();
@@ -173,7 +179,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="player">
+  <div class="player" :class="{ forced: !!props.aspect }" :style="props.aspect ? { '--aspect': String(props.aspect) } : undefined">
     <img v-if="info?.mode === 'mjpeg'" :src="mediaUrl(`/p/${encodeURIComponent(source)}/mjpeg/${encodeURIComponent(stream)}`)" :alt="info.name" />
     <video v-else ref="video" autoplay playsinline></video>
     <span v-if="state !== 'playing'" class="state">{{ t(state === 'failed' ? 'video.reconnecting' : 'video.connecting') }}</span>
@@ -184,9 +190,21 @@ onUnmounted(() => {
 
 <style scoped>
 .player {
+  container-type: size;
   position: absolute;
   inset: 0;
   background: #0b0f13;
+}
+/* Vorgegebenes Seitenverhältnis: die größte Fläche dieses Verhältnisses, mittig, und das Bild füllt sie ganz */
+.player.forced video,
+.player.forced img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(100cqw, calc(100cqh * var(--aspect)));
+  height: min(100cqh, calc(100cqw / var(--aspect)));
+  transform: translate(-50%, -50%);
+  object-fit: fill;
 }
 video,
 img {

@@ -33,7 +33,7 @@ const name = computed(() => station.value?.name ?? props.config.label ?? props.c
 <template>
   <!-- Antippen füllt den ganzen Bildschirm, erneutes Antippen stellt die Ansicht wieder her -->
   <button class="video" :class="{ full }" :aria-label="t(full ? 'video.shrink' : 'video.enlarge', { name })" @click="full = !full">
-    <StreamPlayer v-if="station" :key="station.id" :source="props.config.source ?? 'video'" :stream="station.id" :muted="false" :volume="volume" />
+    <StreamPlayer v-if="station" :key="station.id" :source="props.config.source ?? 'video'" :stream="station.id" :muted="false" :volume="volume" :aspect="16 / 9" />
     <StreamPlayer v-else :source="props.config.source ?? 'video'" :stream="props.config.stream" muted />
     <span v-if="station || props.config.label" class="label">{{ name }}</span>
   </button>
