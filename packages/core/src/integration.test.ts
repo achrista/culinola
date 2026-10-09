@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { AccessToken } from './access.ts';
 import { ActionRegistry } from './actions.ts';
 import type { AppConfig } from './config.ts';
+import { EventHub, parseEvents } from './events.ts';
 import { PluginHost } from './plugins.ts';
 import { DatapointRegistry } from './registry.ts';
 import { buildServer } from './server.ts';
@@ -27,6 +28,10 @@ const config: AppConfig = {
   ],
   layouts: { main: { grid: { columns: 2, rows: 1 }, widgets: [{ type: 'clock', at: [0, 0, 2, 1] }] } },
   site: { language: 'de', region: 'de-DE' },
+  events: parseEvents({
+    hausglocke: { text: 'Jemand klingelt!', sound: 'bell', video: 'kamera3' },
+    eieruhr: { text: 'Die Zeit ist um.', when: { datapoint: 'timer:state', equals: 'done' } },
+  }),
 };
 
 let dataDir: string;
@@ -37,9 +42,11 @@ async function core(access: readonly AccessToken[]): Promise<FastifyInstance> {
   const registry = new DatapointRegistry();
   const actions = new ActionRegistry();
   const plugins = new PluginHost(registry, actions, {}, quiet, dataDir);
+  const events = new EventHub(config.events ?? {}, quiet);
+  registry.on('change', (datapoint) => events.observe(datapoint));
   hosts.push(plugins);
   await plugins.startAll(config.sources);
-  const server = await buildServer({ config, registry, plugins, actions, log: quiet, access });
+  const server = await buildServer({ config, registry, plugins, actions, events, log: quiet, access });
   servers.push(server);
   return server;
 }
@@ -138,6 +145,39 @@ describe('Kern mit Plugins, API offen', () => {
     expect((await app.inject('/api/v1/datapoints/voice:ready')).json<Datapoint>().value).toBe(false);
   });
 
+  it('löst Meldungen über die API aus und schickt sie den Anzeigen über den Echtzeitkanal', async () => {
+    expect((await app.inject('/api/v1/events')).json()).toEqual([
+      { name: 'hausglocke', text: 'Jemand klingelt!' },
+      { name: 'eieruhr', text: 'Die Zeit ist um.', trigger: 'timer:state' },
+    ]);
+    const socket = await app.injectWS('/api/v1/stream');
+    const seen: { t: string; d: { name: string; text: string; seconds: number; video?: unknown } }[] = [];
+    socket.on('message', (data: Buffer) => {
+      const message = JSON.parse(data.toString()) as (typeof seen)[number];
+      if (message.t.startsWith('event/')) seen.push(message);
+    });
+    socket.send(JSON.stringify({ op: 'sub', topics: ['event/*'] }));
+    await new Promise((resume) => setTimeout(resume, 50));
+
+    expect((await app.inject({ method: 'POST', url: '/api/v1/events/hausglocke' })).json()).toMatchObject({ ok: true });
+    expect((await app.inject({ method: 'POST', url: '/api/v1/events/hausglocke', payload: { text: 'Paket an der Tür' } })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/events/gibt-es-nicht' })).statusCode).toBe(404);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/events/hausglocke', payload: { text: 7 } })).statusCode).toBe(400);
+
+    // Eine Meldung, die an einem Datenpunkt hängt: Die Eieruhr läuft ab
+    await app.inject({ method: 'POST', url: '/api/v1/actions/timer.start', payload: { seconds: 1 } });
+    await new Promise((resume) => setTimeout(resume, 1300));
+    await app.inject({ method: 'POST', url: '/api/v1/actions/timer.stop', payload: {} });
+    socket.terminate();
+
+    expect(seen.map((message) => [message.t, message.d.text])).toEqual([
+      ['event/hausglocke', 'Jemand klingelt!'],
+      ['event/hausglocke', 'Paket an der Tür'],
+      ['event/eieruhr', 'Die Zeit ist um.'],
+    ]);
+    expect(seen[0]!.d).toMatchObject({ seconds: 90, video: { source: 'video', stream: 'kamera3' } });
+  });
+
   it('reicht Dateien als rohe Bytes an ein Plugin, auch über einem Megabyte', async () => {
     const upload = (bytes: number) => app.inject({ method: 'POST', url: '/api/v1/p/recipes/import?name=Rezept.pdf', headers: { 'content-type': 'application/octet-stream' }, payload: Buffer.alloc(bytes, 1) });
     // Ohne hinterlegten Schlüssel endet der Weg beim Plugin – angekommen ist die Datei trotzdem
@@ -170,6 +210,13 @@ describe('Kern mit Zugriffsschutz', () => {
     const stop = { method: 'POST', url: '/api/v1/actions/timer.stop', payload: {} } as const;
     expect((await app.inject({ ...stop, headers: as('token-vom-flur-0123456789') })).statusCode).toBe(403);
     expect((await app.inject({ ...stop, headers: as('token-der-kueche-0123456789') })).statusCode).toBe(200);
+  });
+
+  it('lässt Meldungen nur mit der Stufe zum Schalten auslösen', async () => {
+    const ring = { method: 'POST', url: '/api/v1/events/hausglocke' } as const;
+    expect((await app.inject(ring)).statusCode).toBe(401);
+    expect((await app.inject({ ...ring, headers: as('token-vom-flur-0123456789') })).statusCode).toBe(403);
+    expect((await app.inject({ ...ring, headers: as('token-der-kueche-0123456789') })).statusCode).toBe(200);
   });
 
   it('lässt neue Rezepte nur mit der Stufe zum Schalten zu', async () => {

@@ -109,6 +109,48 @@ Im Diagramm läuft „Heute“ von 0 bis 24 Uhr. Eine Reihe mit `forecast: true`
 
 `factor` rechnet einen Wert für die Anzeige um – etwa `100`, wenn die Quelle Feuchte als Bruchteil (0,58) statt in Prozent liefert.
 
+### Meldungen
+
+„Jemand klingelt an der Haustür“, „Die Waschmaschine ist fertig“: Was eine Meldung auf der Anzeige tut, steht in `config.json` unter `events` – ausgelöst wird sie von außen oder von einem Datenpunkt.
+
+```json
+"events": {
+  "hausglocke": { "text": "Jemand klingelt an der Haustür!", "sound": "bell", "speak": true, "video": "haustuer" },
+  "waschen-fertig": { "text": "Die Waschmaschine ist fertig.", "when": { "datapoint": "openhab:Waschmaschine_An", "equals": 3 } }
+}
+```
+
+| Angabe | Bedeutung |
+|---|---|
+| `text` | Was auf der Tafel steht |
+| `sound` | `bell` (Türglocke), `chime` (Vorgabe), `beep` oder `none` |
+| `speak` | `true` liest den Text vor |
+| `video` | Kennung eines Videostroms, der hinter der Tafel die Anzeige füllt; `videoSource` nennt die Video-Quelle, wenn sie nicht `video` heißt |
+| `seconds` | So lange bleibt die Meldung stehen – ohne Angabe 10 Sekunden, mit Video 90 |
+| `when` | Löst die Meldung von selbst aus, sobald der Datenpunkt die Bedingung **neu** erfüllt: `equals` (genau dieser Wert), `above` oder `below` (Zahl) |
+
+Jede offene Anzeige zeigt die Meldung, gleich welches Layout sie hat; Antippen räumt sie weg.
+
+**Von außen auslösen** – der eine Kanal für alles, was eine Regel der Haussteuerung melden will:
+
+```
+POST /api/v1/events/hausglocke
+```
+
+Ein Rumpf `{ "text": "Paket an der Tür" }` ersetzt den eingerichteten Text für dieses eine Mal. In einer openHAB-Regel: `sendHttpPostRequest("http://<server>:8090/api/v1/events/hausglocke", "application/json", "{}")`; ist die API geschützt, kommt das Token eines Zugangs der Stufe `control` als Kopfzeile `Authorization: Bearer …` dazu. `GET /api/v1/events` nennt die eingerichteten Meldungen; fremde Programme hören sie über den Echtzeitkanal mit (`event/*`).
+
+### Gesicherte Verbindung (HTTPS)
+
+Browser geben das Mikrofon – und damit die Sprachsteuerung – nur Seiten frei, die über `localhost` oder HTTPS geladen sind. Läuft die Anzeige auf einem anderen Rechner als der Kern, braucht es deshalb HTTPS:
+
+```json
+"https": { "port": 8443, "cert": "culinola.pem", "key": "culinola-key.pem" }
+```
+
+Zertifikat und Schlüssel liegen als Dateien im Datenordner. Die Anzeige ist dann zusätzlich unter `https://<server>:8443` erreichbar; die ungesicherte Adresse bleibt bestehen – für den Rechner selbst und für Aufrufe aus der Haussteuerung, die einem eigenen Zertifikat meist nicht traut.
+
+Für das eigene Netz genügt ein Zertifikat aus einer eigenen kleinen Zertifizierungsstelle, etwa mit [mkcert](https://github.com/FiloSottile/mkcert): `mkcert -cert-file culinola.pem -key-file culinola-key.pem <servername> <ip-adresse> localhost`. Damit der Browser ihm traut, wird das Stammzertifikat (`rootCA.pem` aus `mkcert -CAROOT`) einmal auf jedem Anzeigegerät als vertrauenswürdig eingetragen. Der zugehörige Schlüssel der Zertifizierungsstelle bleibt, wo er ist, und gehört auf kein anderes Gerät.
+
 ### Farbschema
 
 Das Aussehen der Anzeige bestimmt ein Farbschema. Gewählt wird es in `config.json` mit `"site": { "theme": "glut" }`; zum Ausprobieren genügt der Adresszusatz `?theme=glut` – er gilt nur für diese eine Anzeige und geht der Konfiguration vor.
@@ -349,6 +391,7 @@ Die Oberfläche benutzt dieselbe Schnittstelle wie jedes andere Programm. Alle P
 | Aufruf | Zweck |
 |---|---|
 | `GET /status` | Zustand der Quellen |
+| `GET /events`, `POST /events/{name}` | Eingerichtete Meldungen; eine Meldung auslösen, Rumpf `{ "text": … }` auf Wunsch |
 | `GET /datapoints`, `GET /datapoints/{id}` | Aktuelle Werte |
 | `POST /datapoints/{id}/command` | Schreibbaren Datenpunkt setzen, Rumpf `{ "value": … }` |
 | `GET /series?ids=&from=&to=&step=&agg=` | Verlauf, auf Wunsch verdichtet |

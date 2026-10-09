@@ -1,7 +1,9 @@
-import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import type { Logger } from '@culinola/sdk';
 import { ActionRegistry, InvalidParams } from './actions.ts';
 import { loadAccess, loadConfig, loadSecrets } from './config.ts';
+import { EventHub } from './events.ts';
 import { PluginHost } from './plugins.ts';
 import { DatapointRegistry } from './registry.ts';
 import { buildServer } from './server.ts';
@@ -33,6 +35,9 @@ else log.info(`Zugriffsschutz aktiv: ${access.map((entry) => `${entry.name} (${e
 const registry = new DatapointRegistry();
 const actions = new ActionRegistry();
 const plugins = new PluginHost(registry, actions, secrets, log, dataDir);
+const events = new EventHub(config.events ?? {}, log);
+// Meldungen, die an einem Datenpunkt hängen, feuern, sobald er ihre Bedingung neu erfüllt
+registry.on('change', (datapoint) => events.observe(datapoint));
 
 actions.register(
   {
@@ -54,13 +59,26 @@ actions.register(
 await plugins.startAll(config.sources);
 
 const uiDir = resolve(import.meta.dirname, '../../ui/dist');
-const server = await buildServer({ config, registry, plugins, actions, log, access, uiDir });
-await server.listen({ port: config.port, host: '0.0.0.0' });
+const servers = [await buildServer({ config, registry, plugins, actions, events, log, access, uiDir })];
+await servers[0]!.listen({ port: config.port, host: '0.0.0.0' });
 log.info(`Culinola läuft auf http://localhost:${config.port}`);
+
+// Dieselbe Anzeige und dieselbe API noch einmal gesichert – für Anzeigen auf anderen Rechnern, die das Mikrofon brauchen
+if (config.https) {
+  try {
+    const tls = { cert: readFileSync(join(dataDir, config.https.cert)), key: readFileSync(join(dataDir, config.https.key)) };
+    const secure = await buildServer({ config, registry, plugins, actions, events, log, access, uiDir, tls });
+    await secure.listen({ port: config.https.port, host: '0.0.0.0' });
+    servers.push(secure);
+    log.info(`Gesichert erreichbar auf https://localhost:${config.https.port}`);
+  } catch (error) {
+    log.warn(`HTTPS nicht gestartet: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, () => {
     plugins.stopAll();
-    void server.close().then(() => process.exit(0));
+    void Promise.all(servers.map((server) => server.close())).then(() => process.exit(0));
   });
 }

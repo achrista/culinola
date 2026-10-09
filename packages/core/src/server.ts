@@ -7,6 +7,7 @@ import type { Datapoint, DatapointValue, Logger } from '@culinola/sdk';
 import { type AccessToken, authorize, bearerToken, requiredRole } from './access.ts';
 import { type ActionRegistry, InvalidParams, UnknownAction } from './actions.ts';
 import type { AppConfig } from './config.ts';
+import { type EventHub, type Raised, UnknownEvent } from './events.ts';
 import type { PluginHost } from './plugins.ts';
 import type { DatapointRegistry } from './registry.ts';
 import { type Aggregation, downsample, parseDuration, parseTime } from './series.ts';
@@ -20,22 +21,26 @@ export interface ServerDeps {
   registry: DatapointRegistry;
   plugins: PluginHost;
   actions: ActionRegistry;
+  events: EventHub;
   log: Logger;
   /** Zugelassene Zugänge; leer = API offen. */
   access: readonly AccessToken[];
   /** Ordner mit der gebauten Oberfläche; fehlt er, läuft nur die API. */
   uiDir?: string;
+  /** Zertifikat und Schlüssel: Mit ihnen spricht dieser Server HTTPS. */
+  tls?: { cert: Buffer; key: Buffer };
 }
 
-export async function buildServer({ config, registry, plugins, actions, log, access, uiDir }: ServerDeps): Promise<FastifyInstance> {
-  const app = Fastify({ logger: false });
+export async function buildServer({ config, registry, plugins, actions, events, log, access, uiDir, tls }: ServerDeps): Promise<FastifyInstance> {
+  // Mit und ohne Zertifikat ist es derselbe Server; nur die Art der Verbindung unterscheidet sich
+  const app = (tls ? Fastify({ logger: false, https: tls }) : Fastify({ logger: false })) as unknown as FastifyInstance;
   await app.register(fastifyWebsocket);
 
   // Eingabefehler als 400 mit lesbarer Meldung statt als 500
   class BadRequest extends Error {}
   app.setErrorHandler((error: Error, _request, reply) => {
     if (error instanceof BadRequest || error instanceof InvalidParams) return reply.code(400).send({ error: error.message });
-    if (error instanceof UnknownAction) return reply.code(404).send({ error: error.message });
+    if (error instanceof UnknownAction || error instanceof UnknownEvent) return reply.code(404).send({ error: error.message });
     // Was der Server selbst am Aufruf beanstandet – zu groß, nicht lesbar –, ist ebenfalls ein Fehler des Aufrufers
     const status = (error as { statusCode?: number }).statusCode;
     if (status === 413) return reply.code(413).send({ error: 'Die Datei ist zu groß.' });
@@ -155,13 +160,24 @@ export async function buildServer({ config, registry, plugins, actions, log, acc
     }
   });
 
+  // Meldungen: Was sie auf der Anzeige tun, steht in der Konfiguration; ausgelöst werden sie hier – etwa aus einer openHAB-Regel.
+  app.get('/api/v1/events', () => events.list());
+
+  app.post<{ Params: { name: string }; Body: { text?: unknown } | null }>('/api/v1/events/:name', (request) => {
+    const text = request.body?.text;
+    if (text !== undefined && typeof text !== 'string') throw new BadRequest('"text" muss ein Text sein.');
+    const raised = events.raise(request.params.name, text);
+    return { ok: true, id: raised.id };
+  });
+
   app.get<{ Params: { id: string } }>('/api/v1/layouts/:id', (request, reply) => {
     const layout = config.layouts[request.params.id];
     return layout ?? reply.code(404).send({ error: `Layout "${request.params.id}" ist unbekannt.` });
   });
 
   // Echtzeitkanal: Die Anzeige abonniert Themen ("dp/*", "dp/openhab:*", "dp/<Kennung>")
-  // und bekommt zuerst den aktuellen Stand, danach jede Änderung.
+  // und bekommt zuerst den aktuellen Stand, danach jede Änderung. Mit "event/*" kommen die
+  // Meldungen dazu – nur neue, keine vergangenen.
   app.get('/api/v1/stream', { websocket: true }, (socket) => {
     let topics: string[] = [];
     const matches = (id: string) => topics.some((topic) => (topic.endsWith('*') ? `dp/${id}`.startsWith(topic.slice(0, -1)) : topic === `dp/${id}`));
@@ -171,7 +187,13 @@ export async function buildServer({ config, registry, plugins, actions, log, acc
     };
 
     registry.on('change', onChange);
-    socket.on('close', () => registry.off('change', onChange));
+    const stopEvents = events.onRaised((raised: Raised) => {
+      if (topics.includes('event/*') || topics.includes(`event/${raised.name}`)) socket.send(JSON.stringify({ t: `event/${raised.name}`, d: raised }));
+    });
+    socket.on('close', () => {
+      registry.off('change', onChange);
+      stopEvents();
+    });
     socket.on('message', (data: Buffer) => {
       let message: { op?: string; topics?: unknown };
       try {

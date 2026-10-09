@@ -238,5 +238,8 @@
     "example": "e.g. timer for 8 minutes",
     "send": "Send",
     "type": "Type a sentence"
+  },
+  "events": {
+    "close": "Dismiss"
   }
 }

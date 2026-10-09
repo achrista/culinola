@@ -1081,5 +1081,21 @@
         }
       ]
     }
+  },
+  "events": {
+    "hausglocke": {
+      "text": "Jemand klingelt an der Haustür!",
+      "sound": "bell",
+      "speak": true,
+      "seconds": 15
+    },
+    "eieruhr-um": {
+      "text": "Die Eieruhr ist abgelaufen.",
+      "sound": "none",
+      "when": {
+        "datapoint": "timer:state",
+        "equals": "done"
+      }
+    }
   }
 }

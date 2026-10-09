@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { type AccessToken, isRole } from './access.ts';
+import { type EventConfig, parseEvents } from './events.ts';
 
 export interface SourceConfig {
   /** Frei gewählte Kennung der Instanz; wird zum Präfix ihrer Datenpunkte. */
@@ -30,6 +31,13 @@ export interface AppConfig {
   site?: { language?: string; region?: string; theme?: string };
   /** Wer die API benutzen darf. Die Tokens selbst stehen in `secrets.json` unter "api". */
   access?: { tokens: { name: string; role: string }[] };
+  /** Meldungen der Anzeige: was bei „Hausglocke“ oder „Waschmaschine fertig“ geschieht. */
+  events?: Record<string, EventConfig>;
+  /**
+   * Gesicherte Verbindung zusätzlich zur ungesicherten: Zertifikat und Schlüssel als Dateien im Datenordner.
+   * Browser geben Mikrofon und andere Gerätefunktionen nur Seiten mit HTTPS oder `localhost`.
+   */
+  https?: { port: number; cert: string; key: string };
 }
 
 /** Ohne eigene Konfiguration startet Culinola mit erfundenen Beispielwerten. */
@@ -113,6 +121,19 @@ export function loadConfig(): LoadedConfig {
   const config: AppConfig = { port: raw.port ?? 8090, sources: raw.sources, layouts: raw.layouts };
   if (raw.access) config.access = raw.access;
   if (raw.site) config.site = raw.site;
+  try {
+    const events = parseEvents((raw as { events?: unknown }).events);
+    if (Object.keys(events).length) config.events = events;
+  } catch (error) {
+    throw new Error(`${file}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (raw.https !== undefined) {
+    const https = raw.https as { port?: unknown; cert?: unknown; key?: unknown } | null;
+    const port = https?.port ?? 8443;
+    if (!https || typeof https.cert !== 'string' || typeof https.key !== 'string' || !https.cert || !https.key) throw new Error(`${file}: "https" braucht "cert" und "key" – die Dateinamen von Zertifikat und Schlüssel im Datenordner.`);
+    if (typeof port !== 'number' || !Number.isInteger(port) || port < 1 || port > 65535 || port === config.port) throw new Error(`${file}: "https.port" muss ein eigener Port sein, etwa 8443.`);
+    config.https = { port, cert: https.cert, key: https.key };
+  }
   return { config, dataDir, demo: false };
 }
 

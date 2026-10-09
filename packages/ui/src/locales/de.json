@@ -238,5 +238,8 @@
     "example": "z. B. Eieruhr auf 8 Minuten",
     "send": "Senden",
     "type": "Satz tippen"
+  },
+  "events": {
+    "close": "Meldung schließen"
   }
 }

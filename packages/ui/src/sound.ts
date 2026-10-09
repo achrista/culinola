@@ -40,6 +40,16 @@ export function beep(count: number): void {
   for (let index = 0; index < count; index++) tone(audio.currentTime + index * 0.22, 1320, 0.16, 0.5);
 }
 
+/** Türglocke: zwei volle Töne, der zweite tiefer – zweimal hintereinander. */
+export function bell(): void {
+  const audio = ready();
+  if (!audio) return;
+  for (const start of [0, 1.1]) {
+    tone(audio.currentTime + start, 659.25, 0.45, 0.5);
+    tone(audio.currentTime + start + 0.42, 523.25, 0.6, 0.5);
+  }
+}
+
 /** Zwei aufsteigende Töne: Es tut sich etwas, ohne dass es eilt – etwa ein Anruf. */
 export function chime(): void {
   const audio = ready();

@@ -129,6 +129,11 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] Ohne Spracherkennung (oder über ⌨) lässt sich der Satz tippen; „Setze Hefe auf die Einkaufsliste“ steht danach in der Liste (`?layout=einkauf`).
 - [ ] Ein Satz, den der Platzhalter nicht kennt, bekommt eine Antwort ohne Aktion; die Tafel verschwindet nach einigen Sekunden von selbst.
 
+**Meldungen**
+- [ ] `curl -X POST http://localhost:8191/api/v1/events/hausglocke`: Auf jeder offenen Anzeige erscheint oben die Tafel „Jemand klingelt an der Haustür!“, die Türglocke ertönt (nach einer Berührung der Seite), der Text wird vorgelesen; nach 15 Sekunden oder durch Antippen verschwindet sie.
+- [ ] Die Eieruhr auf wenige Sekunden stellen: Läuft sie ab, erscheint von selbst „Die Eieruhr ist abgelaufen.“ – ausgelöst durch den Datenpunkt, ohne Aufruf von außen.
+- [ ] Eine unbekannte Meldung (`…/events/gibt-es-nicht`) wird mit 404 abgelehnt.
+
 **Farbschema**
 - [ ] <http://localhost:8191/?theme=glut>, `schiefer`, `signal`, `nacht` und `spiegel` nacheinander: Jede Kachel bleibt lesbar, die Uhr trägt die Akzentfarbe (bei `signal` als Fläche), Überschriften, Schalter und Diagramm passen zum Schema. Ohne Zusatz gilt wieder „Klar“.
 - [ ] Eieruhr in `signal` ablaufen lassen: Die Fläche der Uhr wird rot, die Ziffern bleiben lesbar.

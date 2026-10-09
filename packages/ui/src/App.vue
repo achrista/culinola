@@ -5,6 +5,7 @@ import { AccessDenied, adoptTokenFromAddress, getJson } from './api.ts';
 import { applySite, type SiteSettings } from './i18n.ts';
 import { connect, connected, subscribe } from './store.ts';
 import { widgets } from './widgets/index.ts';
+import EventLayer from './EventLayer.vue';
 
 interface Widget {
   type: string;
@@ -100,6 +101,7 @@ function place(widget: Widget) {
     </template>
   </main>
   <div v-if="layout && !connected" class="offline" role="status">{{ t('app.offline') }}</div>
+  <EventLayer v-if="layout" />
 </template>
 
 <style scoped>
