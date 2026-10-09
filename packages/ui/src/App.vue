@@ -27,6 +27,21 @@ const DATAPOINT_ID = /^[a-z][a-z0-9-]*:[\w.-]+$/;
  * Sammelt alle Datenpunkt-Kennungen aus den Widget-Einstellungen: jede Angabe der Form
  * "quelle:name". Was nur so aussieht und keiner ist, schadet nicht – der Kern schickt dazu nichts.
  */
+/** Die Quelle, an der eine Kachel hängt, wenn ihre Konfiguration keine nennt – dieselbe Vorgabe wie in der Kachel selbst. */
+const DEFAULT_SOURCES: Record<string, string> = {
+  calendar: 'google',
+  reminders: 'google',
+  calls: 'fritzbox',
+  checklist: 'merkio',
+  mail: 'mail',
+  'media-window': 'radio',
+  news: 'news',
+  radio: 'radio',
+  recipes: 'recipes',
+  video: 'video',
+  voice: 'voice',
+};
+
 function collectIds(value: unknown, found: Set<string>): void {
   if (typeof value === 'string') {
     if (DATAPOINT_ID.test(value)) found.add(value);
@@ -53,6 +68,10 @@ onMounted(async () => {
     layout.value = await getJson<Layout>(`/layouts/${encodeURIComponent(wanted)}`);
     const ids = new Set<string>();
     collectIds(layout.value.widgets, ids);
+    for (const widget of layout.value.widgets) {
+      const source = DEFAULT_SOURCES[widget.type];
+      if (source && typeof (widget.config as { source?: unknown } | undefined)?.source !== 'string') ids.add(`${source}:*`);
+    }
     subscribe([...ids]);
     connect();
   } catch (cause) {

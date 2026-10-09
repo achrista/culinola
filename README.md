@@ -88,6 +88,7 @@ Unter `layouts` dürfen mehrere Layouts stehen. Eine Anzeige zeigt `main`, mit d
 | `chart` | Zeitverlauf für heute, Woche, Monat | `title`, `series: [{ datapoint, label, area, forecast }]` |
 | `note` | Hält einen Platz frei und beschriftet ihn | `title`, `text` |
 | `radio` | Sendertasten, Lautstärke, laufender Titel | `source` (Radio-Instanz) |
+| `voice` | Sprechen statt tippen: antippen, einen Satz sagen; die Antwort erscheint unten auf der Anzeige und wird vorgelesen | `source` (Vorgabe `voice`), `title`, `speak` (`false` schaltet das Vorlesen ab) |
 | `video` | Live-Bild einer Kamera oder eines Streams; Antippen füllt den Bildschirm | `source` (Video-Instanz), `stream`, `label` |
 | `media-window` | Fernsehbild beim Fernsehsender, Logo beim Radiosender | `source` (Radio-Instanz), `video` (Video-Instanz), `idle` |
 | `news` | Eine Meldung mit Bild, reihum aus allen Feeds; Antippen öffnet den Artikel | `source` (Nachrichten-Instanz), `feeds`, `seconds`, `closeAfter` |
@@ -306,6 +307,24 @@ Am besten bekommt die Anzeige ein eigenes Merkio-Konto, das Mitglied der Familie
 Antippen hakt einen Eintrag ab; Abgehaktes bleibt einige Stunden durchgestrichen stehen, damit sich der Haken zurücknehmen lässt. „+“ öffnet ein Eingabefeld: „2 kg Mehl“ wird in Menge, Einheit und Namen zerlegt, und was schon abgehakt auf der Liste steht, wird wieder offen statt doppelt. Dasselbe geht über die Aktionen `lists.add` (`text`, `list`) und `lists.check` (`item`, `checked`).
 
 Das Plugin meldet sich mit Konto und Kennwort an, merkt sich Merkios Erneuerungstoken in `data/merkio/token.json` und meldet sich von selbst neu an, wenn es abgelaufen ist. Der Datenpunkt `merkio:state` sagt, wie es steht: `ok`, `nogroup` (angemeldet, aber das Konto ist noch in keiner Gruppe – in Merkio beitreten und bestätigen lassen), `login` (Zugangsdaten fehlen oder werden abgelehnt) oder `offline`. Mit `url` lässt sich eine eigene Merkio-Installation ansprechen, mit `refreshMinutes` (Vorgabe 5) der Abstand, in dem zusätzlich zum Echtzeitkanal alles neu gelesen wird.
+
+### Sprachsteuerung
+
+„Eieruhr auf acht Minuten“, „Setz Milch und Butter auf die Einkaufsliste“, „Spiel Bayern 2“, „Ich koche den Apfelkuchen“: Die Kachel `voice` nimmt einen gesprochenen Satz entgegen, das Plugin `voice` führt ihn aus.
+
+```json
+{ "id": "voice", "plugin": "voice" }
+```
+
+So läuft es ab: Antippen startet die Spracherkennung des Browsers; den erkannten Satz schickt die Anzeige an den Kern. Dort ordnet ein Sprachmodell von Anthropic (Claude Haiku) ihn den **Aktionen** zu, die die anderen Plugins angemeldet haben (`GET /api/v1/actions`), löst sie aus und antwortet in einem Satz, den die Anzeige zeigt und vorliest. Jede neue Aktion ist damit von selbst auch per Sprache erreichbar; was als heikel angemeldet ist (`sensitive`), bleibt ausgenommen.
+
+Voraussetzungen:
+
+- **Schlüssel der Claude-API** in `secrets.json`: `{ "voice": { "anthropicApiKey": "sk-ant-…" } }` – derselbe wie für das Hinzufügen von Rezepten; ersatzweise die Umgebungsvariable `ANTHROPIC_API_KEY`.
+- **Ein Browser mit Spracherkennung** – Chrome oder Edge – und ein Mikrofon am Anzeigerechner. Der Browser fragt einmal nach der Erlaubnis für das Mikrofon. Er gibt sie nur Seiten mit gesicherter Verbindung oder `localhost`: Läuft die Anzeige auf einem anderen Rechner als der Kern, braucht es HTTPS davor.
+- Wo es keine Spracherkennung gibt, lässt sich der Satz in dasselbe Feld tippen (Taste ⌨).
+
+Zu wissen: In Chrome geht die Aufnahme zum Erkennen an Google, der erkannte Satz zum Zuordnen an Anthropic; jeder Satz kostet einen Bruchteil eines Cents. Ins Protokoll des Kerns kommt, was ausgelöst wurde – nicht, was gesagt wurde. Die Kachel hört nur nach dem Antippen zu, nicht dauernd. Läuft dabei das Radio, hört das Mikrofon es mit; leiser stellen hilft. `model` und `language` (`de`, `en`, `fr`) in der Konfiguration des Plugins ändern Modell und Sprache der Antworten.
 
 ## API
 

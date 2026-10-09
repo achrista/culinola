@@ -1,0 +1,15 @@
+{
+  "name": "@culinola/plugin-voice",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Sprachsteuerung: ordnet einen gesprochenen Satz den Aktionen der Anzeige zu und antwortet in einem Satz.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.102.0",
+    "@culinola/sdk": "*"
+  }
+}

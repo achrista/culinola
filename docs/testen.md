@@ -123,6 +123,11 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] Dieselbe Angabe in der flachen und in der engen Kachel bleibt lesbar.
 - [ ] Anwesenheit: Anna und Ben „daheim“ in Grün, Cleo und Dana „weg“; die hohe Kachel hat zwei Reihen, die flache eine; ein Eintrag ohne Wert steht blass als „unbekannt“ da.
 
+**Sprechen** (Layout `haus`)
+- [ ] Die Kachel „Sprechen“ antippen. Mit Mikrofon und Chrome: „Eieruhr auf 5 Minuten“ sagen – unten erscheint der Satz, dann „Erledigt.“, die Antwort wird vorgelesen, und die Uhr daneben zählt rückwärts. Der Platzhalter der Claude-API versteht nur feste Sätze: Eieruhr auf n Minuten, „Setze … auf die Einkaufsliste“, „Spiele …“.
+- [ ] Ohne Spracherkennung (oder über ⌨) lässt sich der Satz tippen; „Setze Hefe auf die Einkaufsliste“ steht danach in der Liste (`?layout=einkauf`).
+- [ ] Ein Satz, den der Platzhalter nicht kennt, bekommt eine Antwort ohne Aktion; die Tafel verschwindet nach einigen Sekunden von selbst.
+
 **Farbschema**
 - [ ] <http://localhost:8191/?theme=glut>, `schiefer`, `signal`, `nacht` und `spiegel` nacheinander: Jede Kachel bleibt lesbar, die Uhr trägt die Akzentfarbe (bei `signal` als Fläche), Überschriften, Schalter und Diagramm passen zum Schema. Ohne Zusatz gilt wieder „Klar“.
 - [ ] Eieruhr in `signal` ablaufen lassen: Die Fläche der Uhr wird rot, die Ziffern bleiben lesbar.

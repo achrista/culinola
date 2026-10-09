@@ -223,5 +223,19 @@
     "home": "home",
     "away": "away",
     "unknown": "unknown"
+  },
+  "voice": {
+    "title": "Speak",
+    "start": "Speak: tap and say a sentence",
+    "stop": "Stop listening",
+    "listening": "Listening …",
+    "thinking": "One moment …",
+    "nothing": "I did not hear anything.",
+    "notReady": "Voice control is not set up yet.",
+    "unavailable": "Speech recognition is not available in this browser. You can type the sentence:",
+    "denied": "The browser may not use the microphone. You can type the sentence:",
+    "example": "e.g. timer for 8 minutes",
+    "send": "Send",
+    "type": "Type a sentence"
   }
 }

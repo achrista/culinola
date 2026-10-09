@@ -53,6 +53,10 @@
     {
       "id": "merkio",
       "plugin": "source-merkio"
+    },
+    {
+      "id": "voice",
+      "plugin": "voice"
     }
   ],
   "layouts": {
@@ -746,6 +750,40 @@
               "max": 100
             },
             "decimals": 0
+          }
+        },
+        {
+          "type": "voice",
+          "at": [
+            8,
+            2,
+            2,
+            2
+          ],
+          "config": {}
+        },
+        {
+          "type": "voice",
+          "at": [
+            10,
+            2,
+            2,
+            1
+          ],
+          "config": {
+            "title": "Flach"
+          }
+        },
+        {
+          "type": "clock",
+          "at": [
+            8,
+            4,
+            4,
+            2
+          ],
+          "config": {
+            "timer": "timer"
           }
         }
       ]

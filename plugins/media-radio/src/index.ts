@@ -95,11 +95,13 @@ export default definePlugin<Config>({
       {
         name: 'radio.play',
         description: 'Schaltet einen Radio- oder Fernsehsender ein.',
-        params: { station: { type: 'string', description: `Kennung des Senders: ${[...stations.keys()].join(', ')}`, required: true } },
+        params: { station: { type: 'string', description: `Kennung oder Name des Senders: ${[...stations.values()].map((entry) => `${entry.id} (${entry.name})`).join(', ')}`, required: true } },
       },
       ({ station }) => {
-        if (!stations.has(String(station))) throw new InvalidInput(`Sender "${station}" ist unbekannt.`);
-        current = String(station);
+        const wanted = String(station).trim().toLowerCase();
+        const hit = stations.get(String(station)) ?? [...stations.values()].find((entry) => entry.name.toLowerCase() === wanted);
+        if (!hit) throw new InvalidInput(`Sender "${station}" ist unbekannt.`);
+        current = hit.id;
         setTitle('');
         publish();
       },

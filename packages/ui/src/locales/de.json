@@ -223,5 +223,19 @@
     "home": "daheim",
     "away": "weg",
     "unknown": "unbekannt"
+  },
+  "voice": {
+    "title": "Sprechen",
+    "start": "Sprechen: antippen und einen Satz sagen",
+    "stop": "Zuhören beenden",
+    "listening": "Ich höre …",
+    "thinking": "Einen Moment …",
+    "nothing": "Ich habe nichts gehört.",
+    "notReady": "Die Sprachsteuerung ist noch nicht eingerichtet.",
+    "unavailable": "Die Spracherkennung steht in diesem Browser nicht zur Verfügung. Der Satz lässt sich tippen:",
+    "denied": "Der Browser darf das Mikrofon nicht benutzen. Der Satz lässt sich tippen:",
+    "example": "z. B. Eieruhr auf 8 Minuten",
+    "send": "Senden",
+    "type": "Satz tippen"
   }
 }

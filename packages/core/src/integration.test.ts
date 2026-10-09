@@ -22,6 +22,7 @@ const config: AppConfig = {
     { id: 'demo', plugin: 'connector-demo' },
     { id: 'timer', plugin: 'timer' },
     { id: 'recipes', plugin: 'recipes' },
+    { id: 'voice', plugin: 'voice' },
     { id: 'gibtesnicht', plugin: 'gibt-es-nicht' },
   ],
   layouts: { main: { grid: { columns: 2, rows: 1 }, widgets: [{ type: 'clock', at: [0, 0, 2, 1] }] } },
@@ -68,7 +69,7 @@ describe('Kern mit Plugins, API offen', () => {
   it('startet die Quellen und meldet eine, die nicht startet, ohne die anderen aufzuhalten', async () => {
     const status = (await app.inject('/api/v1/status')).json<{ sources: { id: string; state: string }[]; protected: boolean }>();
     expect(status.protected).toBe(false);
-    expect(Object.fromEntries(status.sources.map((source) => [source.id, source.state]))).toEqual({ demo: 'running', timer: 'running', recipes: 'running', gibtesnicht: 'failed' });
+    expect(Object.fromEntries(status.sources.map((source) => [source.id, source.state]))).toEqual({ demo: 'running', timer: 'running', recipes: 'running', voice: 'running', gibtesnicht: 'failed' });
   });
 
   it('liefert Datenpunkte mit dem Präfix ihrer Quelle', async () => {
@@ -127,6 +128,14 @@ describe('Kern mit Plugins, API offen', () => {
     expect(await cooking()).toBe('');
     // Der Vermerk im Rezeptordner ist kein Rezept
     expect((await app.inject('/api/v1/resources/recipes/list')).json<unknown[]>()).toHaveLength(1);
+  });
+
+  it('nimmt einen gesprochenen Satz an und sagt, wenn die Sprachsteuerung nicht eingerichtet ist', async () => {
+    const say = (payload: object) => app.inject({ method: 'POST', url: '/api/v1/p/voice/ask', payload });
+    expect((await say({})).statusCode).toBe(400);
+    const answer = await say({ text: 'Eieruhr auf 5 Minuten' });
+    expect([answer.statusCode, answer.json<{ error: string }>().error]).toEqual([503, expect.stringMatching(/nicht eingerichtet/)]);
+    expect((await app.inject('/api/v1/datapoints/voice:ready')).json<Datapoint>().value).toBe(false);
   });
 
   it('reicht Dateien als rohe Bytes an ein Plugin, auch über einem Megabyte', async () => {

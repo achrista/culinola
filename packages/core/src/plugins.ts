@@ -89,7 +89,11 @@ export class PluginHost {
           });
         },
       },
-      actions: { register: (definition, handler) => this.actions.register(definition, handler) },
+      actions: {
+        register: (definition, handler) => this.actions.register(definition, handler),
+        list: () => this.actions.list(),
+        run: (name, params) => this.actions.run(name, params),
+      },
       resources: { set: (name, value) => this.resources.set(`${source.id}/${name}`, value) },
       routes: {
         get: (path, handler) => this.routes.push({ method: 'GET', instance: source.id, path, handler }),

@@ -34,7 +34,7 @@ function start(name: string, config: Record<string, unknown> = {}, secrets?: Rec
     secrets: { get: (key) => (secrets ?? merkio.account)[key as 'email' | 'password'] },
     storageDir: join(dir, name),
     datapoints: { set: (update) => void datapoints.set(update.id, update.value) },
-    actions: { register: (definition, handler) => void actions.set(definition.name, handler) },
+    actions: { register: (definition, handler) => void actions.set(definition.name, handler), list: () => [], run: async () => undefined },
     resources: { set: (key, value) => void resources.set(key, value) },
     routes: { get: () => undefined, post: () => undefined },
     onCommand: () => undefined,

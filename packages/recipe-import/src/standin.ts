@@ -17,7 +17,8 @@ export interface StandIn {
 
 export interface StandInRequest {
   model: string;
-  messages: { role: string; content: { type: string; text?: string }[] }[];
+  messages: { role: string; content: string | { type: string; text?: string; is_error?: boolean }[] }[];
+  tools?: { name: string }[];
   [key: string]: unknown;
 }
 
@@ -34,7 +35,8 @@ export async function startStandIn(port = 0): Promise<StandIn> {
       if (request.method !== 'POST' || !request.url?.startsWith('/v1/messages')) return send(404, { type: 'error', error: { type: 'not_found_error', message: 'Der Platzhalter kennt nur /v1/messages.' } });
       const asked = JSON.parse(Buffer.concat(chunks).toString('utf8')) as StandInRequest;
       requests.push(asked);
-      const blocks = asked.messages.flatMap((message) => message.content);
+      if (asked.tools) return send(200, toolAnswer(asked));
+      const blocks = asked.messages.flatMap((message) => (typeof message.content === 'string' ? [] : message.content));
       const text = blocks.find((block) => block.type === 'text')?.text ?? '';
       // Der Titel kommt aus der ersten Zeile des Textes, sonst aus dem Namen der Vorlage
       const firstLine = /Text der Vorlage:\s*\n+\s*(.+)/.exec(text)?.[1];
@@ -64,6 +66,30 @@ export async function startStandIn(port = 0): Promise<StandIn> {
     requests,
     close: () => new Promise<void>((done) => server.close(() => done())),
   };
+}
+
+/**
+ * Sprachsteuerung: Der Platzhalter versteht ein paar feste Sätze und ruft das passende Werkzeug auf,
+ * wenn die Anfrage es anbietet; nach dem Ergebnis bestätigt er in einem Satz.
+ */
+function toolAnswer(asked: StandInRequest) {
+  const last = asked.messages.at(-1)!;
+  const reply = (content: unknown[], stop: string) => ({ id: 'msg_platzhalter', type: 'message', role: 'assistant', model: asked.model, content, stop_reason: stop, stop_sequence: null, usage: { input_tokens: 100, output_tokens: 20 } });
+  const say = (text: string) => reply([{ type: 'text', text }], 'end_turn');
+  if (typeof last.content !== 'string') return say(last.content.some((block) => block.is_error) ? 'Das hat nicht geklappt.' : 'Erledigt.');
+
+  const text = last.content;
+  const offered = (name: string) => asked.tools!.some((tool) => tool.name === name);
+  const call = (name: string, input: unknown) => (offered(name) ? reply([{ type: 'tool_use', id: `toolu_platzhalter_${asked.messages.length}`, name, input }], 'tool_use') : say('Das kann ich hier nicht.'));
+  const minutes = /(\d+)\s*min/i.exec(text)?.[1];
+  if (/eieruhr|timer/i.test(text) && minutes) return call('timer__start', { minutes: Number(minutes) });
+  if (/eieruhr|timer/i.test(text) && /aus|stopp/i.test(text)) return call('timer__stop', {});
+  const item = /(?:setz[et]?|schreib[et]?)\s+(.+?)\s+auf\s+die\s+(?:einkaufs)?liste/i.exec(text)?.[1];
+  if (item) return call('lists__add', { text: item });
+  const station = /(?:spiel[et]?|schalte)\s+(.+?)(?:\s+ein)?$/i.exec(text)?.[1];
+  if (/radio aus/i.test(text)) return call('radio__stop', {});
+  if (station) return call('radio__play', { station });
+  return say('Das habe ich nicht verstanden. Ich kann zum Beispiel die Eieruhr stellen.');
 }
 
 function message(model: string, output: unknown) {

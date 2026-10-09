@@ -15,6 +15,7 @@ import ReminderCard from './ReminderCard.vue';
 import SwitchField from './SwitchField.vue';
 import ValueTile from './ValueTile.vue';
 import VideoTile from './VideoTile.vue';
+import VoiceButton from './VoiceButton.vue';
 import WeatherCard from './WeatherCard.vue';
 
 /** Zuordnung vom Typnamen im Layout zum Widget. */
@@ -33,6 +34,7 @@ export const widgets: Record<string, Component> = {
   recipes: RecipeCard,
   reminders: ReminderCard,
   video: VideoTile,
+  voice: VoiceButton,
   weather: WeatherCard,
   'media-window': MediaWindow,
   mail: MailCard,

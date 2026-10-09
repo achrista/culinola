@@ -132,13 +132,18 @@ export default definePlugin<Config>({
       {
         name: 'recipes.cook',
         description: 'Merkt ein Rezept als „wird gerade gekocht“ vor: Es bleibt auf der Anzeige stehen, bis es fertig gemeldet wird.',
-        params: { recipe: { type: 'string', description: 'Kennung des Rezepts', required: true } },
+        params: { recipe: { type: 'string', description: 'Kennung oder Titel des Rezepts; vom Titel genügt ein eindeutiger Teil', required: true } },
       },
       ({ recipe }) => {
-        const entry = typeof recipe === 'string' ? recipes.get(recipe) : undefined;
-        if (!entry) throw new InvalidInput(`Das Rezept "${String(recipe)}" gibt es nicht.`);
+        const wanted = String(recipe).trim().toLowerCase();
+        const all = [...recipes.values()];
+        const named = all.filter((known) => known.title.toLowerCase() === wanted);
+        const similar = named.length ? named : all.filter((known) => wanted.length >= 3 && known.title.toLowerCase().includes(wanted));
+        const entry = recipes.get(String(recipe)) ?? (similar.length === 1 ? similar[0] : undefined);
+        if (!entry) throw new InvalidInput(similar.length > 1 ? `"${String(recipe)}" passt auf mehrere Rezepte: ${similar.slice(0, 5).map((known) => known.title).join(', ')}.` : `Das Rezept "${String(recipe)}" gibt es nicht.`);
         setCooking({ id: entry.id, since: Date.now() });
         log.info(`Wird gekocht: ${entry.title}`);
+        return { recipe: entry.title };
       },
     );
     context.actions.register({ name: 'recipes.finish', description: 'Meldet das Kochen als beendet: Die Anzeige zeigt wieder wechselnde Rezepte.' }, () => setCooking(undefined));

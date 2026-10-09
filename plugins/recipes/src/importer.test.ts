@@ -47,7 +47,7 @@ describe('Neues Rezept über das Plugin', () => {
       secrets: { get: (key) => secrets[key] },
       storageDir: join(dir, name),
       datapoints: { set: (update) => void datapoints.set(update.id, update.value) },
-      actions: { register: () => undefined },
+      actions: { register: () => undefined, list: () => [], run: async () => undefined },
       resources: { set: (key, value) => void resources.set(key, value) },
       routes: { get: (path, handler) => void routes.set(`GET ${path}`, handler), post: (path, handler) => void routes.set(`POST ${path}`, handler) },
       onCommand: () => undefined,

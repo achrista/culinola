@@ -91,8 +91,14 @@ export interface PluginContext<C> {
   /** Eigener Ordner der Instanz im Datenordner, etwa für erzeugte Einstellungsdateien. */
   storageDir: string;
   datapoints: { set(update: DatapointUpdate): void };
-  /** Meldet an, was man mit dem Plugin tun kann. */
-  actions: { register(definition: ActionDefinition, handler: ActionHandler): void };
+  actions: {
+    /** Meldet an, was man mit dem Plugin tun kann. */
+    register(definition: ActionDefinition, handler: ActionHandler): void;
+    /** Alle angemeldeten Aktionen, auch die der anderen Plugins – etwa, um sie einem Sprachmodell anzubieten. */
+    list(): ActionDefinition[];
+    /** Löst eine Aktion aus, als käme der Aufruf über die API; die Parameter werden dabei geprüft. */
+    run(name: string, params?: Record<string, unknown>): Promise<unknown>;
+  };
   /** Listen und Verzeichnisse des Plugins, abrufbar unter `/api/v1/resources/<Instanz>/<Name>`. */
   resources: { set(name: string, value: unknown): void };
   /** Eigene Adressen des Plugins unter `/api/v1/p/<Instanz>/…`, etwa für Datenströme. */
