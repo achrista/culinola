@@ -199,5 +199,19 @@
       "voicemail": "Nachricht auf dem Anrufbeantworter"
     },
     "place": "Herkunft"
+  },
+  "checklist": {
+    "title": "Liste",
+    "add": "Eintrag hinzufügen",
+    "addTo": "{list}: Eintrag hinzufügen",
+    "what": "Was fehlt?",
+    "example": "z. B. 2 l Milch",
+    "addGo": "Hinzufügen",
+    "check": "{name} abhaken",
+    "uncheck": "Haken bei {name} wegnehmen",
+    "empty": "Alles erledigt.",
+    "noList": "Keine Liste eingerichtet.",
+    "login": "Die Zugangsdaten für die Liste fehlen oder werden abgelehnt.",
+    "offline": "nicht verbunden"
   }
 }

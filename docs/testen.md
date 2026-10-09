@@ -40,7 +40,7 @@ npm run test:instance
 
 Sie läuft auf <http://localhost:8191>, neben einer eigenen Installation auf Port 8090. Die Vorlage liegt in `testing/instance` und wird bei jedem Start frisch in einen Wegwerfordner gelegt; was dort verändert wird, ist nach dem nächsten Start vergessen.
 
-Die Testinstanz enthält: erfundene Messwerte, Schalter, Wetterdaten, Termine, Erinnerungen, E-Mails und Anrufe, Eieruhr, drei Rezepte (mit Bild, ohne Angaben, mit kaputten Angaben), Nachrichten aus zwei echten Feeds und einem unerreichbaren, einen Radiosender und absichtlich ein unbekanntes Widget. Nachrichten und Radio brauchen Internet. Für das Hinzufügen von Rezepten startet sie einen Platzhalter der Claude-API auf dem eigenen Rechner (`packages/recipe-import/src/standin.ts`): Er antwortet in der Form der echten Schnittstelle mit einem festen Rezept. So läuft der ganze Weg vom Hochladen bis zur Rezeptdatei, ohne dass etwas das Haus verlässt oder kostet – was das Sprachmodell aus einer echten Vorlage macht, prüft das nicht.
+Die Testinstanz enthält: erfundene Messwerte, Schalter, Wetterdaten, Termine, Erinnerungen, E-Mails und Anrufe, Eieruhr, drei Rezepte (mit Bild, ohne Angaben, mit kaputten Angaben), Nachrichten aus zwei echten Feeds und einem unerreichbaren, einen Radiosender und absichtlich ein unbekanntes Widget. Nachrichten und Radio brauchen Internet. Die Einkaufsliste kommt von einem Platzhalter für Merkio (`plugins/source-merkio/src/standin.ts`) mit einer erfundenen Familie; er bildet Anmeldung, Listen, Einträge und Echtzeitkanal nach, ist aber nicht das echte Merkio. Für das Hinzufügen von Rezepten startet sie einen Platzhalter der Claude-API auf dem eigenen Rechner (`packages/recipe-import/src/standin.ts`): Er antwortet in der Form der echten Schnittstelle mit einem festen Rezept. So läuft der ganze Weg vom Hochladen bis zur Rezeptdatei, ohne dass etwas das Haus verlässt oder kostet – was das Sprachmodell aus einer echten Vorlage macht, prüft das nicht.
 
 ## Prüfliste Oberfläche
 
@@ -109,6 +109,12 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] Ein Foto wählen (gern über 5 MB): Das Rezept trägt den Namen der Datei, das Foto steht in der Leseansicht neben dem Text und erscheint auf der Kachel.
 - [ ] Text „Kein Rezept“ und die Adresse `http://192.168.178.1/` werden mit einer lesbaren Meldung abgelehnt; die Eingabe bleibt stehen.
 - [ ] Schmales Fenster (Telefon): Das Formular füllt die Breite, „Liste“ führt zurück.
+
+**Listen** (Layout `einkauf`: <http://localhost:8191/?layout=einkauf>)
+- [ ] „Einkauf“ zeigt die offenen Einträge in Spalten mit Menge dahinter, die Zahl der offenen im Kopf und „Kaffee“ durchgestrichen am Ende.
+- [ ] Antippen hakt ab: Der Eintrag wandert durchgestrichen ans Ende, die zweite Einkauf-Kachel zieht sofort nach. Nochmal antippen nimmt den Haken weg.
+- [ ] „+“: „2 kg Mehl“ erscheint als „Mehl 2 kg“; „kaffee“ macht den abgehakten Kaffee wieder offen, statt ihn doppelt einzutragen. Das Feld bleibt für weitere Einträge offen.
+- [ ] „Zu tun“ zeigt die Aufgabenliste, die Kachel mit der unbekannten Liste „Urlaub“ sagt „Keine Liste eingerichtet.“
 
 **Sprache**
 - [ ] In `config.json` der Testinstanz `site` auf `{ "language": "en", "region": "en-US" }` stellen: Texte englisch, Uhr mit AM/PM, Datum in US-Schreibweise.

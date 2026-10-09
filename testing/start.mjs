@@ -1,7 +1,7 @@
 // Startet die Testinstanz: ein Kern mit erfundenen Werten, Beispielrezepten und allen
 // Bausteinen, die ohne eigene Geräte laufen. Die Vorlage aus `testing/instance` wird bei
 // jedem Start frisch in einen Wegwerfordner gelegt – die eigenen Daten bleiben unberührt.
-import { cpSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,6 +21,16 @@ const standIn = await startStandIn();
 process.env.ANTHROPIC_BASE_URL = standIn.url;
 process.env.ANTHROPIC_API_KEY = 'platzhalter-der-testinstanz';
 console.log(`Platzhalter für die Claude-API auf ${standIn.url}`);
+
+// Einkaufsliste: Ebenso antwortet statt Merkio ein Platzhalter mit einer erfundenen Familie.
+const { startStandIn: startMerkio } = await import('../plugins/source-merkio/src/standin.ts');
+const merkio = await startMerkio();
+const configFile = join(target, 'config.json');
+const config = JSON.parse(readFileSync(configFile, 'utf8'));
+config.sources.find((source) => source.id === 'merkio').config = { url: merkio.url, lists: ['Einkauf', 'Aufgaben'] };
+writeFileSync(configFile, JSON.stringify(config, null, 2));
+writeFileSync(join(target, 'secrets.json'), JSON.stringify({ merkio: merkio.account }, null, 2));
+console.log(`Platzhalter für Merkio auf ${merkio.url}`);
 console.log(`Testinstanz in ${target}`);
 await import('../packages/core/src/main.ts');
 

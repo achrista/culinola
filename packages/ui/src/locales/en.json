@@ -199,5 +199,19 @@
       "voicemail": "Message on the answering machine"
     },
     "place": "Origin"
+  },
+  "checklist": {
+    "title": "List",
+    "add": "Add an entry",
+    "addTo": "{list}: add an entry",
+    "what": "What is missing?",
+    "example": "e.g. 2 l milk",
+    "addGo": "Add",
+    "check": "Check off {name}",
+    "uncheck": "Uncheck {name}",
+    "empty": "All done.",
+    "noList": "No list set up.",
+    "login": "The sign-in details for the list are missing or rejected.",
+    "offline": "not connected"
   }
 }

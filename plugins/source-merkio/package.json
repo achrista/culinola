@@ -1,0 +1,14 @@
+{
+  "name": "@culinola/plugin-source-merkio",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Einkaufs- und Aufgabenlisten aus Merkio: anzeigen, abhaken, ergänzen.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@culinola/sdk": "*"
+  }
+}

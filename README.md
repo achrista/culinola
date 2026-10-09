@@ -95,6 +95,7 @@ Unter `layouts` dürfen mehrere Layouts stehen. Eine Anzeige zeigt `main`, mit d
 | `calendar` | Die nächsten Termine, nach Tagen gegliedert | `source` (Google-Instanz), `title` |
 | `reminders` | Anstehende Geburtstage und andere wiederkehrende Tage; Antippen zeigt die Telefonnummern | `source` (Google-Instanz), `title` |
 | `mail` | E-Mails aller eingerichteten Postfächer, das Neueste zuerst; Antippen zeigt die Nachricht | `source` (Mail-Instanz), `title` |
+| `checklist` | Eine Einkaufs- oder Aufgabenliste zum Abhaken, eng in Spalten gesetzt; „+“ trägt neue Einträge ein | `source` (Listen-Instanz, Vorgabe `merkio`), `list` (Kennung oder Name, sonst die erste), `title`, `recentHours` (so lange bleibt Abgehaktes sichtbar, Vorgabe 12) |
 | `recipes` | Ein zufällig gewähltes Rezept mit Bild im Wechsel; Antippen öffnet es, der Pfeil die ganze Liste, in der sich auch neue Rezepte hinzufügen lassen | `source` (Rezept-Instanz), `title`, `seconds` |
 
 `map` übersetzt Zustandswerte in Text, etwa `{ "0": "aus", "1": "läuft", "3": "fertig" }`.
@@ -269,6 +270,26 @@ Im Docker-Abbild geht stattdessen auch die Umgebungsvariable `ANTHROPIC_API_KEY`
 Ohne Schlüssel fehlt die Taste, alles andere läuft wie gewohnt. Ist die API durch Zugänge geschützt, braucht das Hinzufügen die Stufe `control`.
 
 Zu wissen: Die Vorlage wird zum Umwandeln an Anthropic übertragen, und jede Umwandlung kostet einen kleinen Betrag nach Verbrauch – der Kern schreibt die Zahl der Token ins Protokoll. Webadressen im eigenen Netz werden nicht gelesen. Das Ergebnis stammt von einem Sprachmodell: Mengen und Zeiten vor dem ersten Nachkochen mit der Vorlage vergleichen. Mit `importModel` und `importLanguage` (`de`, `en`, `fr`) in der Konfiguration des Plugins lassen sich Modell und Sprache der neuen Rezepte ändern.
+
+### Einkaufs- und Aufgabenlisten aus Merkio
+
+Culinola führt selbst keine Listen. Das Plugin `source-merkio` zeigt die Listen aus [Merkio](https://merkio.de), hakt dort ab und trägt dort ein – gepflegt wird weiter am Telefon, und über Merkios Echtzeitkanal sehen beide Seiten sofort denselben Stand.
+
+```json
+{ "id": "merkio", "plugin": "source-merkio", "config": { "lists": ["Einkauf"] } }
+```
+
+Am besten bekommt die Anzeige ein eigenes Merkio-Konto, das Mitglied der Familiengruppe ist. Seine Zugangsdaten stehen in `secrets.json`:
+
+```json
+{ "merkio": { "email": "kueche@example.org", "password": "…" } }
+```
+
+`lists` nennt die Listen, die gezeigt werden – mit ihrem Namen, bei gleichnamigen Listen in mehreren Gruppen als `{ "name": "Einkauf", "group": "Familie" }`. Ohne die Angabe sind es alle Einkaufslisten des Kontos. Welche Listen es gibt, schreibt der Kern beim Start ins Protokoll, wenn eine genannte fehlt, und es steht unter `/api/v1/resources/merkio/available`. Jede Liste bekommt eine Kennung aus ihrem Namen (`Einkauf` → `einkauf`); die Kachel `checklist` wählt ihre Liste mit `list`.
+
+Antippen hakt einen Eintrag ab; Abgehaktes bleibt einige Stunden durchgestrichen stehen, damit sich der Haken zurücknehmen lässt. „+“ öffnet ein Eingabefeld: „2 kg Mehl“ wird in Menge, Einheit und Namen zerlegt, und was schon abgehakt auf der Liste steht, wird wieder offen statt doppelt. Dasselbe geht über die Aktionen `lists.add` (`text`, `list`) und `lists.check` (`item`, `checked`).
+
+Das Plugin meldet sich mit Konto und Kennwort an, merkt sich Merkios Erneuerungstoken in `data/merkio/token.json` und meldet sich von selbst neu an, wenn es abgelaufen ist. Der Datenpunkt `merkio:state` sagt, wie es steht: `ok`, `login` (Zugangsdaten fehlen oder werden abgelehnt) oder `offline`. Mit `url` lässt sich eine eigene Merkio-Installation ansprechen, mit `refreshMinutes` (Vorgabe 5) der Abstand, in dem zusätzlich zum Echtzeitkanal alles neu gelesen wird.
 
 ## API
 

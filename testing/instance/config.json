@@ -49,6 +49,10 @@
           }
         ]
       }
+    },
+    {
+      "id": "merkio",
+      "plugin": "source-merkio"
     }
   ],
   "layouts": {
@@ -462,6 +466,78 @@
             "label": "Außen",
             "decimals": 1
           }
+        }
+      ]
+    },
+    "einkauf": {
+      "grid": {
+        "columns": 12,
+        "rows": 6
+      },
+      "widgets": [
+        {
+          "type": "checklist",
+          "at": [
+            0,
+            0,
+            5,
+            3
+          ],
+          "config": {
+            "source": "merkio",
+            "list": "Einkauf"
+          }
+        },
+        {
+          "type": "checklist",
+          "at": [
+            5,
+            0,
+            3,
+            3
+          ],
+          "config": {
+            "source": "merkio",
+            "list": "aufgaben",
+            "title": "Zu tun"
+          }
+        },
+        {
+          "type": "checklist",
+          "at": [
+            8,
+            0,
+            4,
+            1
+          ],
+          "config": {
+            "source": "merkio",
+            "list": "Einkauf",
+            "title": "Niedrige Kachel"
+          }
+        },
+        {
+          "type": "checklist",
+          "at": [
+            8,
+            1,
+            4,
+            2
+          ],
+          "config": {
+            "source": "merkio",
+            "list": "Urlaub"
+          }
+        },
+        {
+          "type": "clock",
+          "at": [
+            0,
+            3,
+            4,
+            2
+          ],
+          "config": {}
         }
       ]
     }
