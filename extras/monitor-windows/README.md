@@ -48,6 +48,7 @@ Das Skript muss in der Sitzung des angemeldeten Benutzers laufen, nicht als Dien
 ## Zu wissen
 
 - Geschaltet wird über Windows selbst, so wie es auch der Energiesparmodus tut. Beim Einschalten kommt eine winzige Mausbewegung dazu, weil nicht jeder Bildschirm allein auf das Signal hin aufwacht.
+- Solange der Monitor an sein soll, wiederholt das Skript das Einschalten jede Minute (`keepOnSeconds`, `0` schaltet das ab). So bleibt er an, auch wenn Windows ihn nach seiner eigenen Wartezeit abschalten wollte – und er kommt zurück, falls er doch einmal ausging.
 - Jede Berührung und jede Mausbewegung weckt den Bildschirm ebenfalls; das Skript schaltet ihn erst beim nächsten „aus“ wieder ab.
 - Ist Culinola nicht erreichbar, versucht das Skript es weiter – erst alle paar Sekunden, dann jede Minute. Der Bildschirm bleibt so lange, wie er ist.
 - `monitor.json` enthält das Token und gehört deshalb nicht ins Repository; `monitor.log` bleibt klein und beginnt ab 200 KB neu.

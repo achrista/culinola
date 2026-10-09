@@ -3,5 +3,6 @@
   "token": "",
   "off": "monitor-aus",
   "on": "monitor-an",
-  "datapoint": ""
+  "datapoint": "",
+  "keepOnSeconds": 60
 }

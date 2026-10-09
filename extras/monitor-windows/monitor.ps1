@@ -40,6 +40,9 @@ if (-not $settings.server) { Write-Log 'In monitor.json fehlt "server", etwa htt
 $onEvent = if ($settings.on) { [string]$settings.on } else { 'monitor-an' }
 $offEvent = if ($settings.off) { [string]$settings.off } else { 'monitor-aus' }
 $datapoint = [string]$settings.datapoint
+# Solange der Monitor an sein soll, wird das Einschalten in diesem Abstand wiederholt: So bleibt er auch dann an,
+# wenn Windows ihn von sich aus abschalten wollte. 0 schaltet das ab.
+$keepOn = if ($null -ne $settings.keepOnSeconds) { [int]$settings.keepOnSeconds } else { 60 }
 
 # Der Bildschirm wird über Windows selbst geschaltet – so, wie es auch der Energiesparmodus tut.
 # Die Nachricht geht an alle Fenster; das Einschalten bekommt zusätzlich eine winzige Mausbewegung,
@@ -99,14 +102,24 @@ while ($true) {
     Write-Log 'Mit Culinola verbunden.'
     $pause = 2
     $buffer = New-Object byte[] 65536
+    $text = New-Object Text.StringBuilder
+    $waiting = $null
+    $patience = if ($keepOn -gt 0) { $keepOn * 1000 } else { -1 }
     while ($socket.State -eq [System.Net.WebSockets.WebSocketState]::Open) {
-      $text = New-Object Text.StringBuilder
-      do {
-        $part = $socket.ReceiveAsync((New-Object ArraySegment[byte] (, $buffer)), $none).GetAwaiter().GetResult()
-        [void]$text.Append([Text.Encoding]::UTF8.GetString($buffer, 0, $part.Count))
-      } until ($part.EndOfMessage)
+      if ($null -eq $waiting) { $waiting = $socket.ReceiveAsync((New-Object ArraySegment[byte] (, $buffer)), $none) }
+      if (-not $waiting.Wait($patience)) {
+        # Nichts Neues: Soll der Monitor an sein, wird er daran erinnert
+        if ($script:state -eq 'an' -and -not $DryRun) { [Culinola.Screen]::On() }
+        continue
+      }
+      $part = $waiting.Result
+      $waiting = $null
       if ($part.MessageType -eq [System.Net.WebSockets.WebSocketMessageType]::Close) { break }
-      try { $message = $text.ToString() | ConvertFrom-Json } catch { continue }
+      [void]$text.Append([Text.Encoding]::UTF8.GetString($buffer, 0, $part.Count))
+      if (-not $part.EndOfMessage) { continue }
+      $raw = $text.ToString()
+      [void]$text.Clear()
+      try { $message = $raw | ConvertFrom-Json } catch { continue }
       if ($message.t -eq "dp/$datapoint" -and $datapoint) { Set-Monitor (Test-On $message.d.value) "Datenpunkt meldet $($message.d.value)" }
       elseif ($message.t -eq "event/$offEvent") { Set-Monitor $false "Meldung $offEvent" }
       elseif ($message.t -eq "event/$onEvent") { Set-Monitor $true "Meldung $onEvent" }
