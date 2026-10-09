@@ -4,6 +4,7 @@ import CallCard from './CallCard.vue';
 import ChartCard from './ChartCard.vue';
 import ChecklistCard from './ChecklistCard.vue';
 import ClockCard from './ClockCard.vue';
+import ImageCard from './ImageCard.vue';
 import MailCard from './MailCard.vue';
 import MediaWindow from './MediaWindow.vue';
 import NewsCard from './NewsCard.vue';
@@ -37,5 +38,6 @@ export const widgets: Record<string, Component> = {
   voice: VoiceButton,
   weather: WeatherCard,
   'media-window': MediaWindow,
+  image: ImageCard,
   mail: MailCard,
 };

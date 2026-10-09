@@ -121,6 +121,7 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] PV, Batterie und Verbrauch stehen als Ringe da, die sich mit dem Wert füllen; die Batterie ist grün, weil sie über ihren Warngrenzen liegt.
 - [ ] Die beiden Autos zeigen Füllstand im Ring und die Reichweite darunter; der fast leere Kombi ist gelb.
 - [ ] Dieselbe Angabe in der flachen und in der engen Kachel bleibt lesbar.
+- [ ] Der Kombi und „Bad veraltet“ stehen ausgegraut da, weil ihr Schalter „Daten aktuell“ aus ist; die enge Kachel wechselt jede Minute zwischen frisch und ausgegraut.
 - [ ] Anwesenheit: Anna und Ben „daheim“ in Grün, Cleo und Dana „weg“; die hohe Kachel hat zwei Reihen, die flache eine; ein Eintrag ohne Wert steht blass als „unbekannt“ da.
 
 **Sprechen** (Layout `haus`)

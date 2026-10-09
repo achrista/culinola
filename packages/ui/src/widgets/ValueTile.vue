@@ -4,6 +4,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getSeries } from '../api.ts';
 import { formatValue } from '../format.ts';
+import { isOn } from '../state.ts';
 import { datapoints } from '../store.ts';
 
 interface Warn {
@@ -35,6 +36,11 @@ const props = defineProps<{
      * der sich mit ihm füllt – etwa Ladestand, Leistung oder Füllstand. In einer flachen Kachel bleibt es bei der Zahl.
      */
     gauge?: { min?: number; max: number };
+    /**
+     * Datenpunkt, der sagt, ob der Wert aktuell ist – etwa ein Schalter, den die Quelle setzt, solange sie frische
+     * Daten bekommt. Ist er aus, steht die Kachel ausgegraut da: Der Wert ist der letzte bekannte.
+     */
+    fresh?: string;
   };
 }>();
 
@@ -58,11 +64,14 @@ const unit = computed(() => (mapped.value !== undefined ? '' : (props.config.uni
 const status = computed(() => {
   const value = mainValue.value;
   const warn = props.config.warn;
-  if (typeof value !== 'number' || !warn || main.value?.quality !== 'good') return 'none';
+  if (typeof value !== 'number' || !warn || main.value?.quality !== 'good' || stale.value) return 'none';
   if ((warn.highAlarm !== undefined && value >= warn.highAlarm) || (warn.lowAlarm !== undefined && value <= warn.lowAlarm)) return 'alarm';
   if ((warn.highWarn !== undefined && value >= warn.highWarn) || (warn.lowWarn !== undefined && value <= warn.lowWarn)) return 'warn';
   return 'ok';
 });
+
+/** Ob der Wert veraltet ist: nur, wenn ein Datenpunkt dafür angegeben ist und er „aus“ meldet. */
+const stale = computed(() => (props.config.fresh ? !isOn(datapoints.get(props.config.fresh)?.value) : false));
 
 /** Anteil des Rings, der gefüllt ist: 0 bis 1. */
 const filled = computed(() => {
@@ -108,7 +117,7 @@ const sparkline = computed(() => {
 </script>
 
 <template>
-  <section class="tile" :class="{ 'has-gauge': !!config.gauge }">
+  <section class="tile" :class="{ 'has-gauge': !!config.gauge, stale }" :title="stale ? t('tile.stale') : undefined">
     <!-- Die innere Hülle trägt die Anordnung, damit sie sich nach der Größe der Kachel richten kann -->
     <div class="tile-row">
     <header>
@@ -264,6 +273,16 @@ header {
   }
 }
 
+/* Veraltet: Der letzte bekannte Wert bleibt lesbar, tritt aber zurück */
+.stale .tile-row,
+.stale .gauge {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+.stale .fill {
+  stroke: var(--none);
+}
+
 /* Ringanzeige: Der Wert steht in einem Ring, der Name im offenen Teil darunter, der Nebenwert unter dem Ring. */
 .gauge {
   display: none;
@@ -332,7 +351,7 @@ header {
   padding-top: 31%;
 }
 .gauge .value {
-  font-size: clamp(22px, min(30cqh, 26cqw), 64px);
+  font-size: clamp(20px, min(26cqh, 21cqw), 64px);
 }
 .gauge .unit {
   font-size: clamp(12px, 9cqh, 18px);

@@ -166,6 +166,9 @@ export default definePlugin({
       context.datapoints.set({ id: 'auto_strom', value: charge, unit: '%', label: 'Stromer' });
       context.datapoints.set({ id: 'auto_strom_km', value: Math.round(charge * 4.7), unit: 'km', label: 'Stromer: Reichweite' });
       context.datapoints.set({ id: 'auto_tank', value: 18, unit: '%', label: 'Kombi' });
+      // Der Kombi meldet sich nur jede zweite Minute – dazwischen gelten seine Werte als veraltet
+      context.datapoints.set({ id: 'auto_tank_frisch', value: Math.floor(now / 60_000) % 2 === 0, label: 'Kombi: Daten aktuell' });
+      context.datapoints.set({ id: 'nie_frisch', value: false, label: 'Nie aktuell' });
       context.datapoints.set({ id: 'auto_tank_km', value: 130, unit: 'km', label: 'Kombi: Reichweite' });
       context.datapoints.set({ id: 'daheim_anna', value: true, label: 'Anna' });
       context.datapoints.set({ id: 'daheim_ben', value: 'daheim', label: 'Ben' });

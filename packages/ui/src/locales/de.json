@@ -15,7 +15,8 @@
       "warn": "Achtung",
       "alarm": "außerhalb",
       "none": "ohne Bewertung"
-    }
+    },
+    "stale": "Der Wert ist nicht aktuell"
   },
   "switches": {
     "failed": "Schalten fehlgeschlagen: {error}"

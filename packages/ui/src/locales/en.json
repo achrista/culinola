@@ -15,7 +15,8 @@
       "warn": "attention",
       "alarm": "out of range",
       "none": "not rated"
-    }
+    },
+    "stale": "The value is not current"
   },
   "switches": {
     "failed": "Switching failed: {error}"

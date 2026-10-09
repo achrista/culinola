@@ -645,7 +645,8 @@
               "lowWarn": 30,
               "lowAlarm": 15
             },
-            "decimals": 0
+            "decimals": 0,
+            "fresh": "demo:nie_frisch"
           }
         },
         {
@@ -679,7 +680,8 @@
             "gauge": {
               "max": 100
             },
-            "decimals": 0
+            "decimals": 0,
+            "fresh": "demo:auto_tank_frisch"
           }
         },
         {
@@ -784,6 +786,297 @@
           ],
           "config": {
             "timer": "timer"
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            10,
+            3,
+            2,
+            1
+          ],
+          "config": {
+            "datapoint": "demo:temp_bad",
+            "label": "Bad veraltet",
+            "fresh": "demo:nie_frisch"
+          }
+        }
+      ]
+    },
+    "habpanel": {
+      "grid": {
+        "columns": 48,
+        "rows": 24
+      },
+      "widgets": [
+        {
+          "type": "image",
+          "at": [
+            0,
+            0,
+            27,
+            16
+          ],
+          "config": {
+            "url": "http://localhost:8191/api/v1/p/recipes/file/kuchen-streifenkuchen/kuchen.png",
+            "label": "Großes Bild",
+            "fit": "contain",
+            "refreshSeconds": 30
+          }
+        },
+        {
+          "type": "image",
+          "at": [
+            0,
+            16,
+            11,
+            8
+          ],
+          "config": {
+            "url": "http://localhost:8191/api/v1/p/recipes/file/kuchen-streifenkuchen/kuchen.png",
+            "label": "Webcam"
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            11,
+            16,
+            5,
+            8
+          ],
+          "config": {
+            "datapoint": "demo:auto_strom",
+            "label": "Stromer",
+            "unit": "%",
+            "decimals": 0,
+            "secondary": {
+              "datapoint": "demo:auto_strom_km",
+              "unit": "km",
+              "decimals": 0
+            },
+            "gauge": {
+              "max": 100
+            },
+            "warn": {
+              "lowWarn": 25,
+              "lowAlarm": 10
+            }
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            16,
+            16,
+            5,
+            8
+          ],
+          "config": {
+            "datapoint": "demo:auto_tank",
+            "label": "Kombi",
+            "unit": "%",
+            "decimals": 0,
+            "secondary": {
+              "datapoint": "demo:auto_tank_km",
+              "unit": "km",
+              "decimals": 0
+            },
+            "gauge": {
+              "max": 100
+            },
+            "warn": {
+              "lowWarn": 25,
+              "lowAlarm": 10
+            },
+            "fresh": "demo:nie_frisch"
+          }
+        },
+        {
+          "type": "presence",
+          "at": [
+            21,
+            16,
+            6,
+            8
+          ],
+          "config": {
+            "items": [
+              {
+                "datapoint": "demo:daheim_anna"
+              },
+              {
+                "datapoint": "demo:daheim_ben"
+              },
+              {
+                "datapoint": "demo:daheim_cleo"
+              },
+              {
+                "datapoint": "demo:daheim_dana"
+              }
+            ]
+          }
+        },
+        {
+          "type": "weather",
+          "at": [
+            27,
+            0,
+            14,
+            4
+          ],
+          "config": {
+            "temperature": "demo:temp_aussen",
+            "condition": "demo:wetter_text",
+            "code": "demo:wetter_code",
+            "wind": {
+              "direction": "demo:wind_richtung",
+              "speed": "demo:wind"
+            },
+            "uv": "demo:uv",
+            "days": [
+              {
+                "condition": "demo:tag0_text",
+                "max": "demo:tag0_max",
+                "min": "demo:tag0_min"
+              },
+              {
+                "condition": "demo:tag1_text",
+                "max": "demo:tag1_max",
+                "min": "demo:tag1_min"
+              },
+              {
+                "condition": "demo:tag2_text",
+                "max": "demo:tag2_max",
+                "min": "demo:tag2_min"
+              },
+              {
+                "condition": "demo:tag3_text",
+                "max": "demo:tag3_max",
+                "min": "demo:tag3_min"
+              },
+              {
+                "condition": "demo:tag4_text",
+                "max": "demo:tag4_max",
+                "min": "demo:tag4_min"
+              }
+            ]
+          }
+        },
+        {
+          "type": "clock",
+          "at": [
+            41,
+            0,
+            7,
+            4
+          ],
+          "config": {}
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            27,
+            4,
+            5,
+            6
+          ],
+          "config": {
+            "datapoint": "demo:solar",
+            "label": "PV",
+            "decimals": 0,
+            "gauge": {
+              "max": 10000
+            }
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            32,
+            4,
+            5,
+            6
+          ],
+          "config": {
+            "datapoint": "demo:batterie",
+            "label": "Batterie",
+            "decimals": 0,
+            "gauge": {
+              "max": 100
+            }
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            37,
+            4,
+            5,
+            6
+          ],
+          "config": {
+            "datapoint": "demo:verbrauch",
+            "label": "Verbrauch",
+            "decimals": 0,
+            "gauge": {
+              "max": 10000
+            }
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            42,
+            4,
+            6,
+            3
+          ],
+          "config": {
+            "datapoint": "demo:waschen",
+            "label": "Spülen"
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            42,
+            7,
+            6,
+            3
+          ],
+          "config": {
+            "datapoint": "demo:waschen",
+            "label": "Waschen",
+            "secondary": {
+              "datapoint": "demo:verbrauch",
+              "unit": "W",
+              "decimals": 0
+            }
+          }
+        },
+        {
+          "type": "chart",
+          "at": [
+            27,
+            10,
+            21,
+            14
+          ],
+          "config": {
+            "title": "Strom",
+            "series": [
+              {
+                "datapoint": "demo:solar",
+                "label": "Solar",
+                "area": true
+              },
+              {
+                "datapoint": "demo:verbrauch",
+                "label": "Verbrauch"
+              }
+            ]
           }
         }
       ]
