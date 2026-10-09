@@ -148,7 +148,8 @@ export async function readSource(input: RecipeInput, signal?: AbortSignal): Prom
   if ('data' in input) {
     const material = await fromData(input.data, input.name, input.mediaType);
     if (!input.photo) return material;
-    const cover = asImage(input.photo.data, basename(input.photo.name));
+    // Der Name kann von einem anderen System kommen – vom Pfad zählt nur das letzte Stück, gleich mit welchem Trenner
+    const cover = asImage(input.photo.data, input.photo.name.split(/[\\/]/).pop() || 'foto');
     if (!cover) material.warnings.push('Das mitgegebene Foto ist kein Bild in brauchbarer Größe und wurde nicht übernommen.');
     return cover ? { ...material, cover } : material;
   }
