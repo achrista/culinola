@@ -1750,6 +1750,12 @@
         "datapoint": "timer:state",
         "equals": "done"
       }
+    },
+    "monitor-aus": {
+      "show": false
+    },
+    "monitor-an": {
+      "show": false
     }
   }
 }

@@ -36,6 +36,8 @@ function speak(text: string) {
 }
 
 function show(raised: Raised) {
+  // Reine Signale gehen an Programme, die mithören – nicht an die Menschen vor der Anzeige
+  if (raised.show === false) return;
   // Dieselbe Meldung noch einmal ersetzt ihre Vorgängerin, statt sich daneben zu stellen
   for (const older of shown.value.filter((entry) => entry.name === raised.name)) dismiss(older.id);
   shown.value = [raised, ...shown.value].slice(0, MAX_SHOWN);

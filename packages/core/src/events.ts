@@ -19,6 +19,11 @@ export interface Condition {
 export interface EventConfig {
   /** Was auf der Anzeige steht – und vorgelesen wird, wenn `speak` gesetzt ist. */
   text: string;
+  /**
+   * `false`: Die Anzeigen zeigen nichts. Die Meldung ist dann ein reines Signal für Programme, die über den
+   * Echtzeitkanal mithören – etwa ein Werkzeug, das am Anzeigerechner den Monitor aus- und einschaltet.
+   */
+  show?: boolean;
   sound?: Sound;
   speak?: boolean;
   /** Kennung eines Videostroms, der mit der Meldung groß gezeigt wird, etwa die Kamera an der Haustür. */
@@ -37,6 +42,8 @@ export interface Raised {
   name: string;
   at: string;
   text: string;
+  /** Ob die Anzeigen die Meldung zeigen; `false` bei reinen Signalen. */
+  show: boolean;
   sound: Sound;
   speak: boolean;
   seconds: number;
@@ -60,7 +67,11 @@ export function parseEvents(raw: unknown): Record<string, EventConfig> {
     };
     if (!NAME.test(name)) fail('Der Name darf nur Kleinbuchstaben, Ziffern und einzelne Bindestriche enthalten.');
     const event = (value ?? {}) as Record<string, unknown>;
-    if (typeof event['text'] !== 'string' || !event['text'].trim()) fail('"text" fehlt.');
+    if (event['show'] !== undefined && typeof event['show'] !== 'boolean') fail('"show" muss true oder false sein.');
+    const hidden = event['show'] === false;
+    // Ein reines Signal braucht keinen Text; alles, was Menschen sehen, schon
+    if (!hidden && (typeof event['text'] !== 'string' || !event['text'].trim())) fail('"text" fehlt.');
+    if (event['text'] !== undefined && typeof event['text'] !== 'string') fail('"text" muss ein Text sein.');
     if (event['sound'] !== undefined && !SOUNDS.includes(event['sound'] as Sound)) fail(`"sound" muss einer von ${SOUNDS.join(', ')} sein.`);
     if (event['speak'] !== undefined && typeof event['speak'] !== 'boolean') fail('"speak" muss true oder false sein.');
     for (const key of ['video', 'videoSource'] as const) if (event[key] !== undefined && (typeof event[key] !== 'string' || !event[key])) fail(`"${key}" muss die Kennung eines Videostroms bzw. seiner Quelle sein.`);
@@ -80,7 +91,8 @@ export function parseEvents(raw: unknown): Record<string, EventConfig> {
     }
 
     events[name] = {
-      text: (event['text'] as string).trim().slice(0, MAX_TEXT_CHARS),
+      text: ((event['text'] as string | undefined) ?? '').trim().slice(0, MAX_TEXT_CHARS),
+      ...(hidden ? { show: false } : {}),
       ...(event['sound'] ? { sound: event['sound'] as Sound } : {}),
       ...(typeof event['speak'] === 'boolean' ? { speak: event['speak'] } : {}),
       ...(typeof event['video'] === 'string' ? { video: event['video'] } : {}),
@@ -134,8 +146,9 @@ export class EventHub {
       name,
       at: new Date().toISOString(),
       text: text?.trim().slice(0, MAX_TEXT_CHARS) || event.text,
-      sound: event.sound ?? 'chime',
-      speak: event.speak ?? false,
+      show: event.show !== false,
+      sound: event.show === false ? 'none' : (event.sound ?? 'chime'),
+      speak: event.show === false ? false : (event.speak ?? false),
       seconds: event.seconds ?? (event.video ? 90 : 10),
       ...(event.video ? { video: { source: event.videoSource ?? 'video', stream: event.video } } : {}),
     };

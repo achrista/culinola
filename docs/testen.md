@@ -134,6 +134,8 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] `curl -X POST http://localhost:8191/api/v1/events/hausglocke`: Auf jeder offenen Anzeige erscheint oben die Tafel „Jemand klingelt an der Haustür!“, die Türglocke ertönt (nach einer Berührung der Seite), der Text wird vorgelesen; nach 15 Sekunden oder durch Antippen verschwindet sie.
 - [ ] Die Eieruhr auf wenige Sekunden stellen: Läuft sie ab, erscheint von selbst „Die Eieruhr ist abgelaufen.“ – ausgelöst durch den Datenpunkt, ohne Aufruf von außen.
 - [ ] Eine unbekannte Meldung (`…/events/gibt-es-nicht`) wird mit 404 abgelehnt.
+- [ ] `…/events/monitor-aus` ist ein reines Signal: Auf den Anzeigen erscheint nichts.
+- [ ] Monitorsteuerung im Probelauf: `monitor.json` mit `{ "server": "http://localhost:8191" }` anlegen und `powershell -ExecutionPolicy Bypass -File extras\monitor-windows\monitor.ps1 -DryRun` starten. Auf `…/events/monitor-aus` und `…/monitor-an` hin steht „Probelauf: Monitor aus“ bzw. „an“ im Fenster; mit `"datapoint": "demo:licht_esstisch"` folgt es dem Schalter „Esstisch“. Wirklich geschaltet wird im Probelauf nichts.
 
 **Fernsehen in der Kamerakachel, Markise** (Layout `zweites`: <http://localhost:8191/?layout=zweites>)
 - [ ] Die Kachel „Kamera“ hat in der Testinstanz kein Bild, trägt aber ihren Namen. In der Radioleiste „Testbild“ wählen: Die Kachel heißt jetzt „Testbild“ – das Fernsehen hat sie übernommen. „Aus“ gibt sie der Kamera zurück.

@@ -12,6 +12,8 @@ export interface Raised {
   name: string;
   at: string;
   text: string;
+  /** `false`: ein reines Signal für andere Programme – die Anzeige zeigt nichts. */
+  show?: boolean;
   sound: 'bell' | 'chime' | 'beep' | 'none';
   speak: boolean;
   seconds: number;

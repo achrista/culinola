@@ -15,6 +15,8 @@ describe('Meldungen in der Konfiguration', () => {
       'waschen-fertig': { text: 'Die Waschmaschine ist fertig.', when: { datapoint: 'openhab:Waschmaschine_An', equals: 3 } },
     });
     expect(parseEvents(undefined)).toEqual({});
+    // Ein reines Signal: ohne Text, ohne Anzeige
+    expect(parseEvents({ 'monitor-aus': { show: false } })).toEqual({ 'monitor-aus': { text: '', show: false } });
   });
 
   it('sagt bei Fehlern, welche Meldung gemeint ist und was fehlt', () => {
@@ -25,6 +27,8 @@ describe('Meldungen in der Konfiguration', () => {
       [{ a: { text: 'x', sound: 'gong' } }, /"sound" muss einer von bell, chime, beep, none/],
       [{ a: { text: 'x', seconds: 0 } }, /"seconds"/],
       [{ a: { text: 'x', speak: 'ja' } }, /"speak"/],
+      [{ a: { text: 'x', show: 'nein' } }, /"show"/],
+      [{ a: { show: true } }, /"text" fehlt/],
       [{ a: { text: 'x', video: 3 } }, /"video"/],
       [{ a: { text: 'x', when: { datapoint: 'ohne-quelle', equals: 1 } } }, /"when" braucht einen Datenpunkt/],
       [{ a: { text: 'x', when: { datapoint: 'q:x' } } }, /genau eine der Angaben/],
@@ -82,6 +86,12 @@ describe('Meldungen auslösen', () => {
       { name: 'fertig', text: 'Die Waschmaschine ist fertig.', trigger: 'oh:Waschen' },
       { name: 'warm', text: 'Es ist warm.', trigger: 'oh:Temp' },
     ]);
+  });
+
+  it('gibt reine Signale weiter, ohne dass die Anzeigen etwas zeigen oder tönen', () => {
+    const events = new EventHub(parseEvents({ 'monitor-aus': { show: false, sound: 'bell', speak: true } }), quiet);
+    expect(events.raise('monitor-aus')).toMatchObject({ name: 'monitor-aus', show: false, text: '', sound: 'none', speak: false });
+    expect(new EventHub(parseEvents({ a: { text: 'x' } }), quiet).raise('a').show).toBe(true);
   });
 
   it('feuert, wenn ein Datenpunkt die Bedingung neu erfüllt – nicht beim Start und nicht dauernd', () => {

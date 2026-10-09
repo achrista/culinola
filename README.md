@@ -129,6 +129,7 @@ Im Diagramm läuft „Heute“ von 0 bis 24 Uhr. Eine Reihe mit `forecast: true`
 | `speak` | `true` liest den Text vor |
 | `video` | Kennung eines Videostroms, der hinter der Tafel die Anzeige füllt; `videoSource` nennt die Video-Quelle, wenn sie nicht `video` heißt |
 | `seconds` | So lange bleibt die Meldung stehen – ohne Angabe 10 Sekunden, mit Video 90 |
+| `show` | `false` macht die Meldung zu einem reinen Signal: Die Anzeigen zeigen nichts, Programme am Echtzeitkanal bekommen sie trotzdem – `text` darf dann fehlen |
 | `when` | Löst die Meldung von selbst aus, sobald der Datenpunkt die Bedingung **neu** erfüllt: `equals` (genau dieser Wert), `above` oder `below` (Zahl) |
 
 Jede offene Anzeige zeigt die Meldung, gleich welches Layout sie hat; Antippen räumt sie weg.
@@ -140,6 +141,8 @@ POST /api/v1/events/hausglocke
 ```
 
 Ein Rumpf `{ "text": "Paket an der Tür" }` ersetzt den eingerichteten Text für dieses eine Mal. In einer openHAB-Regel: `sendHttpPostRequest("http://<server>:8090/api/v1/events/hausglocke", "application/json", "{}")`; ist die API geschützt, kommt das Token eines Zugangs der Stufe `control` als Kopfzeile `Authorization: Bearer …` dazu. `GET /api/v1/events` nennt die eingerichteten Meldungen; fremde Programme hören sie über den Echtzeitkanal mit (`event/*`).
+
+**Monitor ein und aus.** Den Bildschirm des Anzeigerechners kann ein Browser nicht schalten. Dafür liegt unter [extras/monitor-windows](extras/monitor-windows/README.md) ein kleines Skript für Windows, das am Echtzeitkanal mithört und den Monitor nach einem Datenpunkt oder auf zwei Meldungen hin aus- und einschaltet.
 
 ### Gesicherte Verbindung (HTTPS)
 
