@@ -3,6 +3,7 @@ title: Streifenkuchen
 tags: Kuchen, Testrezept
 time: 90 min
 servings: 1 Springform
+source: Familienrezept
 ---
 
 ![Der fertige Kuchen](kuchen.png)

@@ -51,6 +51,8 @@ function frontMatter(recipe: Recipe): string {
   if (recipe.tags.length) data['tags'] = recipe.tags;
   if (recipe.time) data['time'] = recipe.time;
   if (recipe.servings) data['servings'] = /^\d+$/.test(recipe.servings) ? Number(recipe.servings) : recipe.servings;
+  // Der Vermerk zur Herkunft steht in den Kopfdaten, damit ihn die Rezeptliste auch ohne Webadresse zeigen kann
+  if (recipe.source.label) data['source'] = recipe.source.label;
   if (recipe.image) data['image'] = recipe.image;
   const document = new Document(data);
   const tags = document.get('tags', true);

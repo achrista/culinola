@@ -11,6 +11,8 @@ export interface RecipeInfo {
   servings?: string;
   /** Bild des Rezepts: Pfad neben der Rezeptdatei oder Webadresse. */
   image?: string;
+  /** Herkunft in einem kurzen Vermerk, etwa "Familienrezept", "Instagram" oder "chefkoch.de". */
+  source?: string;
 }
 
 export interface Recipe extends RecipeInfo {
@@ -22,6 +24,8 @@ export interface Recipe extends RecipeInfo {
 
 const FRONT_MATTER = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
 const FIRST_IMAGE = /!\[[^\]]*\]\(\s*<?([^)\s>]+)>?[^)]*\)/;
+const SOURCE_LINE = /^(?:Quelle|Source)[ \t]*:[ \t]*(\S.*?)[ \t]*$/gim;
+const MAX_SOURCE_CHARS = 40;
 const FIRST_HEADING = /^\s*#[ \t]+(.+?)[ \t]*#*[ \t]*(?:\r?\n|$)/;
 
 /** Angaben aus den Kopfdaten; deutsche Feldnamen gelten genauso wie englische. */
@@ -40,6 +44,27 @@ function word(value: unknown): string | undefined {
 function words(value: unknown): string[] {
   const list = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [];
   return list.map(word).filter((entry): entry is string => !!entry);
+}
+
+/**
+ * Die Herkunft aus einer Zeile "Quelle: …" im Text – es gilt die letzte. Von einem Verweis bleibt
+ * seine Beschriftung, von einer bloßen Webadresse der Name des Servers.
+ */
+export function sourceOf(markdown: string): string | undefined {
+  const line = [...markdown.matchAll(SOURCE_LINE)].at(-1)?.[1];
+  if (!line) return undefined;
+  const link = /^\[((?:\\.|[^\]\\])+)\]\(/.exec(line);
+  const address = /^<?(https?:\/\/[^\s>]+)>?$/i.exec(line);
+  let label = link ? link[1]!.replace(/\\(.)/g, '$1') : line;
+  if (address) {
+    try {
+      label = new URL(address[1]!).hostname.replace(/^www\./, '');
+    } catch {
+      // Eine Adresse, die keine ist, bleibt stehen, wie sie dasteht.
+    }
+  }
+  label = label.trim();
+  return label ? (label.length > MAX_SOURCE_CHARS ? `${label.slice(0, MAX_SOURCE_CHARS - 1)}…` : label) : undefined;
 }
 
 /**
@@ -75,6 +100,8 @@ export function parseRecipe(fileName: string, text: string): Recipe {
   const servings = word(field(data, 'servings', 'portionen'));
   // Ohne eigene Angabe gilt das erste Bild im Text
   const image = word(field(data, 'image', 'bild')) ?? FIRST_IMAGE.exec(markdown)?.[1];
+  // Die Herkunft steht in den Kopfdaten oder als Zeile "Quelle: …" im Text
+  const source = word(field(data, 'source', 'quelle', 'herkunft')) ?? sourceOf(markdown);
   return {
     title,
     ...(category ? { category } : {}),
@@ -82,6 +109,7 @@ export function parseRecipe(fileName: string, text: string): Recipe {
     ...(time ? { time } : {}),
     ...(servings ? { servings } : {}),
     ...(image ? { image } : {}),
+    ...(source ? { source } : {}),
     markdown: markdown.trim(),
     ...(problem ? { problem } : {}),
   };

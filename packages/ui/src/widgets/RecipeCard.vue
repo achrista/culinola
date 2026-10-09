@@ -16,6 +16,8 @@ interface RecipeInfo {
   time?: string;
   servings?: string;
   image?: string;
+  /** Herkunft in einem kurzen Vermerk, etwa "Familienrezept" oder "Instagram". */
+  source?: string;
 }
 interface Recipe extends RecipeInfo {
   markdown: string;
@@ -283,7 +285,7 @@ function close() {
             <li v-for="entry in shown" :key="entry.id">
               <button :class="{ active: recipe?.id === entry.id }" @click="show(entry.id)">
                 <strong>{{ entry.title }}</strong>
-                <span v-if="entry.time || entry.category">{{ [entry.category, entry.time].filter(Boolean).join(' · ') }}</span>
+                <span v-if="entry.time || entry.category || entry.source">{{ [entry.category, entry.time, entry.source].filter(Boolean).join(' · ') }}</span>
               </button>
             </li>
           </ul>

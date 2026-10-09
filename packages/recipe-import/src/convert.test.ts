@@ -67,6 +67,7 @@ category: Hauptgericht
 tags: [vegetarisch, Grundrezept, Familienrezept]
 time: 25 min
 servings: 4
+source: Familienrezept
 ---
 
 Ein Grundrezept, das süß wie herzhaft geht.

@@ -40,6 +40,17 @@ describe('parseRecipe', () => {
     expect(parseRecipe('x.md', 'Ohne Bild.').image).toBeUndefined();
   });
 
+  it('nennt die Herkunft aus den Kopfdaten, sonst aus der Zeile "Quelle" im Text', () => {
+    expect(parseRecipe('a.md', '---\nsource: Familienrezept\n---\nText\n\nQuelle: [Instagram](<https://www.instagram.com/reel/ABC>)').source).toBe('Familienrezept');
+    expect(parseRecipe('a.md', '---\nQuelle: Oma Lina\n---\nText').source).toBe('Oma Lina');
+    expect(parseRecipe('a.md', 'Text\n\nQuelle: [Instagram](<https://www.instagram.com/reel/ABC>)\n').source).toBe('Instagram');
+    expect(parseRecipe('a.md', 'Quelle: Zeitschrift\n\nText\n\nSource: [Koch \\[neu\\]](https://example.org/a)').source).toBe('Koch [neu]');
+    expect(parseRecipe('a.md', 'Text\r\nQuelle: <https://www.chefkoch.de/rezepte/1>\r\n').source).toBe('chefkoch.de');
+    expect(parseRecipe('a.md', 'Text\nquelle:   Kochbuch „Backen“, Seite 12  ').source).toBe('Kochbuch „Backen“, Seite 12');
+    expect(parseRecipe('a.md', `Text\nQuelle: ${'x'.repeat(80)}`).source).toHaveLength(40);
+    for (const text of ['Text', 'Die Quelle: unbekannt', 'Quelle:\nText', '---\nsource: [a, b]\n---\nText']) expect(parseRecipe('a.md', text).source, text).toBeUndefined();
+  });
+
   it('kommt mit Windows-Zeilenenden zurecht', () => {
     const recipe = parseRecipe('x.md', '---\r\ntitle: Brot\r\n---\r\n\r\nKneten.\r\n');
     expect(recipe).toMatchObject({ title: 'Brot', markdown: 'Kneten.' });

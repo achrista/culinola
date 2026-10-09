@@ -4,3 +4,5 @@ Ein Rezept ganz ohne Angaben am Anfang: Der Titel kommt aus der Überschrift, ei
 Kategorie und ein Bild gibt es nicht.
 
 Linsen 25 Minuten kochen, würzen.
+
+Quelle: [Beispielseite](<https://example.org/linsensuppe>)

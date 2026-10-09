@@ -30,7 +30,7 @@ Je Rezept entstehen zwei Dateien:
 - **Culinola:** `culinola/<Kategorie>/<Titel>.md` – Kopfdaten und Markdown nach dem Vorbild [`pfannkuchen.md`](../../plugins/recipes/examples/pfannkuchen.md), dazu das Foto des Gerichts unter demselben Namen, in den Kopfdaten als `image` genannt. Der Ordner lässt sich unverändert als Rezeptordner des Plugins `recipes` verwenden. Mit `--recipes <Ordner>` landen Rezept und Foto stattdessen gleich im Rezeptordner – dort wird nichts überschrieben und nichts gelöscht; gibt es den Namen schon, bekommt das neue Rezept eine Nummer.
 - **Merkio:** `merkio/<kennung>.json` – dasselbe Rezept gegliedert (`Recipe` in [src/types.ts](src/types.ts)): Zutaten mit Menge, Einheit, Name und Warengruppe (`iconKey` wie in Merkios Einkaufsliste), Schritte, Hinweise, Herkunft und das fertige Markdown.
 
-Der Vermerk zur Herkunft (`--label`) steht als Stichwort in `tags` und im JSON unter `source.label`.
+Der Vermerk zur Herkunft (`--label`) steht als Stichwort in `tags`, in den Kopfdaten als `source` – so zeigt ihn die Rezeptliste von Culinola – und im JSON unter `source.label`.
 
 ## Aufruf
 
