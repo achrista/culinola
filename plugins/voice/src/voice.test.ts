@@ -1,4 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { InvalidInput, type ActionDefinition, type PluginContext, type RouteHandler } from '@culinola/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 // Der Platzhalter für die Claude-API gehört zum Import-Werkzeug und versteht auch Anfragen mit Werkzeugen
@@ -107,7 +110,7 @@ describe('Sprachsteuerung als Plugin', () => {
   const before = { key: process.env['ANTHROPIC_API_KEY'], url: process.env['ANTHROPIC_BASE_URL'] };
   const stop = new AbortController();
 
-  function start(secrets: Record<string, string>) {
+  function start(secrets: Record<string, string>, storageDir = '') {
     const routes = new Map<string, RouteHandler>();
     const datapoints = new Map<string, unknown>();
     const ran: [string, unknown][] = [];
@@ -117,7 +120,7 @@ describe('Sprachsteuerung als Plugin', () => {
       config: plugin.parseConfig!({}),
       log: { info: () => undefined, warn: (message) => void warnings.push(message), error: () => undefined },
       secrets: { get: (key) => secrets[key] },
-      storageDir: '',
+      storageDir,
       datapoints: { set: (update) => void datapoints.set(update.id, update.value) },
       actions: {
         register: () => undefined,
@@ -129,7 +132,7 @@ describe('Sprachsteuerung als Plugin', () => {
         },
       },
       resources: { set: () => undefined },
-      routes: { get: () => undefined, post: (path, handler) => void routes.set(path, handler) },
+      routes: { get: (path, handler) => void routes.set(`GET ${path}`, handler), post: (path, handler) => void routes.set(path, handler) },
       onCommand: () => undefined,
       provideHistory: () => undefined,
       signal: stop.signal,
@@ -140,7 +143,8 @@ describe('Sprachsteuerung als Plugin', () => {
       const response = await handler({ params: {}, query: {}, body, signal: new AbortController().signal });
       return { status: response.status, body: (await response.json()) as { reply?: string; error?: string; actions?: { action: string; ok: boolean }[] } };
     };
-    return { say, ran, datapoints, warnings };
+    const model = () => routes.get('GET /model')!({ params: {}, query: {}, body: undefined, signal: new AbortController().signal });
+    return { say, ran, datapoints, warnings, model };
   }
 
   beforeAll(async () => {
@@ -166,6 +170,25 @@ describe('Sprachsteuerung als Plugin', () => {
     expect((await voice.say({})).status).toBe(400);
     expect((await voice.say({ text: 'a'.repeat(501) })).status).toBe(400);
     expect(standIn.requests).toHaveLength(0);
+  });
+
+  it('liefert das Sprachmodell für das Aktivierungswort aus, wenn eines hinterlegt ist', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'culinola-voice-'));
+    try {
+      const without = start({}, join(dir, 'leer'));
+      expect(without.datapoints.get('model')).toBe(false);
+      expect((await without.model()).status).toBe(404);
+
+      mkdirSync(join(dir, 'voll'));
+      writeFileSync(join(dir, 'voll', 'model.tar.gz'), Buffer.from([0x1f, 0x8b, 8, 0, 1, 2, 3]));
+      const withModel = start({}, join(dir, 'voll'));
+      expect(withModel.datapoints.get('model')).toBe(true);
+      const answer = await withModel.model();
+      expect([answer.status, answer.headers.get('content-type'), answer.headers.get('content-length')]).toEqual([200, 'application/gzip', '7']);
+      expect(new Uint8Array(await answer.arrayBuffer())).toHaveLength(7);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('löst über die Schnittstelle der Claude-API Aktionen aus', async () => {

@@ -237,7 +237,10 @@
     "denied": "The browser may not use the microphone. You can type the sentence:",
     "example": "e.g. timer for 8 minutes",
     "send": "Send",
-    "type": "Type a sentence"
+    "type": "Type a sentence",
+    "say": "“{word} …”",
+    "wakeLoading": "loading …",
+    "wakeFailed": "no microphone"
   },
   "events": {
     "close": "Dismiss"

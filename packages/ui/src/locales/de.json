@@ -237,7 +237,10 @@
     "denied": "Der Browser darf das Mikrofon nicht benutzen. Der Satz lässt sich tippen:",
     "example": "z. B. Eieruhr auf 8 Minuten",
     "send": "Senden",
-    "type": "Satz tippen"
+    "type": "Satz tippen",
+    "say": "„{word} …“",
+    "wakeLoading": "lädt …",
+    "wakeFailed": "Mikrofon fehlt"
   },
   "events": {
     "close": "Meldung schließen"

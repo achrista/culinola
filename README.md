@@ -89,7 +89,7 @@ Unter `layouts` dürfen mehrere Layouts stehen. Eine Anzeige zeigt `main`, mit d
 | `chart` | Zeitverlauf für heute, Woche, Monat | `title`, `series: [{ datapoint, label, area, forecast }]` |
 | `note` | Hält einen Platz frei und beschriftet ihn | `title`, `text` |
 | `radio` | Sendertasten, Lautstärke, laufender Titel | `source` (Radio-Instanz) |
-| `voice` | Sprechen statt tippen: antippen, einen Satz sagen; die Antwort erscheint unten auf der Anzeige und wird vorgelesen | `source` (Vorgabe `voice`), `title`, `speak` (`false` schaltet das Vorlesen ab) |
+| `voice` | Sprechen statt tippen: antippen, einen Satz sagen; die Antwort erscheint unten auf der Anzeige und wird vorgelesen | `source` (Vorgabe `voice`), `title`, `speak` (`false` schaltet das Vorlesen ab), `wakeWord` (Aktivierungswort, etwa `computer`) |
 | `video` | Live-Bild einer Kamera oder eines Streams; Antippen füllt den Bildschirm | `source` (Video-Instanz), `stream`, `label` |
 | `media-window` | Fernsehbild beim Fernsehsender, Logo beim Radiosender | `source` (Radio-Instanz), `video` (Video-Instanz), `idle` |
 | `news` | Eine Meldung mit Bild, reihum aus allen Feeds; Antippen öffnet den Artikel | `source` (Nachrichten-Instanz), `feeds`, `seconds`, `closeAfter` |
@@ -382,7 +382,17 @@ Voraussetzungen:
 - **Ein Browser mit Spracherkennung** – Chrome oder Edge – und ein Mikrofon am Anzeigerechner. Der Browser fragt einmal nach der Erlaubnis für das Mikrofon. Er gibt sie nur Seiten mit gesicherter Verbindung oder `localhost`: Läuft die Anzeige auf einem anderen Rechner als der Kern, braucht es HTTPS davor.
 - Wo es keine Spracherkennung gibt, lässt sich der Satz in dasselbe Feld tippen (Taste ⌨).
 
-Zu wissen: In Chrome geht die Aufnahme zum Erkennen an Google, der erkannte Satz zum Zuordnen an Anthropic; jeder Satz kostet einen Bruchteil eines Cents. Ins Protokoll des Kerns kommt, was ausgelöst wurde – nicht, was gesagt wurde. Die Kachel hört nur nach dem Antippen zu, nicht dauernd. Läuft dabei das Radio, hört das Mikrofon es mit; leiser stellen hilft. `model` und `language` (`de`, `en`, `fr`) in der Konfiguration des Plugins ändern Modell und Sprache der Antworten.
+#### Aktivierungswort
+
+Mit `"wakeWord": "computer"` in der Konfiguration der Kachel hört die Anzeige dauernd mit und führt aus, was nach dem Wort gesagt wird – „Computer, setz Milch auf die Einkaufsliste“. Fällt nur das Wort, antwortet ein Ton, und der nächste Satz ist gemeint.
+
+- **Das Zuhören geschieht auf dem Gerät.** Ein kleines Sprachmodell ([Vosk](https://alphacephei.com/vosk/), über `vosk-browser`, beides Apache-2.0) läuft im Browser der Anzeige und setzt das Gehörte in Text um; das Mikrofonsignal verlässt den Rechner nicht. Erst der Satz nach dem Aktivierungswort geht – als Text – an den Kern und von dort zum Zuordnen an Anthropic. Dieser Weg braucht keine Spracherkennung des Browsers und läuft damit auch dort, wo es keine gibt.
+- **Das Modell wird nicht mitgeliefert** (rund 45 MB je Sprache). Von <https://alphacephei.com/vosk/models> ein kleines Modell laden – für Deutsch `vosk-model-small-de-0.15` –, den entpackten Ordner in `model` umbenennen, als `model.tar.gz` packen (`tar -czf model.tar.gz model`) und in den Ordner der Instanz legen: `data/voice/model.tar.gz`. Nach einem Neustart meldet der Datenpunkt `voice:model`, dass es da ist.
+- **Das Wort** muss ein gewöhnliches Wort sein, das das Modell kennt – „computer“ oder „hallo küche“, kein erfundener Name. Ähnlich klingende Wörter lösen nicht aus; fällt das Wort im Radio oder im Gespräch, hört die Anzeige allerdings hin.
+- **Voraussetzungen:** ein Mikrofon, die einmalige Erlaubnis im Browser und eine gesicherte Verbindung (HTTPS oder `localhost`). Fehlt etwas davon, steht „Mikrofon fehlt“ unter der Taste; ein Fingertipp darauf versucht es erneut. Der Browser zeigt an, dass das Mikrofon offen ist.
+- **Rechenlast:** Das Modell rechnet dauernd mit. Auf einem gewöhnlichen PC ist das etwa ein Drittel eines Prozessorkerns; auf einem kleinen Rechner vorher ausprobieren.
+
+Zu wissen: Beim Antippen geht die Aufnahme in Chrome zum Erkennen an Google, der erkannte Satz zum Zuordnen an Anthropic; jeder Satz kostet einen Bruchteil eines Cents. Ins Protokoll des Kerns kommt, was ausgelöst wurde – nicht, was gesagt wurde. Die Kachel hört nur nach dem Antippen zu, nicht dauernd. Läuft dabei das Radio, hört das Mikrofon es mit; leiser stellen hilft. `model` und `language` (`de`, `en`, `fr`) in der Konfiguration des Plugins ändern Modell und Sprache der Antworten.
 
 ## API
 

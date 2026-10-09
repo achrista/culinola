@@ -1,7 +1,7 @@
 // Startet die Testinstanz: ein Kern mit erfundenen Werten, Beispielrezepten und allen
 // Bausteinen, die ohne eigene Geräte laufen. Die Vorlage aus `testing/instance` wird bei
 // jedem Start frisch in einen Wegwerfordner gelegt – die eigenen Daten bleiben unberührt.
-import { cpSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +13,14 @@ cpSync(fileURLToPath(new URL('./instance', import.meta.url)), target, { recursiv
 writeFileSync(join(target, 'recipes', 'Kuchen', 'kuchen.png'), stripes(480, 320));
 
 process.env.CULINOLA_DATA = target;
+
+// Aktivierungswort: Das Sprachmodell wird nicht mitgeliefert. Wer es ausprobieren will, nennt seine Datei beim Start:
+//   CULINOLA_VOSK_MODEL=/pfad/zu/model.tar.gz npm run test:instance
+if (process.env.CULINOLA_VOSK_MODEL && existsSync(process.env.CULINOLA_VOSK_MODEL)) {
+  mkdirSync(join(target, 'voice'), { recursive: true });
+  cpSync(process.env.CULINOLA_VOSK_MODEL, join(target, 'voice', 'model.tar.gz'));
+  console.log('Sprachmodell für das Aktivierungswort übernommen.');
+}
 
 // Neue Rezepte: Statt der Claude-API antwortet ein Platzhalter auf diesem Rechner mit einem festen
 // Rezept. So lässt sich das Hinzufügen durchspielen, ohne dass etwas das Haus verlässt oder kostet.

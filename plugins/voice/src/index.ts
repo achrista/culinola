@@ -1,3 +1,6 @@
+import { createReadStream, existsSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { Readable } from 'node:stream';
 import { definePlugin } from '@culinola/sdk';
 import { ask, DEFAULT_MODEL, explain } from './assistant.ts';
 
@@ -34,6 +37,17 @@ export default definePlugin<Config>({
     const apiKey = context.secrets.get('anthropicApiKey') ?? process.env['ANTHROPIC_API_KEY'];
     context.datapoints.set({ id: 'ready', value: !!apiKey, label: 'Sprachsteuerung eingerichtet' });
     if (!apiKey) log.warn(`Für die Sprachsteuerung fehlt der Schlüssel der Claude-API: { "${context.instanceId}": { "anthropicApiKey": "…" } } in secrets.json.`);
+
+    // Aktivierungswort: Das Sprachmodell dafür läuft im Browser der Anzeige; hier liegt nur seine Datei.
+    // Sie wird nicht mitgeliefert – wer das Aktivierungswort nutzen will, legt sie in den Ordner der Instanz.
+    const modelFile = join(context.storageDir, 'model.tar.gz');
+    context.datapoints.set({ id: 'model', value: existsSync(modelFile), label: 'Sprachmodell für das Aktivierungswort vorhanden' });
+    context.routes.get('/model', () => {
+      if (!existsSync(modelFile)) return Response.json({ error: 'Es ist kein Sprachmodell hinterlegt.' }, { status: 404 });
+      return new Response(Readable.toWeb(createReadStream(modelFile)) as ReadableStream, {
+        headers: { 'Content-Type': 'application/gzip', 'Content-Length': String(statSync(modelFile).size), 'Cache-Control': 'private, max-age=604800' },
+      });
+    });
 
     context.routes.post('/ask', async (request) => {
       const refuse = (status: number, error: string) => Response.json({ error }, { status });

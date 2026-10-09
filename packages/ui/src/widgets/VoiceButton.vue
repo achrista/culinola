@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { postJson } from '../api.ts';
 import { region } from '../i18n.ts';
+import { mediaUrl } from '../media.ts';
+import { chime } from '../sound.ts';
 import { datapoints } from '../store.ts';
+import { afterWakeWord, listenForSpeech, type WakeListener } from '../wake.ts';
 
 /** Was der Browser unter `SpeechRecognition` anbietet – nur das, was hier gebraucht wird. */
 interface Recognition {
@@ -33,6 +36,11 @@ const props = defineProps<{
     title?: string;
     /** `false` schaltet das Vorlesen der Antwort ab. */
     speak?: boolean;
+    /**
+     * Aktivierungswort, etwa "computer": Diese Anzeige hört dann dauernd mit – auf dem Gerät selbst – und führt aus,
+     * was nach dem Wort gesagt wird. Es muss ein gewöhnliches Wort sein, das das Sprachmodell kennt.
+     */
+    wakeWord?: string;
   };
 }>();
 
@@ -56,6 +64,77 @@ const field = ref<HTMLInputElement>();
 let recognition: Recognition | undefined;
 let hide: number | undefined;
 
+// Aktivierungswort: ein Sprachmodell im Browser hört mit; was es versteht, bleibt auf dem Gerät, bis das Wort fällt
+const ARMED_MS = 8000;
+const wakeWord = computed(() => props.config.wakeWord?.trim().toLowerCase() ?? '');
+const hasModel = computed(() => datapoints.get(`${source.value}:model`)?.value === true);
+const wake = ref<'off' | 'loading' | 'on' | 'failed'>('off');
+const hearing = ref(false);
+let wakeListener: WakeListener | undefined;
+let armedUntil = 0;
+let quietUntil = 0;
+
+/** Solange die Anzeige selbst spricht oder schon etwas bearbeitet, hört sie nicht auf sich. */
+function deaf(): boolean {
+  if ('speechSynthesis' in window && speechSynthesis.speaking) quietUntil = Date.now() + 1500;
+  return state.value !== 'idle' && state.value !== 'answer' ? true : Date.now() < quietUntil;
+}
+function showHearing(text: string) {
+  window.clearTimeout(hide);
+  open.value = true;
+  typing.value = false;
+  hearing.value = true;
+  heard.value = text;
+  reply.value = '';
+  trouble.value = '';
+}
+function wakePartial(text: string) {
+  if (deaf()) return;
+  if (Date.now() < armedUntil) return showHearing(text);
+  const found = afterWakeWord(text, wakeWord.value);
+  if (found.woke) showHearing(found.command);
+}
+function wakeFinal(text: string) {
+  if (deaf()) return;
+  if (Date.now() < armedUntil) {
+    armedUntil = 0;
+    hearing.value = false;
+    return void send(text);
+  }
+  const found = afterWakeWord(text, wakeWord.value);
+  if (!found.woke) return;
+  if (found.command) {
+    hearing.value = false;
+    return void send(found.command);
+  }
+  // Nur das Wort: ein Ton als Zeichen, und der nächste Satz ist gemeint
+  armedUntil = Date.now() + ARMED_MS;
+  chime();
+  showHearing('');
+  hide = window.setTimeout(() => {
+    if (hearing.value && state.value !== 'thinking') close();
+  }, ARMED_MS);
+}
+async function startWake() {
+  if (wakeListener || wake.value === 'loading') return;
+  wake.value = 'loading';
+  try {
+    const modelUrl = new URL(mediaUrl(`/p/${encodeURIComponent(source.value)}/model`), location.href).href;
+    wakeListener = await listenForSpeech({ modelUrl, onPartial: wakePartial, onFinal: wakeFinal });
+    wake.value = 'on';
+  } catch {
+    // Kein Mikrofon, keine Erlaubnis, keine gesicherte Verbindung oder kein Modell: Die Taste bleibt benutzbar
+    wake.value = 'failed';
+  }
+}
+watch(
+  () => !!wakeWord.value && hasModel.value,
+  (wanted) => {
+    if (wanted) void startWake();
+  },
+  { immediate: true },
+);
+
 function speak(text: string) {
   if (props.config.speak === false || !('speechSynthesis' in window)) return;
   const utterance = new SpeechSynthesisUtterance(text);
@@ -76,6 +155,8 @@ function close() {
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   open.value = false;
   typing.value = false;
+  hearing.value = false;
+  armedUntil = 0;
   state.value = 'idle';
 }
 /** Die Antwort bleibt kurz stehen und macht dann von selbst Platz – außer jemand tippt gerade. */
@@ -85,6 +166,8 @@ function hideSoon() {
 }
 
 async function send(text: string) {
+  open.value = true;
+  hearing.value = false;
   heard.value = text;
   state.value = 'thinking';
   trouble.value = '';
@@ -164,10 +247,15 @@ function listen() {
 
 /** Antippen beginnt das Zuhören – und beendet es, wenn der Satz fertig ist. */
 function tap() {
+  // Ein Fingertipp ist auch die Gelegenheit, das Mithören nachzuholen – etwa nachdem das Mikrofon erlaubt wurde
+  if (wakeWord.value && hasModel.value && wake.value === 'failed') void startWake();
   if (state.value === 'listening') recognition?.stop();
   else if (state.value !== 'thinking') listen();
 }
-onUnmounted(close);
+onUnmounted(() => {
+  close();
+  wakeListener?.stop();
+});
 </script>
 
 <template>
@@ -175,13 +263,14 @@ onUnmounted(close);
     <button class="mic" :class="[state, { off: !ready }]" :aria-label="t(state === 'listening' ? 'voice.stop' : 'voice.start')" @click="tap">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Zm-6.5 9a6.5 6.5 0 0 0 13 0M12 18.5V21" /></svg>
       <span>{{ props.config.title ?? t('voice.title') }}</span>
+      <span v-if="wakeWord && wake !== 'off'" class="wake" :class="wake">{{ wake === 'on' ? t('voice.say', { word: wakeWord }) : wake === 'loading' ? t('voice.wakeLoading') : t('voice.wakeFailed') }}</span>
     </button>
 
     <Teleport to="body">
-      <div v-if="open" class="voice-panel" :class="state" role="status" aria-live="polite">
+      <div v-if="open" class="voice-panel" :class="[state, { listening: hearing }]" role="status" aria-live="polite">
         <svg class="sign" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Zm-6.5 9a6.5 6.5 0 0 0 13 0M12 18.5V21" /></svg>
         <div class="lines">
-          <p v-if="state === 'listening'" class="status">{{ t('voice.listening') }}</p>
+          <p v-if="state === 'listening' || (hearing && state !== 'thinking')" class="status">{{ t('voice.listening') }}</p>
           <p v-else-if="state === 'thinking'" class="status">{{ t('voice.thinking') }}</p>
           <p v-if="heard" class="heard">„{{ heard }}“</p>
           <p v-if="state === 'answer' && reply" class="reply">{{ reply }}</p>
@@ -235,6 +324,19 @@ svg {
 .mic.off {
   color: var(--none);
 }
+/* Unter der Beschriftung steht, womit sich die Anzeige ansprechen lässt */
+.wake {
+  max-width: 100%;
+  color: var(--mute);
+  font-size: clamp(10px, 10cqh, 13px);
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wake.failed {
+  color: var(--warn);
+}
 /* Während des Zuhörens trägt die Kachel die Akzentfarbe und pulsiert */
 .mic.listening {
   background: var(--accent);
@@ -251,6 +353,9 @@ svg {
   .mic {
     flex-direction: row;
     gap: 8px;
+  }
+  .wake {
+    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
