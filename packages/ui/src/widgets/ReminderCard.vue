@@ -6,6 +6,7 @@ import { region } from '../i18n.ts';
 import { vScrollHome } from '../scroll.ts';
 import { datapoints } from '../store.ts';
 import DetailOverlay from './DetailOverlay.vue';
+import TitleIcon from './TitleIcon.vue';
 
 interface Reminder {
   contact: string;
@@ -55,7 +56,7 @@ const dial = (number: string) => `tel:${number.replace(/[^\d+]/g, '')}`;
 
 <template>
   <section class="reminders">
-    <h3>{{ props.config.title ?? t('reminders.title') }}</h3>
+    <h3><TitleIcon name="bell" />{{ props.config.title ?? t('reminders.title') }}</h3>
     <ul v-if="reminders.length" v-scroll-home>
       <li v-for="entry in reminders" :key="entry.contact + entry.kind + entry.date + entry.name">
         <button :class="{ today: entry.inDays === 0, past: entry.inDays < 0 }" @click="opened = entry">

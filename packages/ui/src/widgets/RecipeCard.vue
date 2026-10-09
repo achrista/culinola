@@ -7,6 +7,7 @@ import { getJson, postFile, postJson } from '../api.ts';
 import { mediaUrl } from '../media.ts';
 import { datapoints } from '../store.ts';
 import DetailOverlay from './DetailOverlay.vue';
+import TitleIcon from './TitleIcon.vue';
 
 interface RecipeInfo {
   id: string;
@@ -281,7 +282,7 @@ function close() {
     <button v-if="featured" class="feature" :class="{ plain: !picture(featured) }" :aria-label="t('recipes.open', { title: featured.title })" @click="show(featured.id)">
       <img v-if="picture(featured)" :key="featured.id" :src="picture(featured)" alt="" @error="pictureFailed(featured)" />
       <span class="caption">
-        <span class="kicker">{{ heading }}</span>
+        <span class="kicker"><TitleIcon name="pot" />{{ heading }}</span>
         <strong>{{ featured.title }}</strong>
         <span v-if="featured.category || featured.time" class="facts">{{ [featured.category, featured.time].filter(Boolean).join(' · ') }}</span>
       </span>

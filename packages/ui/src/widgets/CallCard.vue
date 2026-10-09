@@ -9,6 +9,7 @@ import { vScrollHome } from '../scroll.ts';
 import { chime } from '../sound.ts';
 import { datapoints } from '../store.ts';
 import DetailOverlay from './DetailOverlay.vue';
+import TitleIcon from './TitleIcon.vue';
 
 interface Call {
   id: string;
@@ -77,7 +78,7 @@ const dial = (number: string) => `tel:${number.replace(/[^\d+]/g, '')}`;
 
 <template>
   <section class="calls">
-    <h3>{{ props.config.title ?? t('calls.title') }}</h3>
+    <h3><TitleIcon name="phone" />{{ props.config.title ?? t('calls.title') }}</h3>
     <p v-if="ringing" class="ringing" role="status">{{ t('calls.ringing', { who: ringing }) }}</p>
     <ul v-if="calls.length" v-scroll-home>
       <li v-for="call in calls" :key="call.id">

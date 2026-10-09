@@ -7,6 +7,7 @@ import { region } from '../i18n.ts';
 import { vScrollHome } from '../scroll.ts';
 import { datapoints } from '../store.ts';
 import DetailOverlay from './DetailOverlay.vue';
+import TitleIcon from './TitleIcon.vue';
 
 interface MailEntry {
   account: string;
@@ -77,7 +78,7 @@ async function open(entry: MailEntry) {
 <template>
   <section class="mail">
     <h3>
-      {{ props.config.title ?? t('mail.title') }}
+      <span><TitleIcon name="mail" />{{ props.config.title ?? t('mail.title') }}</span>
       <span v-if="broken.length" class="trouble" :title="broken.map((account) => `${account.name}: ${account.error}`).join('\n')">{{ t('mail.trouble', { accounts: broken.map((account) => account.name).join(', ') }) }}</span>
     </h3>
     <ul v-if="messages.length" v-scroll-home>

@@ -5,6 +5,7 @@ import { getJson, postJson } from '../api.ts';
 import { vScrollHome } from '../scroll.ts';
 import { datapoints } from '../store.ts';
 import DetailOverlay from './DetailOverlay.vue';
+import TitleIcon from './TitleIcon.vue';
 
 interface Entry {
   id: number;
@@ -111,7 +112,7 @@ function startAdding() {
 <template>
   <section class="checklist">
     <header>
-      <h3>{{ props.config.title ?? list?.name ?? t('checklist.title') }}</h3>
+      <h3><TitleIcon :name="list?.type === 'todo' ? 'check' : 'cart'" />{{ props.config.title ?? list?.name ?? t('checklist.title') }}</h3>
       <span v-if="list" class="count">{{ open.length }}</span>
       <span v-if="state === 'offline'" class="offline">{{ t('checklist.offline') }}</span>
       <button v-if="list" class="plus" :aria-label="t('checklist.add')" @click="startAdding">+</button>

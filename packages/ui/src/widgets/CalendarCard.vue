@@ -5,6 +5,7 @@ import { getJson } from '../api.ts';
 import { region } from '../i18n.ts';
 import { vScrollHome } from '../scroll.ts';
 import { datapoints } from '../store.ts';
+import TitleIcon from './TitleIcon.vue';
 
 interface CalendarEvent {
   id: string;
@@ -66,7 +67,7 @@ const days = computed(() => {
 
 <template>
   <section class="calendar">
-    <h3>{{ props.config.title ?? t('calendar.title') }}</h3>
+    <h3><TitleIcon name="calendar" />{{ props.config.title ?? t('calendar.title') }}</h3>
     <div v-if="days.length" v-scroll-home class="days">
       <template v-for="day in days" :key="day.day">
         <div class="day">
