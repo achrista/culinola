@@ -71,7 +71,18 @@
     "smaller": "Schrift kleiner",
     "larger": "Schrift größer",
     "open": "Rezept öffnen: {title}",
-    "showAll": "Alle Rezepte zeigen | Alle Rezepte zeigen | Alle {n} Rezepte zeigen"
+    "showAll": "Alle Rezepte zeigen | Alle Rezepte zeigen | Alle {n} Rezepte zeigen",
+    "add": "Rezept hinzufügen",
+    "addShort": "+ Rezept",
+    "addIntro": "Eine Webseite, ein Dokument oder ein Foto des Rezepts genügt – daraus wird ein Rezept in dieser Sammlung. Die Vorlage geht dazu an die Claude-API von Anthropic.",
+    "addUrl": "Webadresse",
+    "addFile": "Datei oder Foto wählen",
+    "addFileHint": "PDF, Word, LibreOffice, Text oder Bild",
+    "addText": "Oder den Text des Rezepts einfügen",
+    "addGo": "Übernehmen",
+    "addBusy": "Das Rezept wird gelesen – das dauert bis zu einer Minute.",
+    "addFailed": "Nicht hinzugefügt: {error}",
+    "added": "Hinzugefügt. | Hinzugefügt. | {n} Rezepte hinzugefügt: {titles}"
   },
   "timer": {
     "title": "Eieruhr",

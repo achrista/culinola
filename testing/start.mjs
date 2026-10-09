@@ -13,6 +13,14 @@ cpSync(fileURLToPath(new URL('./instance', import.meta.url)), target, { recursiv
 writeFileSync(join(target, 'recipes', 'Kuchen', 'kuchen.png'), stripes(480, 320));
 
 process.env.CULINOLA_DATA = target;
+
+// Neue Rezepte: Statt der Claude-API antwortet ein Platzhalter auf diesem Rechner mit einem festen
+// Rezept. So lässt sich das Hinzufügen durchspielen, ohne dass etwas das Haus verlässt oder kostet.
+const { startStandIn } = await import('../packages/recipe-import/src/standin.ts');
+const standIn = await startStandIn();
+process.env.ANTHROPIC_BASE_URL = standIn.url;
+process.env.ANTHROPIC_API_KEY = 'platzhalter-der-testinstanz';
+console.log(`Platzhalter für die Claude-API auf ${standIn.url}`);
 console.log(`Testinstanz in ${target}`);
 await import('../packages/core/src/main.ts');
 

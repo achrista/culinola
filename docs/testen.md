@@ -40,7 +40,7 @@ npm run test:instance
 
 Sie läuft auf <http://localhost:8191>, neben einer eigenen Installation auf Port 8090. Die Vorlage liegt in `testing/instance` und wird bei jedem Start frisch in einen Wegwerfordner gelegt; was dort verändert wird, ist nach dem nächsten Start vergessen.
 
-Die Testinstanz enthält: erfundene Messwerte, Schalter, Wetterdaten, Termine, Erinnerungen, E-Mails und Anrufe, Eieruhr, drei Rezepte (mit Bild, ohne Angaben, mit kaputten Angaben), Nachrichten aus zwei echten Feeds und einem unerreichbaren, einen Radiosender und absichtlich ein unbekanntes Widget. Nachrichten und Radio brauchen Internet.
+Die Testinstanz enthält: erfundene Messwerte, Schalter, Wetterdaten, Termine, Erinnerungen, E-Mails und Anrufe, Eieruhr, drei Rezepte (mit Bild, ohne Angaben, mit kaputten Angaben), Nachrichten aus zwei echten Feeds und einem unerreichbaren, einen Radiosender und absichtlich ein unbekanntes Widget. Nachrichten und Radio brauchen Internet. Für das Hinzufügen von Rezepten startet sie einen Platzhalter der Claude-API auf dem eigenen Rechner (`packages/recipe-import/src/standin.ts`): Er antwortet in der Form der echten Schnittstelle mit einem festen Rezept. So läuft der ganze Weg vom Hochladen bis zur Rezeptdatei, ohne dass etwas das Haus verlässt oder kostet – was das Sprachmodell aus einer echten Vorlage macht, prüft das nicht.
 
 ## Prüfliste Oberfläche
 
@@ -105,6 +105,10 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] Der Pfeil öffnet die Liste mit drei Rezepten; „Kaputte Kopfdaten“ lässt sich öffnen.
 - [ ] A− und A+ ändern die Schriftgröße; sie bleibt nach dem Schließen erhalten.
 - [ ] Eine Datei in den Rezeptordner der Testinstanz legen: Sie erscheint ohne Neustart in der Liste.
+- [ ] „+ Rezept“ in der Liste: Einen Text einfügen, dessen erste Zeile der Titel ist – nach „Übernehmen“ öffnet sich das neue Rezept mit dem Vermerk „Hinzugefügt.“ und steht in der Liste unter „Sonstiges“.
+- [ ] Ein Foto wählen (gern über 5 MB): Das Rezept trägt den Namen der Datei, das Foto steht in der Leseansicht neben dem Text und erscheint auf der Kachel.
+- [ ] Text „Kein Rezept“ und die Adresse `http://192.168.178.1/` werden mit einer lesbaren Meldung abgelehnt; die Eingabe bleibt stehen.
+- [ ] Schmales Fenster (Telefon): Das Formular füllt die Breite, „Liste“ führt zurück.
 
 **Sprache**
 - [ ] In `config.json` der Testinstanz `site` auf `{ "language": "en", "region": "en-US" }` stellen: Texte englisch, Uhr mit AM/PM, Datum in US-Schreibweise.

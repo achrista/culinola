@@ -28,6 +28,8 @@ const LANGUAGES: Record<string, string> = { de: 'Deutsch', en: 'Englisch', fr: '
 export interface ConvertOptions {
   /** Zugang zur Claude-API; ohne Angabe aus der Umgebung (ANTHROPIC_API_KEY). */
   client?: Pick<Anthropic, 'messages'>;
+  /** Schlüssel für die Claude-API, wenn kein fertiger Zugang übergeben wird. */
+  apiKey?: string;
   model?: string;
   /** Sprache der Ausgabe: de, en oder fr. */
   language?: string;
@@ -84,7 +86,7 @@ const RecipeSchema = z.object({
     .describe('Zubereitung als einzelne Schritte, ohne Nummern am Anfang.'),
   notes: z.array(z.string()).describe('Tipps, Abwandlungen und Hinweise aus der Quelle, je ein Eintrag.'),
   sourceUrl: text('Webadresse, die die Quelle selbst als Herkunft nennt (z. B. hinter "Quelle:"); sonst null.'),
-  dishPhoto: z.number().nullable().describe('Nummer des beigefügten Bildes, das das fertige Gericht zeigt; null, wenn keines beiliegt oder keines das Gericht zeigt.'),
+  dishPhoto: z.number().nullable().describe('Nummer des beigefügten Bildes, das das fertige Gericht zeigt – das erste Bild hat die Nummer 1; null, wenn keines beiliegt oder keines das Gericht zeigt.'),
 });
 
 const OutputSchema = z.object({
@@ -108,7 +110,7 @@ So gehst du vor:
 
 Kategorien zur Auswahl: ${categories.join(', ')}.
 
-Liegen Bilder bei, sind sie in der Reihenfolge nummeriert, in der sie in der Nachricht stehen. Bilder können den Rezepttext selbst zeigen (dann liest du ihn) oder das fertige Gericht (dann nennst du die Nummer in dishPhoto).`;
+Liegen Bilder bei, sind sie in der Reihenfolge nummeriert, in der sie in der Nachricht stehen, beginnend mit 1. Bilder können den Rezepttext selbst zeigen (dann liest du ihn) oder das fertige Gericht (dann nennst du die Nummer in dishPhoto).`;
 }
 
 function clean(value: string | null | undefined): string | null {
@@ -193,7 +195,7 @@ function content(material: SourceMaterial): Anthropic.ContentBlockParam[] {
 
 /** Deutet bereits eingelesenes Material mit dem Sprachmodell. */
 export async function convertMaterial(material: SourceMaterial, options: ConvertOptions = {}): Promise<ConvertResult> {
-  const client = options.client ?? new Anthropic();
+  const client = options.client ?? new Anthropic(options.apiKey ? { apiKey: options.apiKey } : {});
   const language = options.language ?? 'de';
   const response = await client.messages.parse(
     {
@@ -213,7 +215,9 @@ export async function convertMaterial(material: SourceMaterial, options: Convert
   for (const extracted of response.parsed_output.recipes) {
     const recipe = tidy(extracted, material, options);
     if (!recipe) continue;
-    const photo = extracted.dishPhoto ? material.images[extracted.dishPhoto - 1] : undefined;
+    // Das Foto, das das Modell in der Vorlage erkannt hat – sonst das, das ihr beiliegt
+    const chosen = Number.isInteger(extracted.dishPhoto) ? material.images[extracted.dishPhoto! - 1] : undefined;
+    const photo = chosen ?? material.cover;
     recipes.push({ recipe, markdown: renderMarkdown(recipe, language), ...(photo ? { photo } : {}) });
   }
   return { recipes, warnings: material.warnings, usage: { inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens } };

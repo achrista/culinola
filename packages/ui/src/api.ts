@@ -51,6 +51,11 @@ export async function postJson<T>(path: string, body: unknown): Promise<T> {
   return read<T>(await fetch(BASE + path, { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) }));
 }
 
+/** Schickt eine Datei als rohe Bytes – so nimmt sie der Kern für ein Plugin entgegen. */
+export async function postFile<T>(path: string, file: Blob): Promise<T> {
+  return read<T>(await fetch(BASE + path, { method: 'POST', headers: headers({ 'Content-Type': 'application/octet-stream' }), body: file }));
+}
+
 export interface Series {
   id: string;
   unit?: string;

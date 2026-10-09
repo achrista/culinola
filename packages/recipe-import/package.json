@@ -2,7 +2,7 @@
   "name": "@culinola/recipe-import",
   "version": "0.0.0",
   "private": true,
-  "description": "Wandelt Rezepte aus Dokumenten und Webseiten mit Claude Haiku in das Rezeptformat von Culinola und Merkio um. Vorläufig abgelegt, noch nicht eingebunden.",
+  "description": "Wandelt Rezepte aus Dokumenten, Fotos und Webseiten mit Claude Haiku in das Rezeptformat von Culinola und Merkio um.",
   "license": "Apache-2.0",
   "type": "module",
   "exports": {

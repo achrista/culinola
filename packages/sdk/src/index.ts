@@ -66,6 +66,7 @@ export type ActionHandler = (params: ActionParams) => Promise<unknown> | unknown
 export interface PluginRequest {
   params: Record<string, string>;
   query: Record<string, string>;
+  /** Gelesenes JSON – oder die rohen Bytes (`Uint8Array`), wenn der Aufrufer `application/octet-stream` schickt. */
   body: unknown;
   /** Wird ausgelöst, wenn der Aufrufer die Verbindung beendet – wichtig bei Datenströmen. */
   signal: AbortSignal;

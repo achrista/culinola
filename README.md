@@ -95,7 +95,7 @@ Unter `layouts` dürfen mehrere Layouts stehen. Eine Anzeige zeigt `main`, mit d
 | `calendar` | Die nächsten Termine, nach Tagen gegliedert | `source` (Google-Instanz), `title` |
 | `reminders` | Anstehende Geburtstage und andere wiederkehrende Tage; Antippen zeigt die Telefonnummern | `source` (Google-Instanz), `title` |
 | `mail` | E-Mails aller eingerichteten Postfächer, das Neueste zuerst; Antippen zeigt die Nachricht | `source` (Mail-Instanz), `title` |
-| `recipes` | Ein zufällig gewähltes Rezept mit Bild im Wechsel; Antippen öffnet es, der Pfeil die ganze Liste | `source` (Rezept-Instanz), `title`, `seconds` |
+| `recipes` | Ein zufällig gewähltes Rezept mit Bild im Wechsel; Antippen öffnet es, der Pfeil die ganze Liste, in der sich auch neue Rezepte hinzufügen lassen | `source` (Rezept-Instanz), `title`, `seconds` |
 
 `map` übersetzt Zustandswerte in Text, etwa `{ "0": "aus", "1": "läuft", "3": "fertig" }`.
 
@@ -249,7 +249,26 @@ servings: 4
 
 Alle Angaben sind freiwillig; deutsche Feldnamen (`Titel`, `Kategorie`, `Stichworte`, `Zeit`, `Portionen`) gelten ebenso. Fehlt der Titel, gilt die erste Überschrift, sonst der Dateiname. Bilder liegen neben dem Rezept und werden wie üblich eingebunden: `![Kuchen](bilder/kuchen.jpg)`. Das erste Bild – oder das in den Angaben unter `image` genannte – ist das Bild des Rezepts auf der Kachel. Die Kachel zeigt alle `seconds` Sekunden (Vorgabe 30) ein anderes, zufällig gewähltes Rezept mit Bild. Eingebettetes HTML wird nicht ausgeführt, sondern als Text gezeigt.
 
-In der Leseansicht lässt sich die Schrift in Stufen vergrößern; solange ein Rezept offen ist, hält die Anzeige den Bildschirm wach, soweit der Browser das zulässt (gesicherte Verbindung oder `localhost`).
+In der Leseansicht lässt sich die Schrift in Stufen vergrößern; solange ein Rezept offen ist, hält die Anzeige den Bildschirm wach, soweit der Browser das zulässt (gesicherte Verbindung oder `localhost`). Das Bild aus den Angaben steht dort neben dem Text.
+
+#### Neue Rezepte hinzufügen
+
+Aus einer Webseite, einem Dokument (PDF, Word, LibreOffice, Text) oder einem Foto – etwa einer abfotografierten Kochbuchseite – macht Culinola ein Rezept im eigenen Format und legt es samt Foto des Gerichts als `<Kategorie>/<Titel>.md` in den Rezeptordner. Das Lesen und Ordnen übernimmt ein Sprachmodell von Anthropic (Claude Haiku); die Arbeit dahinter steckt im Paket [recipe-import](packages/recipe-import/README.md).
+
+Dafür braucht es einen Schlüssel der Claude-API (<https://platform.claude.com>), eingetragen in `secrets.json` unter der Kennung der Rezept-Instanz:
+
+```json
+{ "recipes": { "anthropicApiKey": "sk-ant-…" } }
+```
+
+Im Docker-Abbild geht stattdessen auch die Umgebungsvariable `ANTHROPIC_API_KEY`. Nach einem Neustart gibt es zwei Wege:
+
+- **In der Anzeige:** In der Rezeptliste erscheint „+ Rezept“. Dort eine Webadresse eintragen, eine Datei oder ein Foto wählen oder den Text einfügen. Weil die Anzeige eine gewöhnliche Webseite ist, geht das von jedem Gerät im Haus – am bequemsten vom Telefon, das die Kochbuchseite gleich fotografiert, oder vom Rechner, auf dem die Datei liegt. Große Fotos verkleinert der Browser vor dem Hochladen.
+- **Für ganze Ordner:** `npm run recipes:import -- <Ordner oder Adresse …> --recipes data/recipes` wandelt alles auf einmal um; ein Bild, das wie die Vorlage heißt (`Apfelkuchen.pdf` und `Apfelkuchen.jpg`), wird das Foto des Rezepts. Im Rezeptordner wird dabei nichts überschrieben und nichts gelöscht.
+
+Ohne Schlüssel fehlt die Taste, alles andere läuft wie gewohnt. Ist die API durch Zugänge geschützt, braucht das Hinzufügen die Stufe `control`.
+
+Zu wissen: Die Vorlage wird zum Umwandeln an Anthropic übertragen, und jede Umwandlung kostet einen kleinen Betrag nach Verbrauch – der Kern schreibt die Zahl der Token ins Protokoll. Webadressen im eigenen Netz werden nicht gelesen. Das Ergebnis stammt von einem Sprachmodell: Mengen und Zeiten vor dem ersten Nachkochen mit der Vorlage vergleichen. Mit `importModel` und `importLanguage` (`de`, `en`, `fr`) in der Konfiguration des Plugins lassen sich Modell und Sprache der neuen Rezepte ändern.
 
 ## API
 

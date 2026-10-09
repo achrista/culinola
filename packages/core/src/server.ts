@@ -12,6 +12,8 @@ import type { DatapointRegistry } from './registry.ts';
 import { type Aggregation, downsample, parseDuration, parseTime } from './series.ts';
 
 const AGGREGATIONS: readonly Aggregation[] = ['avg', 'min', 'max', 'last'];
+/** So groß darf sein, was ein Plugin entgegennimmt – genug für ein Dokument oder ein Foto. */
+const PLUGIN_BODY_LIMIT = 25_000_000;
 
 export interface ServerDeps {
   config: AppConfig;
@@ -34,6 +36,10 @@ export async function buildServer({ config, registry, plugins, actions, log, acc
   app.setErrorHandler((error: Error, _request, reply) => {
     if (error instanceof BadRequest || error instanceof InvalidParams) return reply.code(400).send({ error: error.message });
     if (error instanceof UnknownAction) return reply.code(404).send({ error: error.message });
+    // Was der Server selbst am Aufruf beanstandet – zu groß, nicht lesbar –, ist ebenfalls ein Fehler des Aufrufers
+    const status = (error as { statusCode?: number }).statusCode;
+    if (status === 413) return reply.code(413).send({ error: 'Die Datei ist zu groß.' });
+    if (status !== undefined && status >= 400 && status < 500) return reply.code(status).send({ error: error.message });
     app.log.error(error);
     return reply.code(500).send({ error: error.message });
   });
@@ -109,12 +115,16 @@ export async function buildServer({ config, registry, plugins, actions, log, acc
     return plugins.resources.has(key) ? plugins.resources.get(key) : reply.code(404).send({ error: `Verzeichnis "${key}" ist unbekannt.` });
   });
 
+  // Dateien kommen als rohe Bytes an und werden unverändert an das Plugin gereicht
+  app.addContentTypeParser('application/octet-stream', { parseAs: 'buffer' }, (_request, body, done) => done(null, body));
+
   // Adressen der Plugins. Antworten dürfen fortlaufende Datenströme sein; beendet die
   // Anzeige die Verbindung, erfährt es das Plugin über das Signal und kann die Quelle schließen.
   for (const route of plugins.routes) {
     app.route({
       method: route.method,
       url: `/api/v1/p/${route.instance}${route.path}`,
+      ...(route.method === 'POST' ? { bodyLimit: PLUGIN_BODY_LIMIT } : {}),
       handler: async (request, reply) => {
         const gone = new AbortController();
         reply.raw.on('close', () => gone.abort());

@@ -1,6 +1,10 @@
 export { ConversionError, convertMaterial, convertRecipe, DEFAULT_CATEGORIES, DEFAULT_MODEL, normalizeQuantity } from './convert.ts';
 export type { ConvertedRecipe, ConvertOptions, ConvertResult } from './convert.ts';
+export { explainError } from './explain.ts';
+export type { Explanation } from './explain.ts';
 export { formatQuantity, renderMarkdown } from './markdown.ts';
+export { fileName, photoEnding, saveRecipe } from './save.ts';
+export type { SavedRecipe } from './save.ts';
 export { toShoppingItems } from './shopping.ts';
 export type { ShoppingItem } from './shopping.ts';
 export { EmptySourceError, readSource } from './source.ts';

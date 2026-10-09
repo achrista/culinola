@@ -90,6 +90,11 @@ export interface SourceMaterial {
   url?: string;
   /** Titelbild als Webadresse, etwa aus den Angaben einer Rezeptseite. */
   imageUrl?: string;
+  /**
+   * Foto des Gerichts, das zur Quelle gehört, ohne in ihr zu stecken: das Titelbild einer
+   * Webseite oder eine Bilddatei gleichen Namens neben der Vorlage. Das Modell bekommt es nicht zu sehen.
+   */
+  cover?: SourceImage;
   /** Hinweise für den Aufrufer, etwa auf gekürzten Text. */
   warnings: string[];
 }

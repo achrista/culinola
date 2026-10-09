@@ -15,7 +15,7 @@ COPY . .
 # Pakete der Oberfläche: Zur Laufzeit braucht es beides nicht mehr.
 RUN npm ci \
  && npm run build \
- && npm ci --omit=dev --ignore-scripts -w packages/core -w packages/sdk -w plugins \
+ && npm ci --omit=dev --ignore-scripts -w packages/core -w packages/sdk -w packages/recipe-import -w plugins \
  && rm -rf packages/ui/src packages/ui/node_modules
 
 # --- Laufzeit ---

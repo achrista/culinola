@@ -71,7 +71,18 @@
     "smaller": "Smaller text",
     "larger": "Larger text",
     "open": "Open recipe: {title}",
-    "showAll": "Show all recipes | Show all recipes | Show all {n} recipes"
+    "showAll": "Show all recipes | Show all recipes | Show all {n} recipes",
+    "add": "Add a recipe",
+    "addShort": "+ Recipe",
+    "addIntro": "A web page, a document or a photo of the recipe is enough – it becomes a recipe in this collection. For that, the source is sent to the Claude API by Anthropic.",
+    "addUrl": "Web address",
+    "addFile": "Choose a file or photo",
+    "addFileHint": "PDF, Word, LibreOffice, text or image",
+    "addText": "Or paste the text of the recipe",
+    "addGo": "Add",
+    "addBusy": "Reading the recipe – this takes up to a minute.",
+    "addFailed": "Not added: {error}",
+    "added": "Added. | Added. | {n} recipes added: {titles}"
   },
   "timer": {
     "title": "Kitchen timer",

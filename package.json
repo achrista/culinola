@@ -19,6 +19,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && vue-tsc -p packages/ui/tsconfig.json --noEmit",
     "token": "node packages/core/src/token.ts",
     "google:login": "node plugins/source-google/src/login.ts",
+    "recipes:import": "node packages/recipe-import/src/cli.ts",
     "test": "vitest run",
     "test:instance": "node testing/start.mjs",
     "licenses": "license-checker-rseidelsohn --production --excludePrivatePackages --onlyAllow \"MIT;MIT-0;ISC;BSD-2-Clause;BSD-3-Clause;Apache-2.0;0BSD;Unlicense;CC0-1.0;OFL-1.1\"",

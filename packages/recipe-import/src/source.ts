@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { basename, extname } from 'node:path';
+import { basename, dirname, extname, join } from 'node:path';
 import { MAX_IMAGE_BYTES, readDoc, readDocx, readOdt } from './office.ts';
 import { pdfPhotos } from './pdf.ts';
 import type { SourceImage, SourceMaterial } from './types.ts';
@@ -8,7 +8,7 @@ import { download, readHtml } from './web.ts';
 /** Woraus ein Rezept gelesen werden kann. */
 export type RecipeInput =
   | { file: string }
-  | { data: Uint8Array; name: string; mediaType?: string }
+  | { data: Uint8Array; name: string; mediaType?: string; /** Foto des Gerichts, das getrennt von der Vorlage mitkommt. */ photo?: { data: Uint8Array; name: string } }
   | { url: string }
   | { text: string; name?: string };
 
@@ -21,6 +21,8 @@ export class EmptySourceError extends Error {}
 const MAX_PDF_BYTES = 20_000_000;
 /** Seiten mit mehr Text sind fast nur Beiwerk; der Hinweis auf die Kürzung geht an den Aufrufer. */
 const MAX_TEXT_CHARS = 60_000;
+/** Ein Foto, das nur abgelegt und nicht an das Modell geschickt wird, darf größer sein als eines für das Modell. */
+const MAX_COVER_BYTES = 15_000_000;
 
 const BY_EXTENSION: Record<string, Kind> = {
   '.pdf': 'pdf',
@@ -112,13 +114,59 @@ async function fromData(data: Uint8Array, name: string, mediaType?: string, url?
   return material;
 }
 
+/** Prüft, ob Daten ein Bild in brauchbarer Größe sind, und gibt sie dann als Bild zurück. */
+function asImage(data: Uint8Array, name: string): SourceImage | undefined {
+  const kind = kindOf(data, name);
+  return kind?.startsWith('image/') && data.length <= MAX_COVER_BYTES ? { name, mediaType: kind as SourceImage['mediaType'], data } : undefined;
+}
+
+/**
+ * Sucht neben einer Vorlage ein Bild gleichen Namens – "Apfelkuchen.pdf" und "Apfelkuchen.jpg".
+ * So bekommt auch ein Rezept ein Foto, dessen Vorlage selbst keines enthält.
+ */
+async function sidecar(file: string): Promise<SourceImage | undefined> {
+  const stem = join(dirname(file), basename(file, extname(file)));
+  for (const ending of ['.jpg', '.jpeg', '.png', '.webp']) {
+    for (const candidate of [stem + ending, stem + ending.toUpperCase()]) {
+      if (candidate === file) continue;
+      const data = await readFile(candidate).catch(() => undefined);
+      const image = data && asImage(data, basename(candidate));
+      if (image) return image;
+    }
+  }
+  return undefined;
+}
+
 /** Liest eine Quelle ein – Datei, hochgeladene Daten, Webadresse oder eingegebenen Text. */
 export async function readSource(input: RecipeInput, signal?: AbortSignal): Promise<SourceMaterial> {
-  if ('file' in input) return fromData(await readFile(input.file), basename(input.file));
-  if ('data' in input) return fromData(input.data, input.name, input.mediaType);
+  if ('file' in input) {
+    const material = await fromData(await readFile(input.file), basename(input.file));
+    // Ist die Vorlage selbst ein Bild, zeigt sie das Rezept oder das Gericht; ein zweites daneben wäre geraten
+    const cover = material.images.length === 1 && !material.text && !material.pdf ? undefined : await sidecar(input.file);
+    return cover ? { ...material, cover } : material;
+  }
+  if ('data' in input) {
+    const material = await fromData(input.data, input.name, input.mediaType);
+    if (!input.photo) return material;
+    const cover = asImage(input.photo.data, basename(input.photo.name));
+    if (!cover) material.warnings.push('Das mitgegebene Foto ist kein Bild in brauchbarer Größe und wurde nicht übernommen.');
+    return cover ? { ...material, cover } : material;
+  }
   if ('url' in input) {
     const page = await download(input.url, signal);
-    return fromData(page.data, page.url, page.contentType, page.url);
+    const material = await fromData(page.data, page.url, page.contentType, page.url);
+    if (material.imageUrl) {
+      // Das Titelbild wird geholt und beim Rezept abgelegt: Adressen von Bildern gelten oft nur Stunden
+      try {
+        const picture = await download(material.imageUrl, signal);
+        const cover = asImage(picture.data, basename(new URL(picture.url).pathname) || 'titelbild');
+        if (cover) material.cover = cover;
+        else material.warnings.push('Das Titelbild der Seite ist kein Bild in brauchbarer Größe und wurde nicht übernommen.');
+      } catch (error) {
+        material.warnings.push(`Das Titelbild der Seite ließ sich nicht holen: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    return material;
   }
   const text = input.text.trim();
   if (!text) throw new EmptySourceError('Die Quelle enthält keinen lesbaren Inhalt.');

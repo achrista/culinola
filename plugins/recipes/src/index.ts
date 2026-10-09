@@ -1,11 +1,16 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, watch } from 'node:fs';
 import { dirname, extname, join, relative, resolve } from 'node:path';
 import { definePlugin } from '@culinola/sdk';
+import { ImportRefused, importInput, statusOf } from './importer.ts';
 import { inside, parseRecipe, recipeId, type RecipeInfo } from './library.ts';
 
 interface Config {
   /** Ordner mit den Rezepten; ohne Angabe der eigene Ordner der Instanz im Datenordner. */
   folder?: string;
+  /** Sprache, in der neue Rezepte geschrieben werden: de, en oder fr. */
+  importLanguage?: string;
+  /** Sprachmodell für das Umwandeln neuer Rezepte; ohne Angabe das des Import-Werkzeugs. */
+  importModel?: string;
 }
 
 interface Entry extends RecipeInfo {
@@ -29,9 +34,15 @@ export default definePlugin<Config>({
   id: 'recipes',
 
   parseConfig(raw) {
-    const config = raw as { folder?: unknown };
+    const config = raw as { folder?: unknown; importLanguage?: unknown; importModel?: unknown };
     if (config.folder !== undefined && (typeof config.folder !== 'string' || !config.folder)) throw new Error('"folder" muss ein Ordnerpfad sein.');
-    return typeof config.folder === 'string' ? { folder: config.folder } : {};
+    if (config.importLanguage !== undefined && !['de', 'en', 'fr'].includes(config.importLanguage as string)) throw new Error('"importLanguage" muss de, en oder fr sein.');
+    if (config.importModel !== undefined && (typeof config.importModel !== 'string' || !config.importModel)) throw new Error('"importModel" muss die Kennung eines Sprachmodells sein.');
+    return {
+      ...(typeof config.folder === 'string' ? { folder: config.folder } : {}),
+      ...(typeof config.importLanguage === 'string' ? { importLanguage: config.importLanguage } : {}),
+      ...(typeof config.importModel === 'string' ? { importModel: config.importModel } : {}),
+    };
   },
 
   start(context) {
@@ -119,6 +130,43 @@ export default definePlugin<Config>({
       const contentType = file ? IMAGE_TYPES[extname(file).toLowerCase()] : undefined;
       if (!file || !contentType || !existsSync(file) || !statSync(file).isFile()) return Response.json({ error: 'Bild nicht gefunden.' }, { status: 404 });
       return new Response(new Uint8Array(readFileSync(file)), { headers: { 'Content-Type': contentType, 'Cache-Control': 'private, max-age=3600' } });
+    });
+
+    // Neue Rezepte: Eine Webadresse, ein Text oder eine Datei geht an das Sprachmodell und kommt als
+    // Rezept in den Ordner zurück. Der Schlüssel dafür steht bei den Zugangsdaten der Instanz.
+    const apiKey = context.secrets.get('anthropicApiKey') ?? process.env['ANTHROPIC_API_KEY'];
+    context.datapoints.set({ id: 'importReady', value: !!apiKey, label: 'Neue Rezepte lassen sich umwandeln' });
+    let importing = false;
+    context.routes.post('/import', async (request) => {
+      const refuse = (status: number, error: string) => Response.json({ error }, { status });
+      let input;
+      try {
+        input = importInput(request);
+      } catch (error) {
+        if (error instanceof ImportRefused) return refuse(400, error.message);
+        throw error;
+      }
+      if (!apiKey) return refuse(503, 'Für das Umwandeln fehlt der Schlüssel der Claude-API (in secrets.json: "anthropicApiKey" bei dieser Instanz).');
+      // Das Werkzeug samt Anbindung an die Claude-API wird erst geladen, wenn jemand ein Rezept hinzufügt
+      const { convertRecipe, explainError, saveRecipe } = await import('@culinola/recipe-import');
+      if (importing) return refuse(429, 'Es wird gerade ein anderes Rezept umgewandelt.');
+      importing = true;
+      try {
+        const language = context.config.importLanguage ?? 'de';
+        const result = await convertRecipe(input, { apiKey, language, signal: request.signal, ...(context.config.importModel ? { model: context.config.importModel } : {}) });
+        if (!result.recipes.length) return refuse(422, 'In der Vorlage wurde kein Rezept gefunden.');
+        const saved = result.recipes.map((converted) => saveRecipe(folder, converted, language));
+        scan();
+        log.info(`Rezept hinzugefügt: ${saved.map((entry) => entry.file).join(', ')} (${result.usage.inputTokens} Eingabe- und ${result.usage.outputTokens} Ausgabe-Token)`);
+        const added = saved.map((entry) => ({ title: entry.title, id: [...recipes.values()].find((known) => known.file === join(folder, entry.file))?.id }));
+        return Response.json({ recipes: added, warnings: result.warnings });
+      } catch (error) {
+        const { reason, message } = explainError(error);
+        log.warn(`Rezept nicht umgewandelt: ${message}`);
+        return refuse(statusOf(reason), message);
+      } finally {
+        importing = false;
+      }
     });
   },
 });

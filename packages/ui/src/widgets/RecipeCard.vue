@@ -3,7 +3,7 @@ import { micromark } from 'micromark';
 import { gfm, gfmHtml } from 'micromark-extension-gfm';
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { getJson } from '../api.ts';
+import { getJson, postFile, postJson } from '../api.ts';
 import { mediaUrl } from '../media.ts';
 import { datapoints } from '../store.ts';
 import DetailOverlay from './DetailOverlay.vue';
@@ -48,6 +48,15 @@ const recipe = ref<Recipe>();
 const failed = ref('');
 const scale = ref(readScale());
 const broken = reactive(new Set<string>());
+
+// Neue Rezepte: nur angeboten, wenn der Kern sie umwandeln kann
+const canAdd = computed(() => datapoints.get(`${source.value}:importReady`)?.value === true);
+const adding = ref(false);
+const busy = ref(false);
+const addUrl = ref('');
+const addText = ref('');
+const addError = ref('');
+const notice = ref<string[]>([]);
 
 /** Adresse eines Bildes, das zu einem Rezept gehört: Webadressen bleiben, alles andere liegt neben dem Rezept und kommt über den Kern. */
 function imageUrl(recipeId: string, address: string): string {
@@ -96,9 +105,11 @@ function pictureFailed(entry: RecipeInfo) {
 const categories = computed(() => [...new Set(list.value.map((entry) => entry.category).filter((name): name is string => !!name))].sort((a, b) => a.localeCompare(b)));
 const shown = computed(() => (category.value ? list.value.filter((entry) => entry.category === category.value) : list.value));
 
-async function show(id: string) {
+async function show(id: string, keepNotice = false) {
   open.value = true;
+  adding.value = false;
   failed.value = '';
+  if (!keepNotice) notice.value = [];
   try {
     recipe.value = await getJson<Recipe>(`/p/${encodeURIComponent(source.value)}/text/${encodeURIComponent(id)}`);
   } catch (cause) {
@@ -125,6 +136,74 @@ const html = computed(() => {
     link.setAttribute('rel', 'noopener noreferrer');
   }
   return holder.innerHTML;
+});
+
+interface Added {
+  recipes: { title: string; id?: string }[];
+  warnings: string[];
+}
+
+/** Verkleinert ein großes Foto vor dem Hochladen: Lesbar bleibt es, und es passt durch jede Leitung. */
+async function shrink(file: File): Promise<Blob> {
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size < 1_500_000) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const factor = Math.min(1, 2400 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * factor);
+    canvas.height = Math.round(bitmap.height * factor);
+    canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, 'image/jpeg', 0.85));
+    return blob && blob.size < file.size ? blob : file;
+  } catch {
+    // Was der Browser nicht zeichnen kann, geht unverändert auf die Reise.
+    return file;
+  }
+}
+
+async function add(send: () => Promise<Added>) {
+  if (busy.value) return;
+  busy.value = true;
+  addError.value = '';
+  try {
+    const added = await send();
+    addUrl.value = '';
+    addText.value = '';
+    await load();
+    notice.value = [t('recipes.added', { n: added.recipes.length, titles: added.recipes.map((entry) => entry.title).join(' · ') }, added.recipes.length), ...added.warnings];
+    const first = added.recipes.find((entry) => entry.id)?.id;
+    if (first) await show(first, true);
+    else adding.value = false;
+  } catch (cause) {
+    addError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    busy.value = false;
+  }
+}
+const addPath = computed(() => `/p/${encodeURIComponent(source.value)}/import`);
+const addFromUrl = () => add(() => postJson<Added>(addPath.value, { url: addUrl.value }));
+const addFromText = () => add(() => postJson<Added>(addPath.value, { text: addText.value }));
+function addFromFile(event: Event) {
+  const field = event.target as HTMLInputElement;
+  const file = field.files?.[0];
+  // Dieselbe Datei soll sich nach einem Fehler noch einmal wählen lassen
+  field.value = '';
+  if (file) void add(async () => postFile<Added>(`${addPath.value}?name=${encodeURIComponent(file.name)}`, await shrink(file)));
+}
+function startAdding() {
+  recipe.value = undefined;
+  notice.value = [];
+  addError.value = '';
+  adding.value = true;
+}
+
+/** Das Bild aus den Kopfdaten – in der Leseansicht nur, wenn der Text es nicht ohnehin zeigt. */
+const lead = computed(() => {
+  const current = recipe.value;
+  if (!current?.image || broken.has(`${current.id}/${current.image}`)) return undefined;
+  const inText = [current.image, encodeURI(current.image)].some((address) => current.markdown.includes(`](${address}`) || current.markdown.includes(`](<${address}`));
+  return inText ? undefined : imageUrl(current.id, current.image);
 });
 
 function readScale(): number {
@@ -169,6 +248,8 @@ onUnmounted(() => {
 function close() {
   open.value = false;
   recipe.value = undefined;
+  adding.value = false;
+  notice.value = [];
 }
 </script>
 
@@ -187,11 +268,12 @@ function close() {
 
     <DetailOverlay v-if="open" :title="recipe?.title ?? heading" @close="close">
       <template #actions>
-        <button v-if="recipe" class="back" @click="recipe = undefined">{{ t('recipes.list') }}</button>
+        <button v-if="recipe || adding" class="back" @click="(recipe = undefined), (adding = false)">{{ t('recipes.list') }}</button>
+        <button v-if="canAdd && !adding" :aria-label="t('recipes.add')" @click="startAdding">{{ t('recipes.addShort') }}</button>
         <button v-if="recipe" :aria-label="t('recipes.smaller')" :disabled="scale === SCALES[0]" @click="resize(-1)">A−</button>
         <button v-if="recipe" :aria-label="t('recipes.larger')" :disabled="scale === SCALES[SCALES.length - 1]" @click="resize(1)">A+</button>
       </template>
-      <div class="browser" :class="{ reading: !!recipe }">
+      <div class="browser" :class="{ reading: !!recipe || adding }">
         <nav>
           <div v-if="categories.length > 1" class="chips">
             <button :class="{ active: !category }" @click="category = undefined">{{ t('recipes.all') }}</button>
@@ -208,12 +290,37 @@ function close() {
           <p v-if="!list.length" class="hint">{{ t('recipes.empty') }}</p>
         </nav>
         <article :style="{ fontSize: `${20 * scale}px` }">
-          <template v-if="recipe">
+          <form v-if="adding" class="add" @submit.prevent>
+            <h3>{{ t('recipes.add') }}</h3>
+            <p class="hint">{{ t('recipes.addIntro') }}</p>
+            <label>
+              <span>{{ t('recipes.addUrl') }}</span>
+              <span class="row">
+                <input v-model.trim="addUrl" type="url" inputmode="url" placeholder="https://" :disabled="busy" @keydown.enter.prevent="addUrl && addFromUrl()" />
+                <button type="button" :disabled="busy || !addUrl" @click="addFromUrl">{{ t('recipes.addGo') }}</button>
+              </span>
+            </label>
+            <label class="file" :class="{ off: busy }">
+              <input type="file" accept=".pdf,.docx,.docm,.odt,.doc,.txt,.md,.htm,.html,image/*" :disabled="busy" @change="addFromFile" />
+              <strong>{{ t('recipes.addFile') }}</strong>
+              <span>{{ t('recipes.addFileHint') }}</span>
+            </label>
+            <label>
+              <span>{{ t('recipes.addText') }}</span>
+              <textarea v-model="addText" rows="5" :disabled="busy" />
+            </label>
+            <button type="button" class="go" :disabled="busy || !addText.trim()" @click="addFromText">{{ t('recipes.addGo') }}</button>
+            <p v-if="busy" class="state" role="status">{{ t('recipes.addBusy') }}</p>
+            <p v-else-if="addError" class="state bad" role="alert">{{ t('recipes.addFailed', { error: addError }) }}</p>
+          </form>
+          <template v-else-if="recipe">
+            <p v-for="line in notice" :key="line" class="notice">{{ line }}</p>
             <p v-if="recipe.time || recipe.servings || recipe.tags.length" class="facts">
               <span v-if="recipe.time">{{ t('recipes.time', { time: recipe.time }) }}</span>
               <span v-if="recipe.servings">{{ t('recipes.servings', { servings: recipe.servings }) }}</span>
               <span v-for="tag in recipe.tags" :key="tag" class="tag">{{ tag }}</span>
             </p>
+            <img v-if="lead" class="lead" :src="lead" alt="" @error="broken.add(`${recipe.id}/${recipe.image}`)" />
             <!-- eslint-disable-next-line vue/no-v-html -->
             <div class="text" v-html="html" />
           </template>
@@ -419,6 +526,94 @@ article .facts {
 .hint {
   color: var(--mute);
 }
+.notice {
+  margin: 0 0 0.6em;
+  padding: 0.4em 0.8em;
+  border-radius: var(--radius);
+  background: var(--soft);
+  font-size: 0.85em;
+}
+.add {
+  max-width: 40em;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 18px;
+}
+.add h3,
+.add p {
+  margin: 0;
+}
+.add label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.add .row {
+  display: flex;
+  gap: 8px;
+}
+.add input[type='url'],
+.add textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+}
+.add textarea {
+  resize: vertical;
+}
+.add button,
+.add .file {
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 500;
+}
+.add button:disabled,
+.add .file.off {
+  opacity: 0.4;
+}
+.add .go {
+  align-self: flex-start;
+}
+/* Die Dateiwahl ist eine große Fläche; das eigentliche Feld bleibt für Tastatur und Vorleser erreichbar. */
+.add .file {
+  position: relative;
+  padding: 14px 20px;
+  border-radius: var(--radius);
+  background: var(--soft);
+  color: var(--ink);
+  cursor: pointer;
+}
+.add .file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.add .file:focus-within {
+  outline: 2px solid var(--accent);
+}
+.add .file span {
+  color: var(--mute);
+  font-size: 0.85em;
+}
+.add .state {
+  padding: 0.6em 0.9em;
+  border-radius: var(--radius);
+  background: var(--soft);
+}
+.add .state.bad {
+  color: var(--alarm);
+}
 .back {
   display: none;
 }
@@ -441,6 +636,25 @@ article .facts {
 
 .text {
   max-width: 46em;
+}
+/* Das Bild des Rezepts steht rechts neben dem Anfang des Textes, auf schmalen Anzeigen darüber. */
+.lead {
+  float: right;
+  width: min(40%, 440px);
+  max-height: 60vh;
+  margin: 0 0 1em 1.4em;
+  border-radius: var(--radius);
+  object-fit: cover;
+}
+@media (max-width: 1100px) {
+  .lead {
+    float: none;
+    display: block;
+    width: 100%;
+    max-width: 30em;
+    max-height: 40vh;
+    margin: 0 0 1em;
+  }
 }
 .text :deep(h1),
 .text :deep(h2),

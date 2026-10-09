@@ -2,11 +2,14 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, extname, join, relative, resolve } from 'node:path';
+import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { ConversionError, convertMaterial, DEFAULT_MODEL, type ConvertedRecipe } from './convert.ts';
 import { renderMarkdown } from './markdown.ts';
+import { fileName, photoEnding, saveRecipe } from './save.ts';
 import { EmptySourceError, readSource, type RecipeInput } from './source.ts';
+
+export { fileName };
 
 const HELP = `Wandelt Rezepte in das Format von Culinola und Merkio um.
 
@@ -15,6 +18,8 @@ const HELP = `Wandelt Rezepte in das Format von Culinola und Merkio um.
 Quelle ist eine Datei, ein Ordner oder eine Webadresse.
 
   --out <Ordner>       Zielordner (Vorgabe: ausgabe)
+  --recipes <Ordner>   Rezepte samt Foto gleich in diesen Rezeptordner von Culinola legen,
+                       etwa data/recipes; dort wird nichts überschrieben und nichts gelöscht
   --label <Vermerk>    Herkunft, z. B. "Familienrezept"; wird auch Stichwort
   --tag <Stichwort>    zusätzliches Stichwort, mehrfach möglich
   --recursive          Unterordner mitlesen
@@ -27,7 +32,7 @@ Quelle ist eine Datei, ein Ordner oder eine Webadresse.
 `;
 
 const SOURCE_TYPES = new Set(['.pdf', '.docx', '.docm', '.odt', '.doc', '.txt', '.md', '.htm', '.html', '.jpg', '.jpeg', '.png', '.webp', '.gif']);
-const PHOTO_ENDINGS: Record<string, string> = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
+const PHOTO_TYPES = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
 interface Entry {
   hash: string;
@@ -41,17 +46,6 @@ interface Entry {
 interface Log {
   version: 1;
   entries: Record<string, Entry>;
-}
-
-/** Dateiname aus einem Titel: Umlaute bleiben, was Dateisysteme nicht mögen, fällt weg. */
-export function fileName(title: string): string {
-  const name = title
-    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 80)
-    .replace(/[. ]+$/, '');
-  return name || 'Rezept';
 }
 
 /** Kennung wie in Culinola: "Omas Käsekuchen" wird "omas-kaesekuchen". */
@@ -69,17 +63,32 @@ export function slug(title: string): string {
   return id || 'rezept';
 }
 
-function sources(target: string, recursive: boolean): string[] {
+/** Der Schlüssel, den auch das Plugin `recipes` verwendet: `{ "recipes": { "anthropicApiKey": "…" } }`. */
+function keyFromSecrets(file: string): string | undefined {
+  try {
+    const key = (JSON.parse(readFileSync(file, 'utf8')) as { recipes?: { anthropicApiKey?: unknown } }).recipes?.anthropicApiKey;
+    return typeof key === 'string' && key ? key : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function sources(target: string, recursive: boolean): string[] {
   if (/^https?:\/\//i.test(target)) return [target];
   const path = resolve(target);
   if (!existsSync(path)) throw new Error(`Nicht gefunden: ${target}`);
   if (statSync(path).isFile()) return [path];
   const found: string[] = [];
-  for (const entry of readdirSync(path, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name, 'de'))) {
+  const entries = readdirSync(path, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const stem = (name: string) => basename(name, extname(name)).toLowerCase();
+  const isPhoto = (name: string) => PHOTO_TYPES.has(extname(name).toLowerCase());
+  // Ein Bild, das wie eine Vorlage daneben heißt, ist deren Foto und keine eigene Quelle
+  const documents = new Set(entries.filter((entry) => entry.isFile() && SOURCE_TYPES.has(extname(entry.name).toLowerCase()) && !isPhoto(entry.name)).map((entry) => stem(entry.name)));
+  for (const entry of entries) {
     if (entry.name.startsWith('.') || entry.name.startsWith('~$')) continue;
     const full = join(path, entry.name);
     if (entry.isDirectory() && recursive) found.push(...sources(full, true));
-    else if (entry.isFile() && SOURCE_TYPES.has(extname(entry.name).toLowerCase())) found.push(full);
+    else if (entry.isFile() && SOURCE_TYPES.has(extname(entry.name).toLowerCase()) && !(isPhoto(entry.name) && documents.has(stem(entry.name)))) found.push(full);
   }
   return found;
 }
@@ -89,6 +98,7 @@ async function main(): Promise<number> {
     allowPositionals: true,
     options: {
       out: { type: 'string', default: 'ausgabe' },
+      recipes: { type: 'string' },
       label: { type: 'string' },
       tag: { type: 'string', multiple: true },
       recursive: { type: 'boolean', default: false },
@@ -105,8 +115,10 @@ async function main(): Promise<number> {
     console.log(HELP);
     return values.help ? 0 : 1;
   }
-  // Der API-Schlüssel darf in einer Datei .env neben dem Aufruf liegen
+  // Der API-Schlüssel darf in einer Datei .env neben dem Aufruf liegen – oder dort, wo ihn auch Culinola liest
   if (existsSync('.env')) process.loadEnvFile('.env');
+  const apiKey = process.env['ANTHROPIC_API_KEY'] ? undefined : keyFromSecrets(join(process.env['CULINOLA_DATA'] ?? 'data', 'secrets.json'));
+  const recipesDir = values.recipes ? resolve(values.recipes) : undefined;
 
   const out = resolve(values.out);
   const logFile = join(out, 'protokoll.json');
@@ -120,7 +132,7 @@ async function main(): Promise<number> {
   const all = positionals.flatMap((target) => sources(target, values.recursive));
   const queue = values.limit ? all.slice(0, Number(values.limit)) : all;
   const dryRun = values['dry-run'];
-  const client = dryRun ? undefined : new Anthropic({ maxRetries: 5 });
+  const client = dryRun ? undefined : new Anthropic({ maxRetries: 5, ...(apiKey ? { apiKey } : {}) });
   const total = { ok: 0, recipes: 0, empty: 0, failed: 0, skipped: 0, input: 0, output: 0 };
   let aborted: string | undefined;
 
@@ -137,11 +149,20 @@ async function main(): Promise<number> {
 
   const write = (converted: ConvertedRecipe): string[] => {
     const { recipe, photo } = converted;
+    if (recipesDir) {
+      // Gleich an Ort und Stelle: Rezept und Foto in den Rezeptordner, die gegliederte Fassung in den Zielordner
+      const saved = saveRecipe(recipesDir, converted, values.language);
+      if (saved.photo) recipe.image = basename(saved.photo);
+      const jsonPath = free('merkio', slug(recipe.title), '.json');
+      mkdirSync(dirname(join(out, jsonPath)), { recursive: true });
+      writeFileSync(join(out, jsonPath), `${JSON.stringify({ ...recipe, markdown: renderMarkdown(recipe, values.language) }, null, 2)}\n`);
+      return [jsonPath];
+    }
     const name = fileName(recipe.title);
     const markdownPath = free(join('culinola', fileName(recipe.category ?? 'Sonstiges')), name, '.md');
     const files = [markdownPath];
     if (photo) {
-      const photoPath = free(dirname(markdownPath), markdownPath.slice(markdownPath.lastIndexOf('/') + 1, -3), PHOTO_ENDINGS[photo.mediaType] ?? '.jpg');
+      const photoPath = free(dirname(markdownPath), markdownPath.slice(markdownPath.lastIndexOf('/') + 1, -3), photoEnding(photo.mediaType));
       recipe.image = photoPath.slice(photoPath.lastIndexOf('/') + 1);
       files.push(photoPath);
       mkdirSync(dirname(join(out, photoPath)), { recursive: true });
@@ -213,7 +234,7 @@ async function main(): Promise<number> {
       // Ohne hinterlegten Schlüssel meldet das SDK das als gewöhnlichen Fehler, noch vor der ersten Anfrage.
       const noAccess = error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError || (phase === 'model' && !(error instanceof Anthropic.APIError) && !(error instanceof ConversionError));
       if (noAccess) {
-        aborted ??= `Kein Zugang zur Claude-API: ${message}\n\nAPI-Schlüssel als Umgebungsvariable ANTHROPIC_API_KEY setzen oder in eine Datei .env im Projektordner schreiben (ANTHROPIC_API_KEY=…).`;
+        aborted ??= `Kein Zugang zur Claude-API: ${message}\n\nAPI-Schlüssel in data/secrets.json eintragen ({ "recipes": { "anthropicApiKey": "…" } }), als Umgebungsvariable ANTHROPIC_API_KEY setzen oder in eine Datei .env im Projektordner schreiben (ANTHROPIC_API_KEY=…).`;
         return;
       }
       if (error instanceof EmptySourceError) total.empty++;
@@ -240,7 +261,7 @@ async function main(): Promise<number> {
   console.log(
     dryRun
       ? `\n${total.ok} Quellen lesbar, ${total.empty} leer, ${total.failed} mit Fehler.`
-      : `\n${total.recipes} Rezepte aus ${total.ok} Quellen, ${total.empty} ohne Rezept, ${total.failed} mit Fehler, ${total.skipped} schon vorhanden.\nVerbrauch: ${total.input} Eingabe- und ${total.output} Ausgabe-Token.\nErgebnis in ${out}`,
+      : `\n${total.recipes} Rezepte aus ${total.ok} Quellen, ${total.empty} ohne Rezept, ${total.failed} mit Fehler, ${total.skipped} schon vorhanden.\nVerbrauch: ${total.input} Eingabe- und ${total.output} Ausgabe-Token.\nErgebnis in ${recipesDir ?? out}`,
   );
   return total.failed ? 1 : 0;
 }

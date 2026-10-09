@@ -44,6 +44,8 @@ async function core(access: readonly AccessToken[]): Promise<FastifyInstance> {
 }
 
 beforeAll(() => {
+  // Ein Schlüssel aus der Umgebung des Entwicklers darf hier keine Anfrage an die Claude-API auslösen
+  delete process.env['ANTHROPIC_API_KEY'];
   dataDir = mkdtempSync(join(tmpdir(), 'culinola-test-'));
   mkdirSync(join(dataDir, 'recipes', 'Kuchen'), { recursive: true });
   writeFileSync(join(dataDir, 'recipes', 'Kuchen', 'Käsekuchen.md'), '---\ntime: 90 min\n---\n# Käsekuchen\n\n![Bild](bild.png)\n');
@@ -113,6 +115,17 @@ describe('Kern mit Plugins, API offen', () => {
       expect((await app.inject(`/api/v1/p/recipes/file/kuchen-kaesekuchen/${path}`)).statusCode, path).toBe(404);
     }
   });
+
+  it('reicht Dateien als rohe Bytes an ein Plugin, auch über einem Megabyte', async () => {
+    const upload = (bytes: number) => app.inject({ method: 'POST', url: '/api/v1/p/recipes/import?name=Rezept.pdf', headers: { 'content-type': 'application/octet-stream' }, payload: Buffer.alloc(bytes, 1) });
+    // Ohne hinterlegten Schlüssel endet der Weg beim Plugin – angekommen ist die Datei trotzdem
+    const arrived = await upload(3_000_000);
+    expect([arrived.statusCode, arrived.json<{ error: string }>().error]).toEqual([503, expect.stringMatching(/anthropicApiKey/)]);
+    expect((await upload(26_000_000)).statusCode).toBe(413);
+    const nothing = await app.inject({ method: 'POST', url: '/api/v1/p/recipes/import', payload: {} });
+    expect([nothing.statusCode, nothing.json<{ error: string }>().error]).toEqual([400, 'Es fehlt eine Webadresse, ein Text oder eine Datei.']);
+    expect((await app.inject('/api/v1/datapoints/recipes:importReady')).json<Datapoint>().value).toBe(false);
+  });
 });
 
 describe('Kern mit Zugriffsschutz', () => {
@@ -135,6 +148,13 @@ describe('Kern mit Zugriffsschutz', () => {
     const stop = { method: 'POST', url: '/api/v1/actions/timer.stop', payload: {} } as const;
     expect((await app.inject({ ...stop, headers: as('token-vom-flur-0123456789') })).statusCode).toBe(403);
     expect((await app.inject({ ...stop, headers: as('token-der-kueche-0123456789') })).statusCode).toBe(200);
+  });
+
+  it('lässt neue Rezepte nur mit der Stufe zum Schalten zu', async () => {
+    const add = { method: 'POST', url: '/api/v1/p/recipes/import', payload: {} } as const;
+    expect((await app.inject(add)).statusCode).toBe(401);
+    expect((await app.inject({ ...add, headers: as('token-vom-flur-0123456789') })).statusCode).toBe(403);
+    expect((await app.inject({ ...add, headers: as('token-der-kueche-0123456789') })).statusCode).toBe(400);
   });
 
   it('nimmt das Token als Adresszusatz nur bei lesenden Plugin-Adressen an', async () => {
