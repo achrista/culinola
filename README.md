@@ -289,6 +289,21 @@ Ohne Schlüssel fehlt die Taste, alles andere läuft wie gewohnt. Ist die API du
 
 Zu wissen: Die Vorlage wird zum Umwandeln an Anthropic übertragen, und jede Umwandlung kostet einen kleinen Betrag nach Verbrauch – der Kern schreibt die Zahl der Token ins Protokoll. Webadressen im eigenen Netz werden nicht gelesen. Das Ergebnis stammt von einem Sprachmodell: Mengen und Zeiten vor dem ersten Nachkochen mit der Vorlage vergleichen. Mit `importModel` und `importLanguage` (`de`, `en`, `fr`) in der Konfiguration des Plugins lassen sich Modell und Sprache der neuen Rezepte ändern.
 
+### Solar-Prognose
+
+Das Plugin `source-solar-forecast` holt von [forecast.solar](https://forecast.solar) die erwartete Leistung der Solaranlage für heute und morgen – unabhängig vom Smart-Home-System, berechnet aus Standort, Neigung, Ausrichtung und Leistung der Anlage:
+
+```json
+{ "id": "prognose", "plugin": "source-solar-forecast", "config": {
+    "latitude": 48.37, "longitude": 10.9, "declination": 30, "azimuth": 0, "kwp": 9.8 } }
+```
+
+- `declination` ist die Neigung der Module (0 liegt flach, 90 steht senkrecht), `azimuth` die Ausrichtung in der Zählweise des Dienstes: **0 ist Süden**, -90 Osten, 90 Westen, 180 Norden – nicht die Kompassrichtung.
+- Im Stromdiagramm wird daraus eine gestrichelte Linie: `{ "datapoint": "prognose:power", "label": "Prognose", "forecast": true }` in `series`. Dazu gibt es die Datenpunkte `prognose:power` (erwartete Leistung jetzt), `prognose:today` und `prognose:tomorrow` (erwarteter Ertrag in kWh).
+- Abgefragt wird alle `refreshMinutes` Minuten (Vorgabe 180, mindestens 15); die letzte Prognose liegt in `data/prognose/forecast.json` und übersteht einen Neustart.
+
+forecast.solar bietet diesen Zugang ohne Anmeldung und ohne Schlüssel an („Public“, laut Anbieter dauerhaft kostenlos): eine Anlage, heute und morgen, stündliche Werte, höchstens zwölf Abfragen je Stunde und Anschluss. Wer mehr braucht, bucht dort einen Tarif und trägt seinen Schlüssel in `secrets.json` ein: `{ "prognose": { "apiKey": "…" } }`. Der Standort der Anlage wird bei jeder Abfrage an den Dienst übertragen.
+
 ### Einkaufs- und Aufgabenlisten aus Merkio
 
 Culinola führt selbst keine Listen. Das Plugin `source-merkio` zeigt die Listen aus [Merkio](https://merkio.de), hakt dort ab und trägt dort ein – gepflegt wird weiter am Telefon, und über Merkios Echtzeitkanal sehen beide Seiten sofort denselben Stand.
