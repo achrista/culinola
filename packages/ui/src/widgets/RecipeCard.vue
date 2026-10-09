@@ -457,9 +457,14 @@ function close() {
     background: none;
     color: var(--ink);
   }
-  .kicker,
   .caption .facts {
     color: var(--mute);
+    opacity: 1;
+  }
+  /* Neben dem Bild ist die Zeile über dem Titel die Überschrift der Kachel; auf dem Bild bleibt sie weiß */
+  .kicker {
+    color: var(--title-ink);
+    letter-spacing: var(--title-spacing);
     opacity: 1;
   }
   .all {

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { postJson } from '../api.ts';
 import { currentStation, playbackBlocked, resumePlayback, startRadioPlayback, stationsOf } from '../media.ts';
 import { datapoints } from '../store.ts';
+import TitleIcon from './TitleIcon.vue';
 
 const props = defineProps<{ config: { source?: string } }>();
 const { t } = useI18n();
@@ -36,7 +37,7 @@ async function run(action: string, params: Record<string, unknown> = {}) {
 <template>
   <section class="radio">
     <div class="now">
-      <span class="kind">{{ current ? t(current.kind === 'video' ? 'radio.tv' : 'radio.radio') : t('radio.idle') }}</span>
+      <span class="kind"><TitleIcon name="radio" />{{ current ? t(current.kind === 'video' ? 'radio.tv' : 'radio.radio') : t('radio.idle') }}</span>
       <span class="name">{{ current?.name ?? t('radio.off') }}</span>
       <span class="title">{{ current?.kind === 'video' ? t('radio.inMediaWindow') : title }}</span>
     </div>
@@ -95,6 +96,14 @@ async function run(action: string, params: Record<string, unknown> = {}) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* Die Zeile über dem Sender ist die Überschrift der Kachel */
+.kind {
+  color: var(--title-ink);
+  font-size: var(--title-size);
+  font-weight: 600;
+  text-transform: var(--title-case);
+  letter-spacing: var(--title-spacing);
 }
 .title {
   min-height: 1.3em;

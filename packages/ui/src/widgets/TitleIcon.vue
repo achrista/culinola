@@ -3,7 +3,7 @@
  * Kleines Zeichen vor der Überschrift einer Kachel. Die Zeichen sind hier gezeichnet,
  * als Linien in der Farbe der Überschrift – so passen sie zu jedem Farbschema.
  */
-defineProps<{ name: 'phone' | 'mail' | 'calendar' | 'bell' | 'cart' | 'check' | 'pot' }>();
+defineProps<{ name: 'phone' | 'mail' | 'calendar' | 'bell' | 'cart' | 'check' | 'radio' | 'pot' }>();
 </script>
 
 <template>
@@ -14,6 +14,7 @@ defineProps<{ name: 'phone' | 'mail' | 'calendar' | 'bell' | 'cart' | 'check' | 
     <path v-else-if="name === 'bell'" d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Zm4 4.5a2 2 0 0 0 4 0" />
     <path v-else-if="name === 'cart'" d="M2.5 4h2.7l2.3 10.5h10.3L20 7H6.3M9.5 19.3a.8.8 0 1 0 0-1.6.8.8 0 0 0 0 1.6Zm7.5 0a.8.8 0 1 0 0-1.6.8.8 0 0 0 0 1.6Z" />
     <path v-else-if="name === 'check'" d="M7 4h10a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Zm1 8.5 3 3 5-6.5" />
+    <path v-else-if="name === 'radio'" d="M5 8h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Zm2 0 9-4.5M8.5 16.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm6-4h3.5m-3.5 3.5h3.5" />
     <path v-else d="M5 10.5h14V16a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3v-5.5Zm-2.5 0h19M9.5 7c0-1.2 1-1.3 1-2.5M13.5 7c0-1.2 1-1.3 1-2.5" />
   </svg>
 </template>
