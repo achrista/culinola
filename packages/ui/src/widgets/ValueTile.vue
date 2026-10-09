@@ -30,6 +30,11 @@ const props = defineProps<{
     warn?: Warn;
     /** Übersetzt Zustandswerte in Text, z. B. { "0": "aus", "1": "läuft", "3": "fertig" }. */
     map?: Record<string, string>;
+    /**
+     * Bereich des Werts für die Ringanzeige: In einer Kachel, die hoch genug ist, steht der Wert dann in einem Ring,
+     * der sich mit ihm füllt – etwa Ladestand, Leistung oder Füllstand. In einer flachen Kachel bleibt es bei der Zahl.
+     */
+    gauge?: { min?: number; max: number };
   };
 }>();
 
@@ -58,6 +63,17 @@ const status = computed(() => {
   if ((warn.highWarn !== undefined && value >= warn.highWarn) || (warn.lowWarn !== undefined && value <= warn.lowWarn)) return 'warn';
   return 'ok';
 });
+
+/** Anteil des Rings, der gefüllt ist: 0 bis 1. */
+const filled = computed(() => {
+  const value = mainValue.value;
+  const gauge = props.config.gauge;
+  if (!gauge || typeof value !== 'number') return 0;
+  const min = gauge.min ?? 0;
+  return gauge.max > min ? Math.min(1, Math.max(0, (value - min) / (gauge.max - min))) : 0;
+});
+// Der Ring ist ein Dreiviertelkreis, unten offen: Umfang 2·π·42, davon drei Viertel
+const ARC = 2 * Math.PI * 42 * 0.75;
 
 // Verlaufslinie der letzten Stunde: einmal laden, danach mit jedem neuen Wert fortschreiben
 const history = ref<number[]>([]);
@@ -92,7 +108,7 @@ const sparkline = computed(() => {
 </script>
 
 <template>
-  <section class="tile">
+  <section class="tile" :class="{ 'has-gauge': !!config.gauge }">
     <!-- Die innere Hülle trägt die Anordnung, damit sie sich nach der Größe der Kachel richten kann -->
     <div class="tile-row">
     <header>
@@ -105,6 +121,21 @@ const sparkline = computed(() => {
       <span class="unit">{{ unit }}</span>
       <svg v-if="sparkline && mapped === undefined" class="spark" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true"><polyline :points="sparkline" /></svg>
     </div>
+    </div>
+    <!-- Ringanzeige: nur in Kacheln, die hoch genug dafür sind -->
+    <div v-if="config.gauge" class="gauge">
+      <div class="ring" :class="status">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="track" cx="50" cy="50" r="42" :stroke-dasharray="`${ARC} 264`" />
+          <circle class="fill" cx="50" cy="50" r="42" :stroke-dasharray="`${ARC * filled} 264`" />
+        </svg>
+        <span class="center">
+          <span class="value">{{ display }}</span>
+          <span class="unit">{{ unit }}</span>
+        </span>
+        <span class="name">{{ config.label ?? main?.label ?? config.datapoint }}</span>
+      </div>
+      <span v-if="secondary && secondaryConfig" class="below">{{ formatValue(scale(secondary.value, secondaryConfig.factor), secondaryConfig.decimals) }} {{ secondaryConfig.unit ?? secondary.unit }}</span>
     </div>
   </section>
 </template>
@@ -230,6 +261,104 @@ header {
 @container (max-height: 58px) and (max-width: 190px) {
   .secondary {
     display: none;
+  }
+}
+
+/* Ringanzeige: Der Wert steht in einem Ring, der Name im offenen Teil darunter, der Nebenwert unter dem Ring. */
+.gauge {
+  display: none;
+}
+@container (min-height: 110px) {
+  .has-gauge .tile-row {
+    display: none;
+  }
+  .has-gauge .gauge {
+    box-sizing: border-box;
+    height: 100%;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+}
+.ring {
+  position: relative;
+  flex: 0 1 auto;
+  height: min(100cqh - 12px, 100cqw - 12px);
+  aspect-ratio: 1;
+  min-height: 0;
+}
+/* Mit Nebenwert darunter bleibt dem Ring etwas weniger Höhe */
+.gauge:has(.below) .ring {
+  height: min(100cqh - 40px, 100cqw - 12px);
+}
+.ring svg {
+  width: 100%;
+  height: 100%;
+  /* Der Ring beginnt links unten und endet rechts unten */
+  transform: rotate(135deg);
+}
+.ring circle {
+  fill: none;
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+.track {
+  stroke: var(--soft);
+}
+.fill {
+  stroke: var(--accent);
+  transition: stroke-dasharray 0.6s ease;
+}
+.ring.ok .fill {
+  stroke: var(--ok);
+}
+.ring.warn .fill {
+  stroke: var(--warn);
+}
+.ring.alarm .fill {
+  stroke: var(--alarm);
+}
+.center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 3px;
+  /* etwas über der Mitte, weil unten der Name steht */
+  padding-top: 31%;
+}
+.gauge .value {
+  font-size: clamp(22px, min(30cqh, 26cqw), 64px);
+}
+.gauge .unit {
+  font-size: clamp(12px, 9cqh, 18px);
+}
+.gauge .name {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 9%;
+  text-align: center;
+  color: var(--mute);
+  font-size: clamp(11px, 9cqh, 16px);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.below {
+  flex: none;
+  font-family: var(--font-num);
+  font-size: clamp(15px, 13cqh, 24px);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    transition: none;
   }
 }
 </style>

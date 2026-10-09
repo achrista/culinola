@@ -91,8 +91,8 @@ function place(widget: Widget) {
   display: grid;
   gap: var(--gap);
 }
-/* Die Kacheln heben sich vom Grund ab, wo das Farbschema es vorsieht; die Uhr regelt das selbst, weil sie meist ohne Fläche dasteht */
-.grid > :not(.clock) {
+/* Die Kacheln heben sich vom Grund ab, wo das Farbschema es vorsieht; Uhr und Anwesenheit regeln das selbst, weil sie keine eigene Fläche haben */
+.grid > :not(.clock, .presence) {
   box-shadow: var(--shadow);
 }
 .notice,

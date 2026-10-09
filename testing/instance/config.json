@@ -540,6 +540,215 @@
           "config": {}
         }
       ]
+    },
+    "haus": {
+      "grid": {
+        "columns": 12,
+        "rows": 6
+      },
+      "widgets": [
+        {
+          "type": "value-tile",
+          "at": [
+            0,
+            0,
+            2,
+            2
+          ],
+          "config": {
+            "datapoint": "demo:solar",
+            "label": "PV",
+            "gauge": {
+              "max": 6000
+            }
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            2,
+            0,
+            2,
+            2
+          ],
+          "config": {
+            "datapoint": "demo:batterie",
+            "label": "Batterie",
+            "gauge": {
+              "max": 100
+            },
+            "warn": {
+              "lowWarn": 30,
+              "lowAlarm": 15
+            },
+            "decimals": 0
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            4,
+            0,
+            2,
+            2
+          ],
+          "config": {
+            "datapoint": "demo:verbrauch",
+            "label": "Verbrauch",
+            "gauge": {
+              "max": 6000
+            }
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            6,
+            0,
+            2,
+            2
+          ],
+          "config": {
+            "datapoint": "demo:auto_strom",
+            "label": "Stromer",
+            "secondary": "demo:auto_strom_km",
+            "gauge": {
+              "max": 100
+            },
+            "warn": {
+              "lowWarn": 30,
+              "lowAlarm": 15
+            },
+            "decimals": 0
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            8,
+            0,
+            2,
+            2
+          ],
+          "config": {
+            "datapoint": "demo:auto_tank",
+            "label": "Kombi",
+            "secondary": "demo:auto_tank_km",
+            "gauge": {
+              "max": 100
+            },
+            "warn": {
+              "lowWarn": 30,
+              "lowAlarm": 15
+            },
+            "decimals": 0
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            10,
+            0,
+            2,
+            1
+          ],
+          "config": {
+            "datapoint": "demo:batterie",
+            "label": "Batterie flach",
+            "gauge": {
+              "max": 100
+            },
+            "decimals": 0
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            10,
+            1,
+            1,
+            1
+          ],
+          "config": {
+            "datapoint": "demo:auto_tank",
+            "label": "Eng",
+            "gauge": {
+              "max": 100
+            },
+            "decimals": 0
+          }
+        },
+        {
+          "type": "presence",
+          "at": [
+            0,
+            2,
+            3,
+            2
+          ],
+          "config": {
+            "items": [
+              {
+                "datapoint": "demo:daheim_anna"
+              },
+              {
+                "datapoint": "demo:daheim_ben"
+              },
+              {
+                "datapoint": "demo:daheim_cleo"
+              },
+              {
+                "datapoint": "demo:daheim_dana"
+              }
+            ]
+          }
+        },
+        {
+          "type": "presence",
+          "at": [
+            3,
+            2,
+            5,
+            1
+          ],
+          "config": {
+            "items": [
+              {
+                "datapoint": "demo:daheim_anna"
+              },
+              {
+                "datapoint": "demo:daheim_ben",
+                "label": "Benjamin"
+              },
+              {
+                "datapoint": "demo:daheim_cleo"
+              },
+              {
+                "datapoint": "demo:fehlt",
+                "label": "Unbekannt"
+              }
+            ]
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            3,
+            3,
+            3,
+            3
+          ],
+          "config": {
+            "datapoint": "demo:auto_strom",
+            "label": "Stromer",
+            "secondary": "demo:auto_strom_km",
+            "gauge": {
+              "max": 100
+            },
+            "decimals": 0
+          }
+        }
+      ]
     }
   }
 }

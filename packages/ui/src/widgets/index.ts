@@ -8,6 +8,7 @@ import MailCard from './MailCard.vue';
 import MediaWindow from './MediaWindow.vue';
 import NewsCard from './NewsCard.vue';
 import NoteCard from './NoteCard.vue';
+import PresenceCard from './PresenceCard.vue';
 import RadioBar from './RadioBar.vue';
 import RecipeCard from './RecipeCard.vue';
 import ReminderCard from './ReminderCard.vue';
@@ -26,6 +27,7 @@ export const widgets: Record<string, Component> = {
   calls: CallCard,
   clock: ClockCard,
   note: NoteCard,
+  presence: PresenceCard,
   news: NewsCard,
   radio: RadioBar,
   recipes: RecipeCard,

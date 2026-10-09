@@ -82,7 +82,8 @@ Unter `layouts` dürfen mehrere Layouts stehen. Eine Anzeige zeigt `main`, mit d
 | Typ | Zeigt | Wichtigste Angaben |
 |---|---|---|
 | `clock` | Uhrzeit mit Sekunden und Datum; Antippen stellt die Eieruhr | `timer` (Eieruhr-Instanz) |
-| `value-tile` | Messwert mit Statuspunkt und Verlaufslinie; eine Rasterzeile hoch zeigt sie alles in einer Zeile | `datapoint`, `label`, `secondary`, `unit`, `decimals`, `factor`, `warn`, `map` |
+| `value-tile` | Messwert mit Statuspunkt und Verlaufslinie; eine Rasterzeile hoch zeigt sie alles in einer Zeile. Mit `gauge` steht der Wert in einer hohen Kachel in einem Ring, der sich mit ihm füllt – für Leistung, Ladestand oder Tankfüllung, mit dem Nebenwert (etwa der Reichweite) darunter | `datapoint`, `label`, `secondary`, `unit`, `decimals`, `factor`, `warn`, `map`, `gauge` (`{ "max": 100 }`, auf Wunsch mit `min`) |
+| `presence` | Wer zu Hause ist: je Person ein Feld mit Namen und „daheim“ oder „weg“. Als anwesend gilt ein eingeschalteter Schalter, eine Zahl über null oder ein Text wie `home` oder `daheim` | `items` (Liste aus `datapoint` und `label`), `home` (eigene Texte für „daheim“) |
 | `switches` | Feld von Schaltern, das sich dem Platz anpasst | `items: [{ datapoint, label }]` |
 | `chart` | Zeitverlauf für heute, Woche, Monat | `title`, `series: [{ datapoint, label, area, forecast }]` |
 | `note` | Hält einen Platz frei und beschriftet ihn | `title`, `text` |

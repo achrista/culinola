@@ -218,5 +218,10 @@
     "offline": "not connected",
     "noGroup": "The account for the list is not a member of any group yet.",
     "notFound": "The list “{list}” was not found."
+  },
+  "presence": {
+    "home": "home",
+    "away": "away",
+    "unknown": "unknown"
   }
 }

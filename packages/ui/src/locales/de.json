@@ -218,5 +218,10 @@
     "offline": "nicht verbunden",
     "noGroup": "Das Konto für die Liste ist noch in keiner Gruppe Mitglied.",
     "notFound": "Die Liste „{list}“ wurde nicht gefunden."
+  },
+  "presence": {
+    "home": "daheim",
+    "away": "weg",
+    "unknown": "unbekannt"
   }
 }

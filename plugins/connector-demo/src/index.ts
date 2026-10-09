@@ -161,6 +161,16 @@ export default definePlugin({
         context.datapoints.set({ id, value: Math.round(curve.at(hourOf(now), now) * 10) / 10, unit: curve.unit, label: curve.label });
       }
       context.datapoints.set({ id: 'waschen', value: 'läuft', label: 'Waschmaschine' });
+      // Zwei Autos – eines lädt tagsüber, eines wird leergefahren – und wer gerade zu Hause ist
+      const charge = Math.round(Math.min(100, 35 + hourOf(now) * 3));
+      context.datapoints.set({ id: 'auto_strom', value: charge, unit: '%', label: 'Stromer' });
+      context.datapoints.set({ id: 'auto_strom_km', value: Math.round(charge * 4.7), unit: 'km', label: 'Stromer: Reichweite' });
+      context.datapoints.set({ id: 'auto_tank', value: 18, unit: '%', label: 'Kombi' });
+      context.datapoints.set({ id: 'auto_tank_km', value: 130, unit: 'km', label: 'Kombi: Reichweite' });
+      context.datapoints.set({ id: 'daheim_anna', value: true, label: 'Anna' });
+      context.datapoints.set({ id: 'daheim_ben', value: 'daheim', label: 'Ben' });
+      context.datapoints.set({ id: 'daheim_cleo', value: false, label: 'Cleo' });
+      context.datapoints.set({ id: 'daheim_dana', value: 'weg', label: 'Dana' });
       publishWeather(now);
       for (const [id, on] of switches) context.datapoints.set({ id, value: on, writable: true });
       context.datapoints.set({ id: 'ringing', value: Math.floor(now / 1000) % 180 < 20 ? '0821 5550101' : '' });
