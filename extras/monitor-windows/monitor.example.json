@@ -1,8 +1,5 @@
 {
-  "server": "http://192.168.178.10:8090",
-  "token": "",
-  "off": "monitor-aus",
-  "on": "monitor-an",
-  "datapoint": "",
+  "openhab": "http://192.168.178.10:8080",
+  "item": "Kueche_Display",
   "keepOnSeconds": 60
 }

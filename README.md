@@ -142,7 +142,7 @@ POST /api/v1/events/hausglocke
 
 Ein Rumpf `{ "text": "Paket an der Tür" }` ersetzt den eingerichteten Text für dieses eine Mal. In einer openHAB-Regel: `sendHttpPostRequest("http://<server>:8090/api/v1/events/hausglocke", "application/json", "{}")`; ist die API geschützt, kommt das Token eines Zugangs der Stufe `control` als Kopfzeile `Authorization: Bearer …` dazu. `GET /api/v1/events` nennt die eingerichteten Meldungen; fremde Programme hören sie über den Echtzeitkanal mit (`event/*`).
 
-**Monitor ein und aus.** Den Bildschirm des Anzeigerechners kann ein Browser nicht schalten. Dafür liegt unter [extras/monitor-windows](extras/monitor-windows/README.md) ein kleines Skript für Windows, das am Echtzeitkanal mithört und den Monitor nach einem Datenpunkt oder auf zwei Meldungen hin aus- und einschaltet.
+**Monitor ein und aus.** Den Bildschirm des Anzeigerechners kann ein Browser nicht schalten. Dafür liegt unter [extras/monitor-windows](extras/monitor-windows/README.md) ein kleines Skript für Windows, das den Monitor aus- und einschaltet: nach einem Schalter in openHAB, nach einem Datenpunkt von Culinola oder auf zwei Meldungen hin.
 
 ### Gesicherte Verbindung (HTTPS)
 

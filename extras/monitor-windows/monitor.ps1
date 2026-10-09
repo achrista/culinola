@@ -8,6 +8,9 @@
       Haussteuerung über POST /api/v1/events/<name> auslöst, oder
     * nach einem Datenpunkt: eingeschaltet oder größer als null heißt "an", sonst "aus".
 
+  Wo openHAB das Haus steuert, geht es auch ohne Culinola: Mit "openhab" und "item" in den Einstellungen fragt
+  das Skript den Schalter dort direkt ab.
+
   Es gehört nicht zu Culinola selbst: Ein Browser kann keinen Monitor schalten, und wie das geht,
   hängt am Betriebssystem. Die Einstellungen stehen in monitor.json neben dieser Datei.
 
@@ -36,7 +39,10 @@ function Write-Log([string]$Text) {
 
 if (-not (Test-Path $Config)) { Write-Log "Einstellungen fehlen: $Config (Vorlage: monitor.example.json)"; exit 1 }
 $settings = Get-Content -Path $Config -Raw -Encoding UTF8 | ConvertFrom-Json
-if (-not $settings.server) { Write-Log 'In monitor.json fehlt "server", etwa http://192.168.178.10:8090'; exit 1 }
+$openhab = ([string]$settings.openhab).TrimEnd('/')
+$item = [string]$settings.item
+if ($openhab -and -not $item) { Write-Log 'In monitor.json fehlt "item", der Name des Schalters in openHAB'; exit 1 }
+if (-not $openhab -and -not $settings.server) { Write-Log 'In monitor.json fehlt "server" (Adresse von Culinola) oder "openhab" mit "item"'; exit 1 }
 $onEvent = if ($settings.on) { [string]$settings.on } else { 'monitor-an' }
 $offEvent = if ($settings.off) { [string]$settings.off } else { 'monitor-aus' }
 $datapoint = [string]$settings.datapoint
@@ -66,7 +72,7 @@ $script:state = ''
 function Set-Monitor([bool]$On, [string]$Why) {
   $wanted = if ($On) { 'an' } else { 'aus' }
   # Ein Datenpunkt meldet seinen Wert immer wieder; geschaltet wird nur bei einem Wechsel
-  if ($datapoint -and $script:state -eq $wanted) { return }
+  if (($datapoint -or $openhab) -and $script:state -eq $wanted) { return }
   $script:state = $wanted
   if ($DryRun) { Write-Log "Probelauf: Monitor $wanted ($Why)"; return }
   Write-Log "Monitor $wanted ($Why)"
@@ -77,6 +83,36 @@ function Test-On($Value) {
   if ($Value -is [bool]) { return $Value }
   if ($Value -is [int] -or $Value -is [long] -or $Value -is [double] -or $Value -is [decimal]) { return $Value -gt 0 }
   return @('on', 'an', 'true', 'ein') -contains ([string]$Value).Trim().ToLower()
+}
+
+# Direkt aus openHAB: Der Schalter wird alle paar Sekunden abgefragt. Das braucht kein Culinola und läuft auch,
+# wenn dessen Rechner aus ist.
+if ($openhab) {
+  $every = if ($null -ne $settings.pollSeconds) { [Math]::Max(1, [int]$settings.pollSeconds) } else { 2 }
+  $headers = @{ Accept = 'text/plain' }
+  if ($settings.openhabToken) { $headers['Authorization'] = 'Bearer ' + [string]$settings.openhabToken }
+  $dry = if ($DryRun) { ' (Probelauf, es wird nicht geschaltet)' } else { '' }
+  Write-Log "Monitorsteuerung gestartet: openHAB $openhab, Schalter $item$dry"
+  $trouble = ''
+  $reminded = Get-Date
+  while ($true) {
+    try {
+      $answer = Invoke-WebRequest -UseBasicParsing -Uri "$openhab/rest/items/$([Uri]::EscapeDataString($item))/state" -Headers $headers -TimeoutSec 5
+      $value = ([string]$answer.Content).Trim()
+      if ($trouble) { Write-Log 'openHAB wieder erreichbar.'; $trouble = '' }
+      # NULL und UNDEF: Der Schalter wurde noch nie gesetzt - dann bleibt der Monitor, wie er ist
+      if ($value -eq 'ON' -or $value -eq 'OFF') { Set-Monitor ($value -eq 'ON') "openHAB meldet $value" }
+    } catch {
+      $reason = $_.Exception.Message
+      if ($reason -ne $trouble) { Write-Log "openHAB nicht erreichbar: $reason" }
+      $trouble = $reason
+    }
+    if ($keepOn -gt 0 -and $script:state -eq 'an' -and -not $DryRun -and ((Get-Date) - $reminded).TotalSeconds -ge $keepOn) {
+      [Culinola.Screen]::On()
+      $reminded = Get-Date
+    }
+    Start-Sleep -Seconds $every
+  }
 }
 
 # Der Echtzeitkanal: dieselbe Adresse wie die Anzeige, nur als WebSocket
