@@ -85,11 +85,12 @@ Unter `layouts` dürfen mehrere Layouts stehen. Eine Anzeige zeigt `main`, mit d
 | `value-tile` | Messwert mit Statuspunkt und Verlaufslinie; eine Rasterzeile hoch zeigt sie alles in einer Zeile. Mit `gauge` steht der Wert in einer hohen Kachel in einem Ring, der sich mit ihm füllt – für Leistung, Ladestand oder Tankfüllung, mit dem Nebenwert (etwa der Reichweite) darunter | `datapoint`, `label`, `secondary`, `unit`, `decimals`, `factor`, `warn`, `map`, `gauge` (`{ "max": 100 }`, auf Wunsch mit `min`), `fresh` (Datenpunkt eines Schalters: ist er aus, steht die Kachel ausgegraut da – der Wert ist dann der letzte bekannte) |
 | `image` | Ein Bild von einer Webadresse, das sich von selbst erneuert, etwa das Standbild einer Webcam; Antippen zeigt es groß | `url`, `refreshSeconds` (Vorgabe 300), `label`, `fit` (`cover` oder `contain`) |
 | `presence` | Wer zu Hause ist: je Person ein Feld mit Namen und „daheim“ oder „weg“. Als anwesend gilt ein eingeschalteter Schalter, eine Zahl über null oder ein Text wie `home` oder `daheim` | `items` (Liste aus `datapoint` und `label`), `home` (eigene Texte für „daheim“) |
-| `switches` | Feld von Schaltern, das sich dem Platz anpasst | `items: [{ datapoint, label }]` |
+| `switches` | Feld von Schaltern, das sich dem Platz anpasst; ein Eintrag mit `"type": "cover"` bekommt drei Tasten zum Fahren – für Markise, Rollladen oder Jalousie – und zeigt die Stellung | `items: [{ datapoint, label }]`; je Eintrag `type` (`cover`), `up` und `down` (Beschriftung der Tasten, etwa „ein“ und „aus“) |
 | `chart` | Zeitverlauf für heute, Woche, Monat | `title`, `series: [{ datapoint, label, area, forecast }]` |
 | `note` | Hält einen Platz frei und beschriftet ihn | `title`, `text` |
 | `radio` | Sendertasten, Lautstärke, laufender Titel | `source` (Radio-Instanz) |
 | `voice` | Sprechen statt tippen: antippen, einen Satz sagen; die Antwort erscheint unten auf der Anzeige und wird vorgelesen | `source` (Vorgabe `voice`), `title`, `speak` (`false` schaltet das Vorlesen ab), `wakeWord` (Aktivierungswort, etwa `computer`) |
+| `video` (mit `tv`) | Die Kamerakachel kann auch das Fernsehen übernehmen: Mit `"tv": "radio"` zeigt sie das Bild eines laufenden Fernsehsenders samt Ton, und das Kamerabild weicht so lange | zusätzlich `tv` (Radio-Instanz) |
 | `video` | Live-Bild einer Kamera oder eines Streams; Antippen füllt den Bildschirm | `source` (Video-Instanz), `stream`, `label` |
 | `media-window` | Fernsehbild beim Fernsehsender, Logo beim Radiosender | `source` (Radio-Instanz), `video` (Video-Instanz), `idle` |
 | `news` | Eine Meldung mit Bild, reihum aus allen Feeds; Antippen öffnet den Artikel | `source` (Nachrichten-Instanz), `feeds`, `seconds`, `closeAfter` |

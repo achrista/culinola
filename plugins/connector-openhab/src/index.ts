@@ -1,5 +1,5 @@
 import { definePlugin, type PluginContext, type SeriesPoint } from '@culinola/sdk';
-import { isSwitchable, itemFromTopic, parseState, toCommand } from './parse.ts';
+import { isMovable, isSwitchable, itemFromTopic, parseState, toCommand } from './parse.ts';
 
 interface Config {
   /** Adresse von openHAB, z. B. "http://openhab:8080". */
@@ -47,7 +47,7 @@ export default definePlugin<Config>({
       const type = types.get(name);
       if (type === undefined) return;
       const parsed = parseState(state, type);
-      context.datapoints.set({ id: name, ...parsed, ...(label ? { label } : {}), writable: isSwitchable(type) });
+      context.datapoints.set({ id: name, ...parsed, ...(label ? { label } : {}), writable: isSwitchable(type) || isMovable(type) });
     };
 
     // Ausgangsstand: alle Items einmal lesen

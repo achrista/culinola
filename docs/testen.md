@@ -135,6 +135,10 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] Die Eieruhr auf wenige Sekunden stellen: Läuft sie ab, erscheint von selbst „Die Eieruhr ist abgelaufen.“ – ausgelöst durch den Datenpunkt, ohne Aufruf von außen.
 - [ ] Eine unbekannte Meldung (`…/events/gibt-es-nicht`) wird mit 404 abgelehnt.
 
+**Fernsehen in der Kamerakachel, Markise** (Layout `zweites`: <http://localhost:8191/?layout=zweites>)
+- [ ] Die Kachel „Kamera“ hat in der Testinstanz kein Bild, trägt aber ihren Namen. In der Radioleiste „Testbild“ wählen: Die Kachel heißt jetzt „Testbild“ – das Fernsehen hat sie übernommen. „Aus“ gibt sie der Kamera zurück.
+- [ ] Markise: ▼ fährt aus, die Prozentzahl daneben läuft bis 100; ■ hält an, ▲ fährt ein. Im Hauptbild heißen die Tasten „ein“ und „aus“.
+
 **Sonne und Mond** (Layout `haus`)
 - [ ] Drei Kacheln für drei Orte der Erde – Deutschland, Tokio, San Francisco –, damit immer eine den Tag und eine die Nacht zeigt: Am Tag wandert die Sonne mit Strahlenkranz über den Bogen, nachts der Mond in seiner Phase vor funkelnden Sternen; unten stehen Auf- und Untergang und die Tageslänge, oben was als Nächstes kommt und die Mondphase.
 - [ ] <http://localhost:8191/?layout=haus&theme=glut&night=nacht>: Ist in Deutschland die Sonne unter, zeigt die Anzeige das Schema „Nacht“, sonst „Glut“; ohne `night` bleibt es bei „Glut“.

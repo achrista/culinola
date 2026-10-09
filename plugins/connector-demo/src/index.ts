@@ -139,6 +139,17 @@ export default definePlugin({
       ['licht_terrasse', false],
     ]);
 
+    // Eine Markise: 0 % eingefahren, 100 % ausgefahren; sie fährt in kleinen Schritten zu ihrem Ziel
+    const awning = { position: 0, target: 0 };
+    const publishAwning = () => context.datapoints.set({ id: 'markise', value: awning.position, unit: '%', label: 'Markise', writable: true });
+    const drive = setInterval(() => {
+      if (awning.position === awning.target) return;
+      awning.position += Math.sign(awning.target - awning.position) * Math.min(10, Math.abs(awning.target - awning.position));
+      publishAwning();
+    }, 500);
+    context.signal.addEventListener('abort', () => clearInterval(drive));
+    publishAwning();
+
     // Wetter zum Vorzeigen: Der Wind dreht in einer Stunde einmal rundum, der UV-Index folgt dem Sonnenstand.
     const publishWeather = (now: number) => {
       const hour = hourOf(now);
@@ -187,6 +198,11 @@ export default definePlugin({
     context.signal.addEventListener('abort', () => clearInterval(timer));
 
     context.onCommand((id: string, value: DatapointValue) => {
+      if (id === 'markise') {
+        if (value !== 'up' && value !== 'down' && value !== 'stop') return Promise.reject(new Error('Die Markise versteht nur up, down und stop.'));
+        awning.target = value === 'up' ? 0 : value === 'down' ? 100 : awning.position;
+        return Promise.resolve();
+      }
       if (!switches.has(id)) return Promise.reject(new Error(`"${id}" ist kein Schalter.`));
       switches.set(id, value === true);
       context.datapoints.set({ id, value: value === true, writable: true });

@@ -19,7 +19,10 @@
     "stale": "The value is not current"
   },
   "switches": {
-    "failed": "Switching failed: {error}"
+    "failed": "Switching failed: {error}",
+    "up": "{name} up",
+    "stop": "Stop {name}",
+    "down": "{name} down"
   },
   "chart": {
     "title": "History",

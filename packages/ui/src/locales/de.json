@@ -19,7 +19,10 @@
     "stale": "Der Wert ist nicht aktuell"
   },
   "switches": {
-    "failed": "Schalten fehlgeschlagen: {error}"
+    "failed": "Schalten fehlgeschlagen: {error}",
+    "up": "{name} hoch oder einfahren",
+    "stop": "{name} anhalten",
+    "down": "{name} herunter oder ausfahren"
   },
   "chart": {
     "title": "Verlauf",

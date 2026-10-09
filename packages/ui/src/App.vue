@@ -51,7 +51,7 @@ function collectIds(value: unknown, found: Set<string>): void {
   else if (value && typeof value === 'object') {
     for (const [key, entry] of Object.entries(value)) {
       // Widgets, die an einer ganzen Quelle hängen (Radio, Video, Eieruhr), brauchen alle ihre Datenpunkte
-      if ((key === 'source' || key === 'timer') && typeof entry === 'string') found.add(`${entry}:*`);
+      if ((key === 'source' || key === 'timer' || key === 'tv') && typeof entry === 'string') found.add(`${entry}:*`);
       else collectIds(entry, found);
     }
   }

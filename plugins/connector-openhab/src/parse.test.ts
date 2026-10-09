@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSwitchable, itemFromTopic, parseState, toCommand } from './parse.ts';
+import { isMovable, isSwitchable, itemFromTopic, parseState, toCommand } from './parse.ts';
 
 describe('parseState', () => {
   it('trennt Zahl und Einheit', () => {
@@ -26,6 +26,17 @@ describe('parseState', () => {
   it('lässt Text unverändert', () => {
     expect(parseState('partly-cloudy-day', 'String')).toEqual({ value: 'partly-cloudy-day', quality: 'good' });
     expect(parseState('ON', 'String')).toEqual({ value: 'ON', quality: 'good' });
+  });
+});
+
+describe('Fahren', () => {
+  it('kennt Rollläden und übersetzt die Fahrbefehle', () => {
+    expect(isMovable('Rollershutter')).toBe(true);
+    expect(isMovable('Switch')).toBe(false);
+    expect(['up', 'down', 'stop'].map(toCommand)).toEqual(['UP', 'DOWN', 'STOP']);
+    // Anderes bleibt, wie es ist – etwa eine Stellung in Prozent
+    expect(toCommand(40)).toBe('40');
+    expect(toCommand('UP')).toBe('UP');
   });
 });
 

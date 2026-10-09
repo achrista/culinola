@@ -6,6 +6,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { AccessToken } from './access.ts';
 import { ActionRegistry } from './actions.ts';
+import { registerBuiltinActions } from './builtin.ts';
 import type { AppConfig } from './config.ts';
 import { EventHub, parseEvents } from './events.ts';
 import { PluginHost } from './plugins.ts';
@@ -42,6 +43,7 @@ async function core(access: readonly AccessToken[]): Promise<FastifyInstance> {
   const registry = new DatapointRegistry();
   const actions = new ActionRegistry();
   const plugins = new PluginHost(registry, actions, {}, quiet, dataDir);
+  registerBuiltinActions(actions, registry, plugins);
   const events = new EventHub(config.events ?? {}, quiet);
   registry.on('change', (datapoint) => events.observe(datapoint));
   hosts.push(plugins);
@@ -105,6 +107,18 @@ describe('Kern mit Plugins, API offen', () => {
     expect(empty.statusCode).toBe(400);
     expect(empty.json<{ error: string }>().error).toMatch(/mindestens eine Sekunde/);
     expect((await app.inject({ method: 'POST', url: '/api/v1/actions/gibt.es.nicht', payload: {} })).statusCode).toBe(404);
+  });
+
+  it('fährt eine Markise und weist ab, was sich nicht fahren lässt', async () => {
+    const move = (payload: object) => app.inject({ method: 'POST', url: '/api/v1/actions/cover.move', payload });
+    expect((await move({ datapoint: 'demo:markise', direction: 'down' })).statusCode).toBe(200);
+    await new Promise((resume) => setTimeout(resume, 700));
+    const position = (await app.inject('/api/v1/datapoints/demo:markise')).json<Datapoint>().value as number;
+    expect(position).toBeGreaterThan(0);
+    expect((await move({ datapoint: 'demo:markise', direction: 'stop' })).statusCode).toBe(200);
+    for (const payload of [{ datapoint: 'demo:markise', direction: 'seitwärts' }, { datapoint: 'demo:temp_bad', direction: 'up' }, { datapoint: 'demo:gibt-es-nicht', direction: 'up' }, { datapoint: 'demo:markise' }]) {
+      expect((await move(payload)).statusCode, JSON.stringify(payload)).toBe(400);
+    }
   });
 
   it('führt das Verzeichnis der Aktionen', async () => {

@@ -46,6 +46,11 @@
             "name": "Bayern 2",
             "kind": "audio",
             "url": "http://dispatcher.rndfnk.com/br/br2/live/mp3/mid"
+          },
+          {
+            "id": "testbild",
+            "name": "Testbild",
+            "kind": "video"
           }
         ]
       }
@@ -279,6 +284,13 @@
               {
                 "datapoint": "demo:licht_terrasse",
                 "label": "Terrasse"
+              },
+              {
+                "datapoint": "demo:markise",
+                "label": "Markise",
+                "type": "cover",
+                "up": "ein",
+                "down": "aus"
               }
             ]
           }
@@ -493,6 +505,54 @@
             "datapoint": "demo:temp_aussen",
             "label": "Außen",
             "decimals": 1
+          }
+        },
+        {
+          "type": "video",
+          "at": [
+            6,
+            0,
+            6,
+            3
+          ],
+          "config": {
+            "stream": "kamera",
+            "label": "Kamera",
+            "tv": "radio"
+          }
+        },
+        {
+          "type": "radio",
+          "at": [
+            0,
+            3,
+            6,
+            2
+          ],
+          "config": {
+            "source": "radio"
+          }
+        },
+        {
+          "type": "switches",
+          "at": [
+            6,
+            3,
+            6,
+            1
+          ],
+          "config": {
+            "items": [
+              {
+                "datapoint": "demo:licht_esstisch",
+                "label": "Esstisch"
+              },
+              {
+                "datapoint": "demo:markise",
+                "label": "Markise",
+                "type": "cover"
+              }
+            ]
           }
         }
       ]

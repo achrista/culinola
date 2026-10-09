@@ -39,10 +39,19 @@ export function isSwitchable(itemType: string): boolean {
   return SWITCHABLE.has(itemType);
 }
 
+/** Item-Arten, die sich fahren lassen: Rollläden, Jalousien, Markisen. */
+export function isMovable(itemType: string): boolean {
+  return itemType === 'Rollershutter';
+}
+
+const MOVES: Record<string, string> = { up: 'UP', down: 'DOWN', stop: 'STOP' };
+
 /** Übersetzt einen Culinola-Wert in einen openHAB-Befehl. */
 export function toCommand(value: DatapointValue): string {
   if (value === true) return 'ON';
   if (value === false) return 'OFF';
+  // Fahrbefehle heißen in Culinola „up“, „down“ und „stop“
+  if (typeof value === 'string' && MOVES[value]) return MOVES[value];
   if (value === null) throw new Error('Ein leerer Wert lässt sich nicht als Befehl senden.');
   return String(value);
 }

@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { Logger } from '@culinola/sdk';
-import { ActionRegistry, InvalidParams } from './actions.ts';
+import { ActionRegistry } from './actions.ts';
+import { registerBuiltinActions } from './builtin.ts';
 import { loadAccess, loadConfig, loadSecrets } from './config.ts';
 import { EventHub } from './events.ts';
 import { PluginHost } from './plugins.ts';
@@ -39,22 +40,7 @@ const events = new EventHub(config.events ?? {}, log);
 // Meldungen, die an einem Datenpunkt hängen, feuern, sobald er ihre Bedingung neu erfüllt
 registry.on('change', (datapoint) => events.observe(datapoint));
 
-actions.register(
-  {
-    name: 'switch.set',
-    description: 'Schaltet einen schaltbaren Datenpunkt ein oder aus, zum Beispiel ein Licht.',
-    params: {
-      datapoint: { type: 'string', description: 'Kennung des Datenpunkts, z. B. "openhab:Licht_Esstisch"', required: true },
-      on: { type: 'boolean', description: 'true = ein, false = aus', required: true },
-    },
-  },
-  async ({ datapoint, on }) => {
-    const target = registry.get(String(datapoint));
-    if (!target) throw new InvalidParams(`Datenpunkt "${datapoint}" ist unbekannt.`);
-    if (!target.writable) throw new InvalidParams(`Datenpunkt "${datapoint}" ist nicht schaltbar.`);
-    await plugins.command(target.id, on === true);
-  },
-);
+registerBuiltinActions(actions, registry, plugins);
 
 await plugins.startAll(config.sources);
 
