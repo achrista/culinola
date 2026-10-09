@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { AccessDenied, adoptTokenFromAddress, getJson } from './api.ts';
-import { applySite, type SiteSettings } from './i18n.ts';
-import { connect, connected, subscribe } from './store.ts';
+import { applySite, astroSource, nightTheme, setDaylight, type SiteSettings } from './i18n.ts';
+import { connect, connected, subscribe, datapoints } from './store.ts';
 import { widgets } from './widgets/index.ts';
 import EventLayer from './EventLayer.vue';
 
@@ -39,6 +39,7 @@ const DEFAULT_SOURCES: Record<string, string> = {
   news: 'news',
   radio: 'radio',
   recipes: 'recipes',
+  'sun-moon': 'astro',
   video: 'video',
   voice: 'voice',
 };
@@ -73,6 +74,8 @@ onMounted(async () => {
       const source = DEFAULT_SOURCES[widget.type];
       if (source && typeof (widget.config as { source?: unknown } | undefined)?.source !== 'string') ids.add(`${source}:*`);
     }
+    // Für den Wechsel zwischen Tag- und Nachtschema braucht jede Anzeige den Sonnenstand, gleich welches Layout sie zeigt
+    if (nightTheme.value) ids.add(`${astroSource.value}:day`);
     subscribe([...ids]);
     connect();
   } catch (cause) {
@@ -80,6 +83,14 @@ onMounted(async () => {
     error.value = cause instanceof Error ? cause.message : String(cause);
   }
 });
+
+// Tag und Nacht: Geht die Sonne unter, wechselt die Anzeige auf ihr Nachtschema – und am Morgen zurück
+watch(
+  () => (nightTheme.value ? datapoints.get(`${astroSource.value}:day`)?.value : undefined),
+  (day) => {
+    if (typeof day === 'boolean') setDaylight(day);
+  },
+);
 
 function place(widget: Widget) {
   const [x, y, w, h] = widget.at;

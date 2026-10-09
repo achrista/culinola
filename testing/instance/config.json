@@ -57,6 +57,30 @@
     {
       "id": "voice",
       "plugin": "voice"
+    },
+    {
+      "id": "astro",
+      "plugin": "source-astro",
+      "config": {
+        "latitude": 51.16,
+        "longitude": 10.45
+      }
+    },
+    {
+      "id": "astro-fern",
+      "plugin": "source-astro",
+      "config": {
+        "latitude": 35.68,
+        "longitude": 139.69
+      }
+    },
+    {
+      "id": "astro-west",
+      "plugin": "source-astro",
+      "config": {
+        "latitude": 37.77,
+        "longitude": -122.42
+      }
     }
   ],
   "layouts": {
@@ -739,9 +763,9 @@
         {
           "type": "value-tile",
           "at": [
+            6,
             3,
-            3,
-            3,
+            2,
             3
           ],
           "config": {
@@ -802,6 +826,40 @@
             "datapoint": "demo:temp_bad",
             "label": "Bad veraltet",
             "fresh": "demo:nie_frisch"
+          }
+        },
+        {
+          "type": "sun-moon",
+          "at": [
+            0,
+            4,
+            2,
+            2
+          ],
+          "config": {}
+        },
+        {
+          "type": "sun-moon",
+          "at": [
+            2,
+            4,
+            2,
+            2
+          ],
+          "config": {
+            "source": "astro-fern"
+          }
+        },
+        {
+          "type": "sun-moon",
+          "at": [
+            4,
+            4,
+            2,
+            2
+          ],
+          "config": {
+            "source": "astro-west"
           }
         }
       ]

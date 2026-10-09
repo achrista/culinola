@@ -99,6 +99,7 @@ Unter `layouts` dürfen mehrere Layouts stehen. Eine Anzeige zeigt `main`, mit d
 | `reminders` | Anstehende Geburtstage und andere wiederkehrende Tage; Antippen zeigt die Telefonnummern | `source` (Google-Instanz), `title` |
 | `mail` | E-Mails aller eingerichteten Postfächer, das Neueste zuerst; Antippen zeigt die Nachricht | `source` (Mail-Instanz), `title` |
 | `checklist` | Eine Einkaufs- oder Aufgabenliste zum Abhaken, eng in Spalten gesetzt; „+“ trägt neue Einträge ein | `source` (Listen-Instanz, Vorgabe `merkio`), `list` (Kennung oder Name, sonst die erste), `title`, `recentHours` (so lange bleibt Abgehaktes sichtbar, Vorgabe 12) |
+| `sun-moon` | Sonne und Mond: Die Sonne wandert über einen Bogen von ihrem Aufgang zu ihrem Untergang, nachts der Mond in seiner heutigen Gestalt; dazu Auf- und Untergang, Tageslänge und Mondphase | `source` (Vorgabe `astro`) |
 | `recipes` | Ein zufällig gewähltes Rezept mit Bild im Wechsel; Antippen öffnet es, der Pfeil die ganze Liste, in der sich auch neue Rezepte hinzufügen lassen | `source` (Rezept-Instanz), `title`, `seconds` |
 
 `map` übersetzt Zustandswerte in Text, etwa `{ "0": "aus", "1": "läuft", "3": "fertig" }`.
@@ -163,6 +164,8 @@ Das Aussehen der Anzeige bestimmt ein Farbschema. Gewählt wird es in `config.js
 | `signal` | Kühles Hell mit kräftigerem Grund; die Uhr steht als orangefarbene Fläche da |
 | `nacht` | Dunkel mit warmem Orange, die Kacheln durch eine feine Kante getrennt |
 | `spiegel` | Für die Anzeige hinter einem Spiegelglas: alles hell und kräftig auf Schwarz, ohne Kachelflächen |
+
+**Tag und Nacht.** Mit einem zweiten Schema für die Nacht wechselt die Anzeige von selbst: bei Sonnenuntergang auf das dunkle, bei Sonnenaufgang zurück. In der Konfiguration `"site": { "theme": "glut", "nightTheme": "nacht" }`, zum Ausprobieren an einer Anzeige `?theme=glut&night=nacht`. Wann die Sonne unter ist, sagt die Quelle `astro` (siehe [Sonne und Mond](#sonne-und-mond)); heißt sie anders, nennt `site.astro` ihre Kennung.
 
 Ein Schema besteht nur aus Werten – Farben, Rundung, Abstand, Schatten, Schrift der Überschriften, Farben der Uhr – in [theme.css](packages/ui/src/theme.css); ein eigenes ist ein weiterer Block dort.
 
@@ -330,6 +333,16 @@ Im Docker-Abbild geht stattdessen auch die Umgebungsvariable `ANTHROPIC_API_KEY`
 Ohne Schlüssel fehlt die Taste, alles andere läuft wie gewohnt. Ist die API durch Zugänge geschützt, braucht das Hinzufügen die Stufe `control`.
 
 Zu wissen: Die Vorlage wird zum Umwandeln an Anthropic übertragen, und jede Umwandlung kostet einen kleinen Betrag nach Verbrauch – der Kern schreibt die Zahl der Token ins Protokoll. Webadressen im eigenen Netz werden nicht gelesen. Das Ergebnis stammt von einem Sprachmodell: Mengen und Zeiten vor dem ersten Nachkochen mit der Vorlage vergleichen. Mit `importModel` und `importLanguage` (`de`, `en`, `fr`) in der Konfiguration des Plugins lassen sich Modell und Sprache der neuen Rezepte ändern.
+
+### Sonne und Mond
+
+Das Plugin `source-astro` rechnet für den eigenen Standort Sonnenauf- und -untergang, Dämmerung, Sonnenstand und Mondphase – im Kern, ohne einen Dienst von außen:
+
+```json
+{ "id": "astro", "plugin": "source-astro", "config": { "latitude": 48.37, "longitude": 10.9 } }
+```
+
+Die Kachel `sun-moon` zeichnet daraus den Tageslauf. Als Datenpunkte gibt es unter anderem `astro:day` (ob die Sonne über dem Horizont steht – daran hängt der Wechsel auf das Nachtschema), `astro:sunrise` und `astro:sunset`, `astro:dayLength`, `astro:sunAltitude`, `astro:moonPhase` und `astro:moonIllumination`. Sie lassen sich wie jeder andere Wert in Kacheln zeigen oder für Meldungen nutzen.
 
 ### Solar-Prognose
 

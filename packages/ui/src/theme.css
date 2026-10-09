@@ -223,6 +223,8 @@ body,
 body {
   background: var(--bg);
   color: var(--ink);
+  /* Der Wechsel zwischen Tag- und Nachtschema geschieht weich */
+  transition: background-color 1.5s, color 1.5s;
   font-family: var(--font-text);
   font-size: 16px;
   line-height: 1.3;

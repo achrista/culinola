@@ -244,5 +244,22 @@
   },
   "events": {
     "close": "Dismiss"
+  },
+  "sun": {
+    "sunrise": "Sunrise",
+    "sunset": "Sunset",
+    "span": "{h} h {min} min",
+    "setsIn": "Sets in {time}",
+    "risesIn": "Rises in {time}",
+    "moon": {
+      "new": "new moon",
+      "waxing-crescent": "waxing crescent",
+      "first-quarter": "first quarter",
+      "waxing-gibbous": "waxing gibbous",
+      "full": "full moon",
+      "waning-gibbous": "waning gibbous",
+      "last-quarter": "last quarter",
+      "waning-crescent": "waning crescent"
+    }
   }
 }

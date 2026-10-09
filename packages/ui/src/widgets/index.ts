@@ -13,6 +13,7 @@ import PresenceCard from './PresenceCard.vue';
 import RadioBar from './RadioBar.vue';
 import RecipeCard from './RecipeCard.vue';
 import ReminderCard from './ReminderCard.vue';
+import SunMoonCard from './SunMoonCard.vue';
 import SwitchField from './SwitchField.vue';
 import ValueTile from './ValueTile.vue';
 import VideoTile from './VideoTile.vue';
@@ -23,6 +24,7 @@ import WeatherCard from './WeatherCard.vue';
 export const widgets: Record<string, Component> = {
   'value-tile': ValueTile,
   switches: SwitchField,
+  'sun-moon': SunMoonCard,
   chart: ChartCard,
   checklist: ChecklistCard,
   calendar: CalendarCard,

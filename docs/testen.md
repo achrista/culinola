@@ -40,7 +40,7 @@ npm run test:instance
 
 Sie läuft auf <http://localhost:8191>, neben einer eigenen Installation auf Port 8090. Die Vorlage liegt in `testing/instance` und wird bei jedem Start frisch in einen Wegwerfordner gelegt; was dort verändert wird, ist nach dem nächsten Start vergessen.
 
-Die Testinstanz enthält: erfundene Messwerte, zwei Autos, vier Familienmitglieder, Schalter, Wetterdaten, Termine, Erinnerungen, E-Mails und Anrufe, Eieruhr, drei Rezepte (mit Bild, ohne Angaben, mit kaputten Angaben), Nachrichten aus zwei echten Feeds und einem unerreichbaren, einen Radiosender und absichtlich ein unbekanntes Widget. Nachrichten und Radio brauchen Internet. Die Einkaufsliste kommt von einem Platzhalter für Merkio (`plugins/source-merkio/src/standin.ts`) mit einer erfundenen Familie; er bildet Anmeldung, Listen, Einträge und Echtzeitkanal nach, ist aber nicht das echte Merkio. Für das Hinzufügen von Rezepten startet sie einen Platzhalter der Claude-API auf dem eigenen Rechner (`packages/recipe-import/src/standin.ts`): Er antwortet in der Form der echten Schnittstelle mit einem festen Rezept. So läuft der ganze Weg vom Hochladen bis zur Rezeptdatei, ohne dass etwas das Haus verlässt oder kostet – was das Sprachmodell aus einer echten Vorlage macht, prüft das nicht.
+Die Testinstanz enthält: Sonne und Mond für drei Orte, erfundene Messwerte, zwei Autos, vier Familienmitglieder, Schalter, Wetterdaten, Termine, Erinnerungen, E-Mails und Anrufe, Eieruhr, drei Rezepte (mit Bild, ohne Angaben, mit kaputten Angaben), Nachrichten aus zwei echten Feeds und einem unerreichbaren, einen Radiosender und absichtlich ein unbekanntes Widget. Nachrichten und Radio brauchen Internet. Die Einkaufsliste kommt von einem Platzhalter für Merkio (`plugins/source-merkio/src/standin.ts`) mit einer erfundenen Familie; er bildet Anmeldung, Listen, Einträge und Echtzeitkanal nach, ist aber nicht das echte Merkio. Für das Hinzufügen von Rezepten startet sie einen Platzhalter der Claude-API auf dem eigenen Rechner (`packages/recipe-import/src/standin.ts`): Er antwortet in der Form der echten Schnittstelle mit einem festen Rezept. So läuft der ganze Weg vom Hochladen bis zur Rezeptdatei, ohne dass etwas das Haus verlässt oder kostet – was das Sprachmodell aus einer echten Vorlage macht, prüft das nicht.
 
 ## Prüfliste Oberfläche
 
@@ -134,6 +134,10 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] `curl -X POST http://localhost:8191/api/v1/events/hausglocke`: Auf jeder offenen Anzeige erscheint oben die Tafel „Jemand klingelt an der Haustür!“, die Türglocke ertönt (nach einer Berührung der Seite), der Text wird vorgelesen; nach 15 Sekunden oder durch Antippen verschwindet sie.
 - [ ] Die Eieruhr auf wenige Sekunden stellen: Läuft sie ab, erscheint von selbst „Die Eieruhr ist abgelaufen.“ – ausgelöst durch den Datenpunkt, ohne Aufruf von außen.
 - [ ] Eine unbekannte Meldung (`…/events/gibt-es-nicht`) wird mit 404 abgelehnt.
+
+**Sonne und Mond** (Layout `haus`)
+- [ ] Drei Kacheln für drei Orte der Erde – Deutschland, Tokio, San Francisco –, damit immer eine den Tag und eine die Nacht zeigt: Am Tag wandert die Sonne mit Strahlenkranz über den Bogen, nachts der Mond in seiner Phase vor funkelnden Sternen; unten stehen Auf- und Untergang und die Tageslänge, oben was als Nächstes kommt und die Mondphase.
+- [ ] <http://localhost:8191/?layout=haus&theme=glut&night=nacht>: Ist in Deutschland die Sonne unter, zeigt die Anzeige das Schema „Nacht“, sonst „Glut“; ohne `night` bleibt es bei „Glut“.
 
 **Farbschema**
 - [ ] <http://localhost:8191/?theme=glut>, `schiefer`, `signal`, `nacht` und `spiegel` nacheinander: Jede Kachel bleibt lesbar, die Uhr trägt die Akzentfarbe (bei `signal` als Fläche), Überschriften, Schalter und Diagramm passen zum Schema. Ohne Zusatz gilt wieder „Klar“.

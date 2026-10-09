@@ -1,0 +1,14 @@
+{
+  "name": "@culinola/plugin-source-astro",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Sonne und Mond für einen Standort: Auf- und Untergang, Sonnenstand, Mondphase, Tag oder Nacht.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@culinola/sdk": "*"
+  }
+}

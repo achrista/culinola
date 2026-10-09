@@ -244,5 +244,22 @@
   },
   "events": {
     "close": "Meldung schließen"
+  },
+  "sun": {
+    "sunrise": "Sonnenaufgang",
+    "sunset": "Sonnenuntergang",
+    "span": "{h} h {min} min",
+    "setsIn": "Untergang in {time}",
+    "risesIn": "Aufgang in {time}",
+    "moon": {
+      "new": "Neumond",
+      "waxing-crescent": "zunehmende Sichel",
+      "first-quarter": "zunehmender Halbmond",
+      "waxing-gibbous": "zunehmender Mond",
+      "full": "Vollmond",
+      "waning-gibbous": "abnehmender Mond",
+      "last-quarter": "abnehmender Halbmond",
+      "waning-crescent": "abnehmende Sichel"
+    }
   }
 }
