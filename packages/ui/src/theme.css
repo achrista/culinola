@@ -1,4 +1,8 @@
-/* Design-Tokens des mitgelieferten Themes „Klar“. Ein Theme tauscht nur diese Werte. */
+/*
+ * Design-Tokens. Ein Farbschema tauscht nur diese Werte; gewählt wird es mit `site.theme`
+ * in der Konfiguration oder zum Ausprobieren mit dem Adresszusatz ?theme=name.
+ * Ohne Angabe gilt „Klar“, das dem hellen oder dunklen Modus des Geräts folgt.
+ */
 :root {
   --bg: #e7ebef;
   --card: #ffffff;
@@ -22,10 +26,30 @@
   --num-weight: 300;
   --radius: 6px;
   --gap: 4px;
+
+  /* Schrift direkt auf dem Hintergrund, etwa Meldungen ohne Kachel */
+  --bg-ink: var(--mute);
+  /* Schatten oder Rand, der eine Kachel vom Hintergrund abhebt */
+  --shadow: none;
+  /* Überschriften der Kacheln */
+  --title-ink: var(--ink);
+  --title-size: 16px;
+  --title-case: none;
+  --title-spacing: normal;
+  /* Die Uhr: Zeit, Datum, Fläche; die laufende Eieruhr und ihr Alarm */
+  --clock-ink: var(--ink);
+  --clock-mute: var(--mute);
+  --clock-bg: transparent;
+  --clock-shadow: none;
+  --clock-weight: var(--num-weight);
+  --timer-ink: var(--accent);
+  --clock-alarm-ink: var(--alarm);
+  --clock-alarm-bg: var(--clock-bg);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]),
+  :root[data-theme='klar'] {
     --bg: #0d1317;
     --card: #161f26;
     --ink: #e9eef2;
@@ -43,6 +67,150 @@
     --series-3: #f08a7a;
     --series-4: #5cc79b;
   }
+}
+
+/* „Glut“: warmes Hell. Sandfarbener Grund, fast weiße Kacheln mit weichem Schatten, Orange als Akzent. */
+:root[data-theme='glut'] {
+  --bg: #d8d0c4;
+  --card: #fffdf9;
+  --ink: #2a2420;
+  --mute: #655c53;
+  --line: #e4ddd2;
+  --soft: #f3eee7;
+  --accent: #c2410c;
+  --on-accent: #ffffff;
+  --none: #a59b8f;
+  --series-1: #e08a1e;
+  --radius: 10px;
+  --gap: 6px;
+  --bg-ink: #4d453d;
+  --shadow: 0 1px 2px rgba(70, 45, 20, 0.12), 0 4px 14px rgba(70, 45, 20, 0.1);
+  --title-ink: var(--accent);
+  --title-size: 13px;
+  --title-case: uppercase;
+  --title-spacing: 0.06em;
+  --clock-ink: var(--accent);
+  --clock-mute: #4d453d;
+  --clock-weight: 400;
+  --timer-ink: var(--ink);
+}
+
+/* „Schiefer“: dunkler Grund, helle Kacheln – der stärkste Abstand zwischen den Kacheln. */
+:root[data-theme='schiefer'] {
+  --bg: #39434e;
+  --card: #ffffff;
+  --ink: #17212b;
+  --mute: #51606d;
+  --line: #d8dee4;
+  --soft: #eef2f5;
+  --accent: #c2410c;
+  --on-accent: #ffffff;
+  --series-1: #e08a1e;
+  --radius: 8px;
+  --gap: 6px;
+  --bg-ink: #c3ccd5;
+  --title-ink: var(--accent);
+  --title-size: 13px;
+  --title-case: uppercase;
+  --title-spacing: 0.06em;
+  --clock-ink: #ffa257;
+  --clock-mute: #c3ccd5;
+  --clock-weight: 400;
+  --timer-ink: #ffffff;
+  --clock-alarm-ink: #ff9d8f;
+}
+
+/* „Signal“: kühles Hell mit kräftigerem Grund; die Uhr steht als orangefarbene Fläche da. */
+:root[data-theme='signal'] {
+  --bg: #cdd4db;
+  --card: #ffffff;
+  --ink: #17212b;
+  --mute: #51606d;
+  --line: #dce2e8;
+  --soft: #eef2f5;
+  --accent: #c2410c;
+  --on-accent: #ffffff;
+  --series-1: #e08a1e;
+  --radius: 12px;
+  --gap: 6px;
+  --bg-ink: #3d4a56;
+  --shadow: 0 1px 2px rgba(20, 35, 50, 0.1), 0 4px 14px rgba(20, 35, 50, 0.1);
+  --title-ink: var(--mute);
+  --title-size: 13px;
+  --title-case: uppercase;
+  --title-spacing: 0.06em;
+  --clock-ink: #ffffff;
+  --clock-mute: rgba(255, 255, 255, 0.9);
+  --clock-bg: var(--accent);
+  --clock-shadow: var(--shadow);
+  --clock-weight: 400;
+  --timer-ink: #ffffff;
+  --clock-alarm-ink: #ffffff;
+  --clock-alarm-bg: var(--alarm);
+}
+
+/* „Nacht“: dunkel mit warmem Orange – ruhig am Abend, die Kacheln durch eine feine Kante getrennt. */
+:root[data-theme='nacht'] {
+  --bg: #0b0c0e;
+  --card: #1b1d21;
+  --ink: #f0ece6;
+  --mute: #a9a59f;
+  --line: #2e3136;
+  --soft: #26292e;
+  --accent: #ff9447;
+  --on-accent: #231405;
+  --ok: #5cc79b;
+  --warn: #f2c94c;
+  --alarm: #f08a7a;
+  --none: #5d6168;
+  --series-1: #f0b93a;
+  --series-2: #4fb8dc;
+  --series-3: #f08a7a;
+  --series-4: #5cc79b;
+  --radius: 10px;
+  --gap: 6px;
+  --shadow: 0 0 0 1px rgba(255, 255, 255, 0.07);
+  --title-ink: var(--accent);
+  --title-size: 13px;
+  --title-case: uppercase;
+  --title-spacing: 0.06em;
+  --clock-ink: var(--accent);
+  --clock-weight: 400;
+  --timer-ink: var(--ink);
+}
+
+/*
+ * „Spiegel“: für die Anzeige hinter einem Spiegelglas. Schwarz bleibt dort Spiegel, also steht alles
+ * hell und kräftig auf schwarzem Grund – ohne Kachelflächen, mit stärkeren Ziffern und Linien.
+ */
+:root[data-theme='spiegel'] {
+  --bg: #000000;
+  --card: #000000;
+  --ink: #ffffff;
+  --mute: #cfcfcf;
+  --line: #4a4a4a;
+  --soft: #1f1f1f;
+  --accent: #ffa24d;
+  --on-accent: #1a0e02;
+  --ok: #6fdcae;
+  --warn: #ffd35c;
+  --alarm: #ff8f7d;
+  --none: #8a8a8a;
+  --series-1: #ffc04d;
+  --series-2: #6fd0f0;
+  --series-3: #ff8f7d;
+  --series-4: #6fdcae;
+  --num-weight: 400;
+  --radius: 8px;
+  --gap: 6px;
+  --shadow: 0 0 0 1px #2c2c2c;
+  --title-ink: var(--accent);
+  --title-size: 13px;
+  --title-case: uppercase;
+  --title-spacing: 0.06em;
+  --clock-ink: var(--accent);
+  --clock-weight: 500;
+  --timer-ink: var(--ink);
 }
 
 html,

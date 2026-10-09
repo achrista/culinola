@@ -106,6 +106,21 @@ Im Diagramm läuft „Heute“ von 0 bis 24 Uhr. Eine Reihe mit `forecast: true`
 
 `factor` rechnet einen Wert für die Anzeige um – etwa `100`, wenn die Quelle Feuchte als Bruchteil (0,58) statt in Prozent liefert.
 
+### Farbschema
+
+Das Aussehen der Anzeige bestimmt ein Farbschema. Gewählt wird es in `config.json` mit `"site": { "theme": "glut" }`; zum Ausprobieren genügt der Adresszusatz `?theme=glut` – er gilt nur für diese eine Anzeige und geht der Konfiguration vor.
+
+| Schema | Wirkung |
+|---|---|
+| `klar` (Vorgabe) | Kühles Hell mit Petrol; folgt dem hellen oder dunklen Modus des Geräts |
+| `glut` | Warmes Hell: sandfarbener Grund, Kacheln mit weichem Schatten, Orange als Akzent, die Uhr in Orange |
+| `schiefer` | Dunkler Grund mit hellen Kacheln – der stärkste Abstand zwischen den Kacheln |
+| `signal` | Kühles Hell mit kräftigerem Grund; die Uhr steht als orangefarbene Fläche da |
+| `nacht` | Dunkel mit warmem Orange, die Kacheln durch eine feine Kante getrennt |
+| `spiegel` | Für die Anzeige hinter einem Spiegelglas: alles hell und kräftig auf Schwarz, ohne Kachelflächen |
+
+Ein Schema besteht nur aus Werten – Farben, Rundung, Abstand, Schatten, Schrift der Überschriften, Farben der Uhr – in [theme.css](packages/ui/src/theme.css); ein eigenes ist ein weiterer Block dort.
+
 ### Wetter
 
 Das Wetter kommt aus Datenpunkten – etwa aus openHAB, das sie von einem Wetterdienst oder einer eigenen Station bezieht. Jede Angabe ist die Kennung eines Datenpunkts; was fehlt, lässt die Kachel weg:

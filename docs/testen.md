@@ -99,7 +99,7 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] Meldung der Deutschen Welle antippen: Ein eigenes Fenster in Bildschirmgröße öffnet sich. Wird es geschlossen, ist die Anzeige wieder frei; ohne Zutun schließt es sich nach 60 Sekunden von selbst.
 
 **Rezepte**
-- [ ] Beide Kacheln zeigen den Streifenkuchen mit Bild – nur dieses Rezept hat eines.
+- [ ] Beide Kacheln zeigen den Streifenkuchen mit Bild – nur dieses Rezept hat eines; Rezepte ohne Bild kommen im Wechsel nicht an die Reihe.
 - [ ] Antippen öffnet das Rezept: Angaben, Bild, Liste mit Kästchen, Verweis.
 - [ ] Der Titel des Browserfensters lautet weiter „Culinola“, der Skript-Text steht als Text da, die zwei fremden Bilder fehlen.
 - [ ] Der Pfeil öffnet die Liste mit drei Rezepten; „Kaputte Kopfdaten“ lässt sich öffnen. Unter dem Streifenkuchen steht die Herkunft „Familienrezept“, unter der Linsensuppe „Beispielseite“.
@@ -115,6 +115,10 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] Antippen hakt ab: Der Eintrag wandert durchgestrichen ans Ende, die zweite Einkauf-Kachel zieht sofort nach. Nochmal antippen nimmt den Haken weg.
 - [ ] „+“: „2 kg Mehl“ erscheint als „Mehl 2 kg“; „kaffee“ macht den abgehakten Kaffee wieder offen, statt ihn doppelt einzutragen. Das Feld bleibt für weitere Einträge offen.
 - [ ] „Zu tun“ zeigt die Aufgabenliste, die Kachel mit der unbekannten Liste „Urlaub“ sagt, dass diese Liste nicht gefunden wurde.
+
+**Farbschema**
+- [ ] <http://localhost:8191/?theme=glut>, `schiefer`, `signal`, `nacht` und `spiegel` nacheinander: Jede Kachel bleibt lesbar, die Uhr trägt die Akzentfarbe (bei `signal` als Fläche), Überschriften, Schalter und Diagramm passen zum Schema. Ohne Zusatz gilt wieder „Klar“.
+- [ ] Eieruhr in `signal` ablaufen lassen: Die Fläche der Uhr wird rot, die Ziffern bleiben lesbar.
 
 **Sprache**
 - [ ] In `config.json` der Testinstanz `site` auf `{ "language": "en", "region": "en-US" }` stellen: Texte englisch, Uhr mit AM/PM, Datum in US-Schreibweise.

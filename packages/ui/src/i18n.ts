@@ -19,6 +19,8 @@ export const region = ref(navigator.language || 'de-DE');
 export interface SiteSettings {
   language?: string;
   region?: string;
+  /** Farbschema der Anzeige, etwa "glut"; ohne Angabe „Klar“. */
+  theme?: string;
 }
 
 /**
@@ -31,4 +33,15 @@ export function applySite(site: SiteSettings): void {
   i18n.global.locale.value = language;
   region.value = site.region ?? (site.language ? site.language : navigator.language) ?? language;
   document.documentElement.lang = language;
+  applyTheme(site.theme);
+}
+
+/**
+ * Stellt das Farbschema ein. Der Adresszusatz ?theme=name geht der Konfiguration vor –
+ * so lässt sich ein Schema an einer Anzeige ausprobieren, ohne etwas umzustellen.
+ */
+export function applyTheme(configured: string | undefined): void {
+  const wanted = new URLSearchParams(location.search).get('theme') ?? configured;
+  if (wanted && /^[a-z][a-z0-9-]*$/.test(wanted)) document.documentElement.dataset['theme'] = wanted;
+  else delete document.documentElement.dataset['theme'];
 }

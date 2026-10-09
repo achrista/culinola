@@ -100,7 +100,10 @@ const days = computed(() => {
 h3 {
   flex: none;
   margin: 0 0 4px;
-  font-size: 16px;
+  color: var(--title-ink);
+  font-size: var(--title-size);
+  text-transform: var(--title-case);
+  letter-spacing: var(--title-spacing);
   font-weight: 600;
 }
 .days {

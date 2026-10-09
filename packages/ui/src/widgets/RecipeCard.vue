@@ -68,13 +68,34 @@ function imageUrl(recipeId: string, address: string): string {
 }
 const picture = (entry: RecipeInfo) => (entry.image && !broken.has(`${entry.id}/${entry.image}`) ? imageUrl(entry.id, entry.image) : undefined);
 
-/** Wählt zufällig ein anderes Rezept für die Kachel – eines mit Bild, solange es welche gibt. */
+/**
+ * Wählt zufällig ein anderes Rezept für die Kachel – nur Rezepte mit Bild, solange es welche gibt.
+ * Gewechselt wird erst, wenn das Bild geladen ist: So steht nie ein Rezept ohne sein Bild da,
+ * und ein Bild, das sich nicht laden lässt, kommt gar nicht erst an die Reihe.
+ */
+let picking = 0;
 function pick() {
+  const turn = ++picking;
   const withPicture = list.value.filter((entry) => picture(entry));
   const pool = withPicture.length ? withPicture : list.value;
   const others = pool.filter((entry) => entry.id !== featured.value?.id);
   const choice = others.length ? others : pool;
-  featured.value = choice[Math.floor(Math.random() * choice.length)];
+  const next = choice[Math.floor(Math.random() * choice.length)];
+  const address = next && picture(next);
+  if (!next || !address) {
+    featured.value = next;
+    return;
+  }
+  const image = new Image();
+  image.onload = () => {
+    // Ein späterer Wechsel hat diesen überholt
+    if (turn === picking) featured.value = next;
+  };
+  image.onerror = () => {
+    broken.add(`${next.id}/${next.image}`);
+    if (turn === picking) pick();
+  };
+  image.src = address;
 }
 
 async function load() {

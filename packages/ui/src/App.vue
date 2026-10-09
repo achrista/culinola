@@ -91,17 +91,22 @@ function place(widget: Widget) {
   display: grid;
   gap: var(--gap);
 }
+/* Die Kacheln heben sich vom Grund ab, wo das Farbschema es vorsieht; die Uhr regelt das selbst, weil sie meist ohne Fläche dasteht */
+.grid > :not(.clock) {
+  box-shadow: var(--shadow);
+}
 .notice,
 .unknown {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
-  color: var(--mute);
+  color: var(--bg-ink);
 }
 .unknown {
   border-radius: var(--radius);
   background: var(--card);
+  color: var(--mute);
 }
 .offline {
   position: fixed;

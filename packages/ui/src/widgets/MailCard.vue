@@ -140,7 +140,10 @@ h3 {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  font-size: 16px;
+  color: var(--title-ink);
+  font-size: var(--title-size);
+  text-transform: var(--title-case);
+  letter-spacing: var(--title-spacing);
   font-weight: 600;
 }
 .trouble {

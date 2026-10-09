@@ -27,7 +27,7 @@ export interface AppConfig {
   sources: SourceConfig[];
   layouts: Record<string, LayoutConfig>;
   /** Sprache der Oberfläche ("de", "en") und Region für Zahlen und Datum ("de-DE"); ohne Angabe entscheidet der Browser. */
-  site?: { language?: string; region?: string };
+  site?: { language?: string; region?: string; theme?: string };
   /** Wer die API benutzen darf. Die Tokens selbst stehen in `secrets.json` unter "api". */
   access?: { tokens: { name: string; role: string }[] };
 }

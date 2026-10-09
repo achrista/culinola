@@ -177,6 +177,12 @@ onUnmounted(() => {
   min-width: 0;
   min-height: 0;
   border-radius: var(--radius);
+  background: var(--clock-bg);
+  box-shadow: var(--clock-shadow);
+  color: var(--clock-ink);
+}
+.clock.done {
+  background: var(--clock-alarm-bg);
 }
 .face {
   box-sizing: border-box;
@@ -196,8 +202,8 @@ onUnmounted(() => {
   align-items: baseline;
   gap: 0.08em;
   font-family: var(--font-num);
-  font-weight: var(--num-weight);
-  font-size: clamp(36px, min(62cqh, 34cqw), 140px);
+  font-weight: var(--clock-weight);
+  font-size: clamp(36px, min(72cqh, 34cqw), 150px);
   line-height: 0.9;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -207,14 +213,14 @@ onUnmounted(() => {
 }
 .small {
   max-width: 100%;
-  color: var(--mute);
+  color: var(--clock-mute);
   font-size: clamp(13px, 12cqh, 22px);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .timer {
-  color: var(--accent);
+  color: var(--timer-ink);
 }
 /* Mit Stunden wird die Anzeige länger und deshalb kleiner gesetzt */
 .timer.long {
@@ -228,7 +234,7 @@ onUnmounted(() => {
 }
 /* Abgelaufen: Die Anzeige macht auf sich aufmerksam, bis jemand sie antippt */
 .done .timer {
-  color: var(--alarm);
+  color: var(--clock-alarm-ink);
   animation: ring 1s steps(2, jump-none) infinite;
 }
 @keyframes ring {
