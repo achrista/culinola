@@ -89,7 +89,22 @@
     "added": "Hinzugefügt. | Hinzugefügt. | {n} Rezepte hinzugefügt: {titles}",
     "cook": "Das koche ich",
     "cookDone": "Fertig gekocht",
-    "cooking": "Wird gekocht"
+    "cooking": "Wird gekocht",
+    "shop": "Einkaufen",
+    "shopTitle": "Zutaten auf die Einkaufsliste",
+    "shopFor": "Für",
+    "shopPortions": "{n} Portionen | 1 Portion | {n} Portionen",
+    "shopTimes": "{n}-mal das Rezept",
+    "shopLess": "Weniger",
+    "shopMore": "Mehr",
+    "shopAll": "Alle wählen",
+    "shopNone": "Keine wählen",
+    "shopGo": "Auf die Liste setzen ({n})",
+    "shopBusy": "Die Zutaten werden eingetragen …",
+    "shopError": "Nicht eingetragen: {error}",
+    "shopDone": "Nichts Neues auf die Einkaufsliste gesetzt. | 1 Zutat auf die Einkaufsliste gesetzt. | {n} Zutaten auf die Einkaufsliste gesetzt.",
+    "shopKnown": "– | 1 stand schon dort. | {n} standen schon dort.",
+    "shopFailed": "Nicht eingetragen: {names}"
   },
   "timer": {
     "title": "Eieruhr",
@@ -244,6 +259,13 @@
     "say": "„{word} …“",
     "wakeLoading": "lädt …",
     "wakeFailed": "Mikrofon fehlt"
+  },
+  "web": {
+    "open": "{title} groß zeigen",
+    "close": "Schließen",
+    "invalid": "Keine gültige Webadresse.",
+    "mixed": "Diese Anzeige läuft über HTTPS und kann deshalb nur Seiten mit HTTPS einbetten.",
+    "refused": "Diese Seite erlaubt das Einbetten nicht ({detail})."
   },
   "events": {
     "close": "Meldung schließen"

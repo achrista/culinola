@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, watch, writ
 import { dirname, extname, join, relative, resolve } from 'node:path';
 import { definePlugin, InvalidInput } from '@culinola/sdk';
 import { ImportRefused, importInput, statusOf } from './importer.ts';
+import { amountText, ingredientsOf, toShoppingItems, yieldOf } from './ingredients.ts';
 import { inside, parseRecipe, recipeId, type RecipeInfo } from './library.ts';
 
 interface Config {
@@ -11,6 +12,8 @@ interface Config {
   importLanguage?: string;
   /** Sprachmodell für das Umwandeln neuer Rezepte; ohne Angabe das des Import-Werkzeugs. */
   importModel?: string;
+  /** Name der Einkaufsliste, auf die Zutaten gesetzt werden; ohne Angabe die erste, die gezeigt wird. */
+  shoppingList?: string;
 }
 
 interface Entry extends RecipeInfo {
@@ -36,11 +39,13 @@ export default definePlugin<Config>({
   id: 'recipes',
 
   parseConfig(raw) {
-    const config = raw as { folder?: unknown; importLanguage?: unknown; importModel?: unknown };
+    const config = raw as { folder?: unknown; importLanguage?: unknown; importModel?: unknown; shoppingList?: unknown };
     if (config.folder !== undefined && (typeof config.folder !== 'string' || !config.folder)) throw new Error('"folder" muss ein Ordnerpfad sein.');
     if (config.importLanguage !== undefined && !['de', 'en', 'fr'].includes(config.importLanguage as string)) throw new Error('"importLanguage" muss de, en oder fr sein.');
     if (config.importModel !== undefined && (typeof config.importModel !== 'string' || !config.importModel)) throw new Error('"importModel" muss die Kennung eines Sprachmodells sein.');
+    if (config.shoppingList !== undefined && (typeof config.shoppingList !== 'string' || !config.shoppingList.trim())) throw new Error('"shoppingList" muss der Name einer Einkaufsliste sein.');
     return {
+      ...(typeof config.shoppingList === 'string' ? { shoppingList: config.shoppingList.trim() } : {}),
       ...(typeof config.folder === 'string' ? { folder: config.folder } : {}),
       ...(typeof config.importLanguage === 'string' ? { importLanguage: config.importLanguage } : {}),
       ...(typeof config.importModel === 'string' ? { importModel: config.importModel } : {}),
@@ -133,6 +138,87 @@ export default definePlugin<Config>({
     log.info(`${recipes.size} Rezepte in ${folder}`);
     setCooking(cooking, false);
 
+    /** Findet ein Rezept über seine Kennung oder seinen Titel; vom Titel genügt ein eindeutiger Teil. */
+    const find = (recipe: unknown): Entry => {
+      const wanted = String(recipe).trim().toLowerCase();
+      const all = [...recipes.values()];
+      const named = all.filter((known) => known.title.toLowerCase() === wanted);
+      const similar = named.length ? named : all.filter((known) => wanted.length >= 3 && known.title.toLowerCase().includes(wanted));
+      const entry = recipes.get(String(recipe)) ?? (similar.length === 1 ? similar[0] : undefined);
+      if (!entry) throw new InvalidInput(similar.length > 1 ? `"${String(recipe)}" passt auf mehrere Rezepte: ${similar.slice(0, 5).map((known) => known.title).join(', ')}.` : `Das Rezept "${String(recipe)}" gibt es nicht.`);
+      return entry;
+    };
+
+    // Zutaten auf die Einkaufsliste. Culinola führt selbst keine Listen: Die Einträge gehen über die Aktion
+    // "lists.add" an das Plugin, das die Liste führt – etwa Merkio. Gibt es keines, wird nichts angeboten.
+    const canShop = () => context.actions.list().some((action) => action.name === 'lists.add');
+    const shopping = (entry: Entry, amount?: number) => {
+      const recipe = parseRecipe(entry.file, readFileSync(entry.file, 'utf8'));
+      const base = yieldOf(recipe.servings);
+      const wanted = amount && amount > 0 && amount <= 1000 ? amount : base.amount;
+      const items = toShoppingItems(ingredientsOf(recipe.markdown), wanted / base.amount).map((item) => ({ ...item, amount: amountText(item) }));
+      return { id: entry.id, title: entry.title, ready: canShop(), base: base.amount, amount: wanted, unit: base.unit, counted: base.counted, items, ...(context.config.shoppingList ? { list: context.config.shoppingList } : {}) };
+    };
+    /** Setzt die Zutaten auf die Liste – alle oder nur die genannten – und zählt, was neu daraufkam. */
+    const shop = async (entry: Entry, amount?: number, only?: string[]) => {
+      if (!canShop()) throw new InvalidInput('Es ist keine Einkaufsliste eingerichtet.');
+      const { items, title } = shopping(entry, amount);
+      const chosen = only ? items.filter((item) => only.some((name) => name.toLowerCase() === item.name.toLowerCase())) : items;
+      if (!chosen.length) throw new InvalidInput(items.length ? 'Es ist keine Zutat ausgewählt.' : `Im Rezept "${title}" stehen keine lesbaren Zutaten.`);
+      const result = { recipe: title, added: 0, known: 0, failed: [] as string[] };
+      // Der Reihe nach: So stehen die Zutaten auf der Liste in der Reihenfolge des Rezepts
+      for (const item of chosen) {
+        try {
+          const done = (await context.actions.run('lists.add', {
+            text: item.name,
+            ...(item.quantity ? { quantity: item.quantity } : {}),
+            ...(item.unit ? { unit: item.unit } : {}),
+            ...(context.config.shoppingList ? { list: context.config.shoppingList } : {}),
+          })) as { added?: boolean } | undefined;
+          if (done?.added === false) result.known++;
+          else result.added++;
+        } catch (error) {
+          // Eine Liste, die es nicht gibt, scheitert bei jeder Zutat gleich – das ist ein Fehler der Einrichtung
+          if (error instanceof InvalidInput && !result.added && !result.known && item === chosen[0]) throw error;
+          result.failed.push(item.name);
+        }
+      }
+      log.info(`Zutaten auf die Einkaufsliste: ${title} (${result.added} neu, ${result.known} schon da${result.failed.length ? `, ${result.failed.length} gescheitert` : ''})`);
+      return result;
+    };
+    context.actions.register(
+      {
+        name: 'recipes.shop',
+        description: 'Setzt alle Zutaten eines Rezepts auf die Einkaufsliste, auf Wunsch umgerechnet auf eine andere Menge.',
+        params: {
+          recipe: { type: 'string', description: 'Kennung oder Titel des Rezepts; ohne Angabe das Rezept, das gerade gekocht wird' },
+          amount: { type: 'number', description: 'Wofür eingekauft wird, in der Angabe des Rezepts – etwa 6, wenn es für 6 statt 4 Portionen reichen soll' },
+        },
+      },
+      ({ recipe, amount }) => {
+        const entry = recipe === undefined ? (cooking ? recipes.get(cooking.id) : undefined) : find(recipe);
+        if (!entry) throw new InvalidInput('Es wird gerade kein Rezept gekocht – welches ist gemeint?');
+        return shop(entry, typeof amount === 'number' ? amount : undefined);
+      },
+    );
+    context.routes.get('/shopping/:id', (request) => {
+      const entry = recipes.get(request.params.id ?? '');
+      if (!entry || !existsSync(entry.file)) return Response.json({ error: 'Rezept nicht gefunden.' }, { status: 404 });
+      return Response.json(shopping(entry, Number(request.query['amount']) || undefined));
+    });
+    context.routes.post('/shopping/:id', async (request) => {
+      const entry = recipes.get(request.params.id ?? '');
+      if (!entry || !existsSync(entry.file)) return Response.json({ error: 'Rezept nicht gefunden.' }, { status: 404 });
+      const body = (request.body ?? {}) as { amount?: unknown; names?: unknown };
+      const names = Array.isArray(body.names) ? body.names.filter((name): name is string => typeof name === 'string') : undefined;
+      try {
+        return Response.json(await shop(entry, typeof body.amount === 'number' ? body.amount : undefined, names));
+      } catch (error) {
+        if (error instanceof InvalidInput) return Response.json({ error: error.message }, { status: 400 });
+        throw error;
+      }
+    });
+
     context.actions.register(
       {
         name: 'recipes.cook',
@@ -140,12 +226,7 @@ export default definePlugin<Config>({
         params: { recipe: { type: 'string', description: 'Kennung oder Titel des Rezepts; vom Titel genügt ein eindeutiger Teil', required: true } },
       },
       ({ recipe }) => {
-        const wanted = String(recipe).trim().toLowerCase();
-        const all = [...recipes.values()];
-        const named = all.filter((known) => known.title.toLowerCase() === wanted);
-        const similar = named.length ? named : all.filter((known) => wanted.length >= 3 && known.title.toLowerCase().includes(wanted));
-        const entry = recipes.get(String(recipe)) ?? (similar.length === 1 ? similar[0] : undefined);
-        if (!entry) throw new InvalidInput(similar.length > 1 ? `"${String(recipe)}" passt auf mehrere Rezepte: ${similar.slice(0, 5).map((known) => known.title).join(', ')}.` : `Das Rezept "${String(recipe)}" gibt es nicht.`);
+        const entry = find(recipe);
         setCooking({ id: entry.id, since: Date.now() });
         log.info(`Wird gekocht: ${entry.title}`);
         return { recipe: entry.title };

@@ -27,7 +27,15 @@ const config: AppConfig = {
     { id: 'voice', plugin: 'voice' },
     { id: 'gibtesnicht', plugin: 'gibt-es-nicht' },
   ],
-  layouts: { main: { grid: { columns: 2, rows: 1 }, widgets: [{ type: 'clock', at: [0, 0, 2, 1] }] } },
+  layouts: {
+    main: {
+      grid: { columns: 2, rows: 1 },
+      widgets: [
+        { type: 'clock', at: [0, 0, 1, 1] },
+        { type: 'web', at: [1, 0, 1, 1], config: { url: 'https://seite.example/' } },
+      ],
+    },
+  },
   site: { language: 'de', region: 'de-DE' },
   events: parseEvents({
     hausglocke: { text: 'Jemand klingelt!', sound: 'bell', video: 'kamera3' },
@@ -42,7 +50,7 @@ const servers: FastifyInstance[] = [];
 async function core(access: readonly AccessToken[]): Promise<FastifyInstance> {
   const registry = new DatapointRegistry();
   const actions = new ActionRegistry();
-  const plugins = new PluginHost(registry, actions, {}, quiet, dataDir);
+  const plugins = new PluginHost(registry, actions, {}, quiet, dataDir, config.layouts);
   registerBuiltinActions(actions, registry, plugins);
   const events = new EventHub(config.events ?? {}, quiet);
   registry.on('change', (datapoint) => events.observe(datapoint));
@@ -58,7 +66,7 @@ beforeAll(() => {
   delete process.env['ANTHROPIC_API_KEY'];
   dataDir = mkdtempSync(join(tmpdir(), 'culinola-test-'));
   mkdirSync(join(dataDir, 'recipes', 'Kuchen'), { recursive: true });
-  writeFileSync(join(dataDir, 'recipes', 'Kuchen', 'Käsekuchen.md'), '---\ntime: 90 min\n---\n# Käsekuchen\n\n![Bild](bild.png)\n');
+  writeFileSync(join(dataDir, 'recipes', 'Kuchen', 'Käsekuchen.md'), '---\ntime: 90 min\nservings: 12 Stücke\n---\n# Käsekuchen\n\n![Bild](bild.png)\n\n## Zutaten\n\n| Menge | Zutat |\n|-------|-------|\n| 750 g | Quark |\n| 3     | Eier (Größe M) |\n');
   writeFileSync(join(dataDir, 'recipes', 'Kuchen', 'bild.png'), 'kein echtes Bild');
   writeFileSync(join(dataDir, 'geheim.png'), 'liegt außerhalb des Rezeptordners');
 });
@@ -128,13 +136,36 @@ describe('Kern mit Plugins, API offen', () => {
 
   it('liest Rezepte und gibt nur Bilder aus dem Rezeptordner heraus', async () => {
     const list = (await app.inject('/api/v1/resources/recipes/list')).json<{ id: string; title: string; category?: string; image?: string }[]>();
-    expect(list).toEqual([{ id: 'kuchen-kaesekuchen', title: 'Käsekuchen', category: 'Kuchen', tags: [], time: '90 min', image: 'bild.png' }]);
-    expect((await app.inject('/api/v1/p/recipes/text/kuchen-kaesekuchen')).json()).toMatchObject({ title: 'Käsekuchen', markdown: '![Bild](bild.png)' });
+    expect(list).toEqual([{ id: 'kuchen-kaesekuchen', title: 'Käsekuchen', category: 'Kuchen', tags: [], time: '90 min', servings: '12 Stücke', image: 'bild.png' }]);
+    expect((await app.inject('/api/v1/p/recipes/text/kuchen-kaesekuchen')).json()).toMatchObject({ title: 'Käsekuchen', markdown: expect.stringMatching(/^!\[Bild\]\(bild\.png\)\n\n## Zutaten/) });
 
     const image = await app.inject('/api/v1/p/recipes/file/kuchen-kaesekuchen/bild.png');
     expect([image.statusCode, image.headers['content-type']]).toEqual([200, 'image/png']);
     for (const path of ['..%2F..%2Fgeheim.png', '..%2FK%C3%A4sekuchen.md', 'fehlt.png']) {
       expect((await app.inject(`/api/v1/p/recipes/file/kuchen-kaesekuchen/${path}`)).statusCode, path).toBe(404);
+    }
+  });
+
+  it('zeigt die Zutaten für die Einkaufsliste und sagt, wenn keine Liste eingerichtet ist', async () => {
+    const shown = (await app.inject('/api/v1/p/recipes/shopping/kuchen-kaesekuchen?amount=24')).json<{ ready: boolean; base: number; amount: number; unit: string; items: { name: string; amount: string; note: string | null }[] }>();
+    // Ohne ein Plugin, das Listen führt, wird das Einkaufen nicht angeboten
+    expect(shown).toMatchObject({ ready: false, base: 12, amount: 24, unit: 'Stücke' });
+    expect(shown.items.map((item) => [item.amount, item.name, item.note])).toEqual([
+      ['1500 g', 'Quark', null],
+      ['6', 'Eier', 'Größe M'],
+    ]);
+    const refused = await app.inject({ method: 'POST', url: '/api/v1/p/recipes/shopping/kuchen-kaesekuchen', payload: { names: ['Quark'] } });
+    expect([refused.statusCode, refused.json<{ error: string }>().error]).toEqual([400, 'Es ist keine Einkaufsliste eingerichtet.']);
+    const spoken = await app.inject({ method: 'POST', url: '/api/v1/actions/recipes.shop', payload: { recipe: 'Käsekuchen' } });
+    expect(spoken.statusCode).toBe(400);
+    expect((await app.inject('/api/v1/p/recipes/shopping/gibt-es-nicht')).statusCode).toBe(404);
+  });
+
+  it('prüft das Einbetten nur für Seiten, die in einer Kachel stehen', async () => {
+    // Der Kern ruft keine Adressen ab, die ihm ein Aufrufer nennt
+    for (const url of ['https://fremd.example/', 'http://169.254.169.254/latest/', '']) {
+      const refused = await app.inject(`/api/v1/embed?url=${encodeURIComponent(url)}`);
+      expect([refused.statusCode, refused.json<{ error: string }>().error], url).toEqual([400, 'Diese Adresse steht in keiner Kachel "web".']);
     }
   });
 

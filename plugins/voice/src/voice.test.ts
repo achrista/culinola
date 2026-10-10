@@ -2,11 +2,12 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { InvalidInput, type ActionDefinition, type PluginContext, type RouteHandler } from '@culinola/sdk';
+import { InvalidInput, type ActionDefinition, type Datapoint, type PluginContext, type RouteHandler } from '@culinola/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 // Der Platzhalter für die Claude-API gehört zum Import-Werkzeug und versteht auch Anfragen mit Werkzeugen
 import { startStandIn, type StandIn } from '../../../packages/recipe-import/src/standin.ts';
 import { ask, toolName, toolsFromActions } from './assistant.ts';
+import { knownValues, readValues, VALUES_TOOL, valuesTool } from './values.ts';
 import plugin from './index.ts';
 
 const ACTIONS: ActionDefinition[] = [
@@ -52,7 +53,7 @@ describe('Ein gesprochener Satz', () => {
     const { client, calls } = scripted({ stop: 'tool_use', content: [{ type: 'thinking', thinking: '' }, use('t1', 'timer__start', { minutes: 8 })] }, { stop: 'end_turn', content: [text('Die **Eieruhr** läuft,\nacht Minuten.')] });
     const answer = await ask('Stell die Eieruhr auf 8 Minuten', { client, actions: ACTIONS, run: async (name, params) => void ran.push([name, params]), now: new Date('2026-10-09T12:00:00') });
 
-    expect(answer).toEqual({ reply: 'Die Eieruhr läuft, acht Minuten.', actions: [{ action: 'timer.start', params: { minutes: 8 }, ok: true }] });
+    expect(answer).toEqual({ reply: 'Die Eieruhr läuft, acht Minuten.', actions: [{ action: 'timer.start', params: { minutes: 8 }, ok: true }], values: [] });
     expect(ran).toEqual([['timer.start', { minutes: 8 }]]);
     expect(calls[0]).toMatchObject({ model: 'claude-haiku-5-5', messages: [{ role: 'user', content: 'Stell die Eieruhr auf 8 Minuten' }] });
     expect(calls[0]!.system).toContain('9. Oktober 2026');
@@ -87,7 +88,7 @@ describe('Ein gesprochener Satz', () => {
 
   it('antwortet ohne Aktion, wenn nichts passt, und in der gewünschten Sprache', async () => {
     const plain = scripted({ stop: 'end_turn', content: [text('Das kann ich nicht.')] });
-    expect(await ask('Wie wird das Wetter?', { client: plain.client, actions: ACTIONS, run: async () => undefined })).toEqual({ reply: 'Das kann ich nicht.', actions: [] });
+    expect(await ask('Wie wird das Wetter?', { client: plain.client, actions: ACTIONS, run: async () => undefined })).toEqual({ reply: 'Das kann ich nicht.', actions: [], values: [] });
     const english = scripted({ stop: 'end_turn', content: [] });
     expect((await ask('…', { client: english.client, actions: [], run: async () => undefined, language: 'en' })).reply).toMatch(/^That was too involved/);
     expect(english.calls[0]!.system).toContain('auf Englisch');
@@ -110,8 +111,94 @@ describe('Ein gesprochener Satz', () => {
     expect([ran, endless.calls.length, answer.reply]).toEqual([4, 4, 'Das war mir zu verwickelt. Bitte noch einmal in einem Satz.']);
 
     const refused = scripted({ stop: 'refusal', content: [use('x', 'timer__stop', {})] });
-    expect(await ask('…', { client: refused.client, actions: ACTIONS, run: async () => void ran++ })).toEqual({ reply: 'Dabei kann ich nicht helfen.', actions: [] });
+    expect(await ask('…', { client: refused.client, actions: ACTIONS, run: async () => void ran++ })).toEqual({ reply: 'Dabei kann ich nicht helfen.', actions: [], values: [] });
     expect(ran).toBe(4);
+  });
+});
+
+const at = '2026-10-09T10:00:00.000Z';
+/** Der Stand im Haus, wie ihn der Kern den Plugins zeigt. */
+const HOUSE: Datapoint[] = [
+  { id: 'oh:T_Aussen', value: 12.345, unit: '°C', label: 'Temperatur Garten', ts: at, quality: 'good' },
+  { id: 'oh:F_Wohnen', value: 48, unit: '%', label: 'Luftfeuchte Wohnen', ts: at, quality: 'good' },
+  { id: 'oh:mobUli', value: true, ts: at, quality: 'good' },
+  { id: 'oh:Alt', value: 3, unit: 'W', ts: '2026-10-09T06:30:00.000Z', quality: 'stale' },
+  { id: 'oh:Kaputt', value: 1, ts: at, quality: 'error' },
+  { id: 'oh:Leer', value: null, ts: at, quality: 'good' },
+  { id: 'oh:Modus', value: 'Urlaub', ts: at, quality: 'good' },
+  { id: 'astro:sunset', value: '2026-10-09T16:32:00.000Z', ts: at, quality: 'good' },
+  { id: 'astro:nextSunrise', value: '2026-10-10T05:28:00.000Z', ts: at, quality: 'good' },
+];
+const SHOWN = [
+  { id: 'oh:T_Aussen', name: 'Außen' },
+  { id: 'oh:mobUli', name: 'Uli' },
+  { id: 'oh:F_Wohnen', name: '' },
+  { id: 'oh:Ohne_Namen', name: '' },
+];
+
+describe('Werte, nach denen man fragen kann', () => {
+  it('heißen wie auf der Anzeige – oder so, wie die Konfiguration sie nennt', () => {
+    const known = knownValues([{ id: 'oh:T_Aussen', name: 'Draußen' }, { id: 'astro:sunset' }], SHOWN, HOUSE);
+    expect(known).toEqual([
+      { id: 'oh:T_Aussen', name: 'Draußen', unit: '°C', label: 'Temperatur Garten' },
+      // Ohne eigenen Namen heißt ein Wert wie im Quellsystem; gibt es auch dort keinen, bleibt er weg
+      { id: 'oh:mobUli', name: 'Uli' },
+      { id: 'oh:F_Wohnen', name: 'Luftfeuchte Wohnen', unit: '%' },
+    ]);
+    // Gleiche Namen werden unterscheidbar
+    const twice = knownValues([], [{ id: 'oh:T_Aussen', name: 'Wohnen' }, { id: 'oh:F_Wohnen', name: 'Wohnen' }, { id: 'oh:mobUli', name: 'wohnen' }], HOUSE);
+    expect(twice.map((value) => value.name)).toEqual(['Wohnen', 'Wohnen (%)', 'wohnen (oh:mobUli)']);
+  });
+
+  it('werden dem Sprachmodell nur mit Namen und Einheit genannt', () => {
+    const tool = valuesTool(knownValues([], SHOWN, HOUSE))!;
+    expect(tool.name).toBe(VALUES_TOOL);
+    expect(tool.description).toContain('- Außen [°C] – Temperatur Garten\n- Uli\n- Luftfeuchte Wohnen [%]');
+    expect(tool.description).not.toContain('12');
+    expect(tool.input_schema).toMatchObject({ properties: { names: { type: 'array', items: { enum: ['Außen', 'Uli', 'Luftfeuchte Wohnen'] } } }, required: ['names'] });
+    expect(valuesTool([])).toBeUndefined();
+  });
+
+  it('werden so gelesen, dass nichts erfunden werden muss', () => {
+    const known = knownValues(
+      ['oh:Alt', 'oh:Kaputt', 'oh:Leer', 'oh:Modus', 'astro:sunset', 'astro:nextSunrise', 'oh:Fehlt'].map((id) => ({ id, name: id.split(':')[1]! })),
+      SHOWN,
+      HOUSE,
+    );
+    const now = new Date('2026-10-09T12:00:00');
+    const hours = (iso: string) => new Intl.DateTimeFormat('de-DE', { timeStyle: 'short' }).format(new Date(iso));
+    const read = (...names: string[]) => readValues(known, names, HOUSE, { now });
+    expect(read('Außen', 'luftfeuchte wohnen')).toBe('Außen: 12.35 °C\nLuftfeuchte Wohnen: 48 %');
+    expect(read('Uli')).toMatch(/^Uli: ja \(/);
+    expect(read('Modus', 'Leer', 'Fehlt', 'Kaputt', 'Gibt es nicht')).toBe('Modus: Urlaub\nLeer: kein Wert vorhanden\nFehlt: kein Wert vorhanden\nKaputt: gestört, kein verlässlicher Wert\nGibt es nicht: unbekannt');
+    expect(read('Alt')).toBe(`Alt: 3 W (veraltet, Stand heute ${hours('2026-10-09T06:30:00.000Z')})`);
+    // Zeitpunkte kommen in Weltzeit und werden als Uhrzeit im Haus genannt
+    expect(read('sunset')).toBe(`sunset: heute ${hours('2026-10-09T16:32:00.000Z')}`);
+    expect(read('nextSunrise')).toMatch(/^nextSunrise: Samstag, 10\. Oktober 2026, /);
+    expect(read()).toBe('Es wurde kein Wert genannt.');
+  });
+
+  it('liest das Sprachmodell über sein Werkzeug, ohne dass eine Aktion läuft', async () => {
+    const known = knownValues([], SHOWN, HOUSE);
+    const asked: string[][] = [];
+    const { client, calls } = scripted({ stop: 'tool_use', content: [use('w1', VALUES_TOOL, { names: ['Außen', 7] })] }, { stop: 'end_turn', content: [text('Draußen sind es gut zwölf Grad.')] });
+    const answer = await ask('Wie warm ist es draußen?', {
+      client,
+      actions: ACTIONS,
+      run: async () => {
+        throw new Error('Hier darf nichts ausgelöst werden.');
+      },
+      values: { tool: valuesTool(known)!, read: (names) => (asked.push(names), readValues(known, names, HOUSE)) },
+    });
+    expect(answer).toEqual({ reply: 'Draußen sind es gut zwölf Grad.', actions: [], values: ['Außen'] });
+    expect(asked).toEqual([['Außen']]);
+    expect(calls[0]!.tools!.map((tool) => tool.name)).toEqual(['timer__start', 'timer__stop', 'lists__add', VALUES_TOOL]);
+    expect(calls[0]!.system).toContain(VALUES_TOOL);
+    expect(calls[1]!.messages.at(-1)).toEqual({ role: 'user', content: [{ type: 'tool_result', tool_use_id: 'w1', content: 'Außen: 12.35 °C' }] });
+    // Ohne Werte steht davon auch nichts in der Anweisung
+    const plain = scripted({ stop: 'end_turn', content: [text('Hallo.')] });
+    await ask('Hallo', { client: plain.client, actions: ACTIONS, run: async () => undefined });
+    expect(plain.calls[0]!.system).not.toContain(VALUES_TOOL);
   });
 });
 
@@ -120,18 +207,19 @@ describe('Sprachsteuerung als Plugin', () => {
   const before = { key: process.env['ANTHROPIC_API_KEY'], url: process.env['ANTHROPIC_BASE_URL'] };
   const stop = new AbortController();
 
-  function start(secrets: Record<string, string>, storageDir = '') {
+  function start(secrets: Record<string, string>, storageDir = '', config: Record<string, unknown> = {}) {
     const routes = new Map<string, RouteHandler>();
     const datapoints = new Map<string, unknown>();
     const ran: [string, unknown][] = [];
     const warnings: string[] = [];
+    const infos: string[] = [];
     const context: PluginContext<ReturnType<NonNullable<typeof plugin.parseConfig>>> = {
       instanceId: 'voice',
-      config: plugin.parseConfig!({}),
-      log: { info: () => undefined, warn: (message) => void warnings.push(message), error: () => undefined },
+      config: plugin.parseConfig!(config),
+      log: { info: (message) => void infos.push(message), warn: (message) => void warnings.push(message), error: () => undefined },
       secrets: { get: (key) => secrets[key] },
       storageDir,
-      datapoints: { set: (update) => void datapoints.set(update.id, update.value) },
+      datapoints: { set: (update) => void datapoints.set(update.id, update.value), list: () => HOUSE, shown: () => SHOWN },
       actions: {
         register: () => undefined,
         list: () => [...ACTIONS, { name: 'voice.selbst', description: 'Gehört der Sprachsteuerung selbst.' }],
@@ -151,10 +239,10 @@ describe('Sprachsteuerung als Plugin', () => {
     const handler = routes.get('/ask')!;
     const say = async (body: unknown) => {
       const response = await handler({ params: {}, query: {}, body, signal: new AbortController().signal });
-      return { status: response.status, body: (await response.json()) as { reply?: string; error?: string; actions?: { action: string; ok: boolean }[] } };
+      return { status: response.status, body: (await response.json()) as { reply?: string; error?: string; actions?: { action: string; ok: boolean }[]; values?: string[] } };
     };
     const model = () => routes.get('GET /model')!({ params: {}, query: {}, body: undefined, signal: new AbortController().signal });
-    return { say, ran, datapoints, warnings, model };
+    return { say, ran, datapoints, warnings, infos, model };
   }
 
   beforeAll(async () => {
@@ -204,14 +292,39 @@ describe('Sprachsteuerung als Plugin', () => {
   it('löst über die Schnittstelle der Claude-API Aktionen aus', async () => {
     const voice = start({ anthropicApiKey: 'schluessel-fuer-den-test' });
     expect(voice.datapoints.get('ready')).toBe(true);
-    expect(await voice.say({ text: ' Stell die   Eieruhr auf 8 Minuten ' })).toEqual({ status: 200, body: { reply: 'Erledigt.', actions: [{ action: 'timer.start', params: { minutes: 8 }, ok: true }] } });
+    expect(await voice.say({ text: ' Stell die   Eieruhr auf 8 Minuten ' })).toEqual({ status: 200, body: { reply: 'Erledigt.', actions: [{ action: 'timer.start', params: { minutes: 8 }, ok: true }], values: [] } });
     expect(await voice.say({ text: 'Setze Hafermilch auf die Einkaufsliste' })).toMatchObject({ status: 200, body: { reply: 'Erledigt.', actions: [{ action: 'lists.add', ok: true }] } });
     expect(voice.ran).toEqual([
       ['timer.start', { minutes: 8 }],
       ['lists.add', { text: 'Hafermilch' }],
     ]);
     // Angeboten werden die Aktionen der anderen – ohne heikle und ohne die eigenen
+    expect(standIn.requests.at(-1)!.tools!.map((tool) => tool.name)).toEqual(['timer__start', 'timer__stop', 'lists__add', 'values__read']);
+  });
+
+  it('beantwortet Fragen nach dem, was auf den Anzeigen steht', async () => {
+    const voice = start({ anthropicApiKey: 'schluessel-fuer-den-test' }, '', { values: [{ datapoint: 'astro:sunset', name: 'Sonnenuntergang' }] });
+    const answer = await voice.say({ text: 'Wie warm ist es außen?' });
+    expect(answer).toEqual({ status: 200, body: { reply: 'Außen: 12.35 °C', actions: [], values: ['Außen'] } });
+    // Zur Wahl stehen die Namen – die Werte selbst gehen erst mit, wenn nach ihnen gefragt wird
+    const first = standIn.requests.at(-2)!;
+    expect(first.tools!.at(-1)!.input_schema!.properties!['names']!.items!.enum).toEqual(['Sonnenuntergang', 'Außen', 'Uli', 'Luftfeuchte Wohnen']);
+    expect(JSON.stringify(first)).not.toContain('12.35');
+    expect(voice.ran).toEqual([]);
+    // Ins Protokoll kommt, wonach gefragt wurde – nicht der Wert
+    expect(voice.infos.at(-1)).toBe('Sprache: Werte gelesen (Außen)');
+    expect((await voice.say({ text: 'Ist Uli zu Hause?' })).body.reply).toMatch(/^Uli: ja/);
+
+    // Abgeschaltet oder ohne bekannte Werte gibt es das Werkzeug nicht
+    const without = start({ anthropicApiKey: 'schluessel-fuer-den-test' }, '', { layoutValues: false });
+    await without.say({ text: 'Wie warm ist es außen?' });
     expect(standIn.requests.at(-1)!.tools!.map((tool) => tool.name)).toEqual(['timer__start', 'timer__stop', 'lists__add']);
+  });
+
+  it('weist eine unbrauchbare Liste von Werten in der Konfiguration zurück', () => {
+    for (const values of ['astro:sunset', [7], ['ohne-quelle'], [{ name: 'x' }], [{ datapoint: 'a:b', name: ' ' }]]) expect(() => plugin.parseConfig!({ values }), JSON.stringify(values)).toThrow(/"values"/);
+    expect(() => plugin.parseConfig!({ layoutValues: 'ja' })).toThrow(/"layoutValues"/);
+    expect(plugin.parseConfig!({ values: ['astro:sunset', { datapoint: 'oh:T', name: ' Keller ' }] })).toMatchObject({ values: [{ id: 'astro:sunset' }, { id: 'oh:T', name: 'Keller' }], layoutValues: true });
   });
 
   it('sagt, wenn eine Aktion scheitert oder nichts passt', async () => {

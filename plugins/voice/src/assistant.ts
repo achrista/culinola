@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { ActionDefinition } from '@culinola/sdk';
+import { VALUES_TOOL } from './values.ts';
 
 /** Schnell und günstig – für einen Satz, der einer Aktion zugeordnet wird, reicht das kleine Modell. */
 export const DEFAULT_MODEL = 'claude-haiku-5-5';
@@ -21,6 +22,8 @@ export interface Answer {
   reply: string;
   /** Was dabei ausgelöst wurde. */
   actions: Done[];
+  /** Die Werte aus dem Haus, die für die Antwort gelesen wurden – ihre Namen, nicht ihr Stand. */
+  values: string[];
 }
 
 export interface AskOptions {
@@ -29,6 +32,8 @@ export interface AskOptions {
   /** Die Aktionen, die per Sprache auslösbar sind. */
   actions: ActionDefinition[];
   run(name: string, params: Record<string, unknown>): Promise<unknown>;
+  /** Werte aus dem Haus, nach denen man fragen kann: das Werkzeug dafür und das Lesen selbst. */
+  values?: { tool: Anthropic.Tool; read(names: string[]): string };
   /** Sprache der Antwort: de, en oder fr. */
   language?: string;
   /** Was unmittelbar davor gesagt und geantwortet wurde – für Rückfragen und Wiederholungen. */
@@ -66,7 +71,11 @@ const LANGUAGES: Record<string, { name: string; region: string; lost: string; re
   fr: { name: 'Französisch', region: 'fr-FR', lost: 'C’était trop compliqué. Répétez en une phrase, s’il vous plaît.', refused: 'Je ne peux pas vous aider pour cela.' },
 };
 
-function instructions(language: string, now: Date): string {
+const VALUES_HINT = `
+Fragt jemand nach einem Wert im Haus – wie warm es ist, wie viel Strom fließt, wer zu Hause ist, wann die Sonne untergeht –, lies ihn mit dem Werkzeug ${VALUES_TOOL} und nenne ihn so, wie man es am Küchentisch sagt: gerundet, mit ausgeschriebener Einheit („gut zwölf Grad“, „knapp drei Kilowatt“, „um zwanzig vor sieben“). Nenne nur, wonach gefragt wurde. Hat ein Wert keinen Stand oder ist er veraltet, sag das dazu; gibt es ihn nicht, sag, dass du ihn nicht kennst.
+`;
+
+function instructions(language: string, now: Date, values: boolean): string {
   const words = LANGUAGES[language] ?? LANGUAGES['de']!;
   const when = new Intl.DateTimeFormat(words.region, { dateStyle: 'full', timeStyle: 'short' }).format(now);
   return `Du bist die Sprachsteuerung von Culinola, einer Anzeige in der Küche einer Familie. Jemand hat einen kurzen Satz gesprochen; eine Spracherkennung hat ihn in Text umgesetzt und dabei vielleicht Wörter falsch verstanden – deute sie so, wie sie in einer Küche gemeint sein dürften.
@@ -76,7 +85,7 @@ Führe aus, was gewünscht ist, mit den Werkzeugen, die dir zur Verfügung stehe
 Stehen frühere Sätze im Gespräch, ist der letzte eine Antwort auf deine Rückfrage oder eine Wiederholung, weil du etwas nicht verstanden hast – nimm beides zusammen.
 
 Antworte danach mit einem einzigen kurzen Satz auf ${words.name}, der vorgelesen wird: ohne Aufzählung, ohne Sonderzeichen, ohne Kennungen oder Fachwörter. Sag, was du getan hast („Die Eieruhr läuft, acht Minuten.“), oder was nicht ging. Behaupte nichts, was die Werkzeuge nicht bestätigt haben. Passt kein Werkzeug, sag in einem Satz, dass du das nicht kannst, und nenne ein oder zwei Dinge, die gehen.
-
+${values ? VALUES_HINT : ''}
 Jetzt ist ${when}.`;
 }
 
@@ -96,7 +105,8 @@ function spoken(text: string): string {
 export async function ask(text: string, options: AskOptions): Promise<Answer> {
   const language = options.language ?? 'de';
   const words = LANGUAGES[language] ?? LANGUAGES['de']!;
-  const tools = toolsFromActions(options.actions);
+  const tools = [...toolsFromActions(options.actions), ...(options.values ? [options.values.tool] : [])];
+  const read: string[] = [];
   const actionOf = new Map(options.actions.map((action) => [toolName(action.name), action.name]));
   const done: Done[] = [];
   const messages: Anthropic.MessageParam[] = [
@@ -112,7 +122,7 @@ export async function ask(text: string, options: AskOptions): Promise<Answer> {
       {
         model: options.model ?? DEFAULT_MODEL,
         max_tokens: 4000,
-        system: instructions(language, options.now ?? new Date()),
+        system: instructions(language, options.now ?? new Date(), !!options.values),
         tools,
         messages,
         // Ein Satz, eine Aktion: Hier zählt die kurze Wartezeit mehr als langes Abwägen
@@ -121,12 +131,12 @@ export async function ask(text: string, options: AskOptions): Promise<Answer> {
       options.signal ? { signal: options.signal } : undefined,
     );
     // Eine abgelehnte Antwort kann ein Werkzeug mitten im Aufruf abschneiden – dann wird nichts davon ausgeführt
-    if (response.stop_reason === 'refusal') return { reply: words.refused, actions: done };
+    if (response.stop_reason === 'refusal') return { reply: words.refused, actions: done, values: read };
 
     const uses = response.content.filter((block): block is Anthropic.ToolUseBlock => block.type === 'tool_use');
     if (response.stop_reason !== 'tool_use' || !uses.length) {
       const reply = spoken(response.content.map((block) => (block.type === 'text' ? block.text : '')).join(' '));
-      return { reply: reply || words.lost, actions: done };
+      return { reply: reply || words.lost, actions: done, values: read };
     }
 
     messages.push({ role: 'assistant', content: response.content });
@@ -134,6 +144,13 @@ export async function ask(text: string, options: AskOptions): Promise<Answer> {
     for (const use of uses) {
       const action = actionOf.get(use.name);
       const params = (use.input ?? {}) as Record<string, unknown>;
+      if (options.values && use.name === VALUES_TOOL) {
+        // Werte lesen löst nichts aus – es steht deshalb nicht bei den Aktionen
+        const names = (Array.isArray(params['names']) ? params['names'] : []).filter((name): name is string => typeof name === 'string');
+        read.push(...names.filter((name) => !read.includes(name)));
+        results.push({ type: 'tool_result', tool_use_id: use.id, content: options.values.read(names) });
+        continue;
+      }
       try {
         if (!action) throw new Error(`Das Werkzeug "${use.name}" gibt es nicht.`);
         const result = await options.run(action, params);
@@ -147,7 +164,7 @@ export async function ask(text: string, options: AskOptions): Promise<Answer> {
     }
     messages.push({ role: 'user', content: results });
   }
-  return { reply: words.lost, actions: done };
+  return { reply: words.lost, actions: done, values: read };
 }
 
 /** Sagt in einem Satz, warum die Sprachsteuerung gerade nicht antworten kann. */

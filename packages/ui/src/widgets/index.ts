@@ -19,6 +19,7 @@ import ValueTile from './ValueTile.vue';
 import VideoTile from './VideoTile.vue';
 import VoiceButton from './VoiceButton.vue';
 import WeatherCard from './WeatherCard.vue';
+import WebCard from './WebCard.vue';
 
 /** Zuordnung vom Typnamen im Layout zum Widget. */
 export const widgets: Record<string, Component> = {
@@ -39,6 +40,7 @@ export const widgets: Record<string, Component> = {
   video: VideoTile,
   voice: VoiceButton,
   weather: WeatherCard,
+  web: WebCard,
   'media-window': MediaWindow,
   image: ImageCard,
   mail: MailCard,

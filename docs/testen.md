@@ -40,7 +40,7 @@ npm run test:instance
 
 Sie läuft auf <http://localhost:8191>, neben einer eigenen Installation auf Port 8090. Die Vorlage liegt in `testing/instance` und wird bei jedem Start frisch in einen Wegwerfordner gelegt; was dort verändert wird, ist nach dem nächsten Start vergessen.
 
-Die Testinstanz enthält: Sonne und Mond für drei Orte, erfundene Messwerte, zwei Autos, vier Familienmitglieder, Schalter, Wetterdaten, Termine, Erinnerungen, E-Mails und Anrufe, Eieruhr, drei Rezepte (mit Bild, ohne Angaben, mit kaputten Angaben), Nachrichten aus zwei echten Feeds und einem unerreichbaren, einen Radiosender und absichtlich ein unbekanntes Widget. Nachrichten und Radio brauchen Internet. Die Einkaufsliste kommt von einem Platzhalter für Merkio (`plugins/source-merkio/src/standin.ts`) mit einer erfundenen Familie; er bildet Anmeldung, Listen, Einträge und Echtzeitkanal nach, ist aber nicht das echte Merkio. Für das Hinzufügen von Rezepten startet sie einen Platzhalter der Claude-API auf dem eigenen Rechner (`packages/recipe-import/src/standin.ts`): Er antwortet in der Form der echten Schnittstelle mit einem festen Rezept. So läuft der ganze Weg vom Hochladen bis zur Rezeptdatei, ohne dass etwas das Haus verlässt oder kostet – was das Sprachmodell aus einer echten Vorlage macht, prüft das nicht.
+Die Testinstanz enthält: Sonne und Mond für drei Orte, erfundene Messwerte, zwei Autos, vier Familienmitglieder, Schalter, Wetterdaten, Termine, Erinnerungen, E-Mails und Anrufe, Eieruhr, vier Rezepte (mit Bild, ohne Angaben, mit kaputten Angaben, mit Zutatentabelle), Nachrichten aus zwei echten Feeds und einem unerreichbaren, einen Radiosender und absichtlich ein unbekanntes Widget. Nachrichten und Radio brauchen Internet. Die Einkaufsliste kommt von einem Platzhalter für Merkio (`plugins/source-merkio/src/standin.ts`) mit einer erfundenen Familie; er bildet Anmeldung, Listen, Einträge und Echtzeitkanal nach, ist aber nicht das echte Merkio. Für das Hinzufügen von Rezepten startet sie einen Platzhalter der Claude-API auf dem eigenen Rechner (`packages/recipe-import/src/standin.ts`): Er antwortet in der Form der echten Schnittstelle mit einem festen Rezept. So läuft der ganze Weg vom Hochladen bis zur Rezeptdatei, ohne dass etwas das Haus verlässt oder kostet – was das Sprachmodell aus einer echten Vorlage macht, prüft das nicht. Für die Kachel `web` startet sie zwei kleine Seiten auf dem eigenen Rechner: eine, die sich einbetten lässt, und eine, die es verbietet.
 
 ## Prüfliste Oberfläche
 
@@ -102,9 +102,11 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] Beide Kacheln zeigen den Streifenkuchen mit Bild – nur dieses Rezept hat eines; Rezepte ohne Bild kommen im Wechsel nicht an die Reihe.
 - [ ] Antippen öffnet das Rezept: Angaben, Bild, Liste mit Kästchen, Verweis.
 - [ ] Der Titel des Browserfensters lautet weiter „Culinola“, der Skript-Text steht als Text da, die zwei fremden Bilder fehlen.
-- [ ] Der Pfeil öffnet die Liste mit drei Rezepten; „Kaputte Kopfdaten“ lässt sich öffnen. Unter dem Streifenkuchen steht die Herkunft „Familienrezept“, unter der Linsensuppe „Beispielseite“.
+- [ ] Der Pfeil öffnet die Liste mit vier Rezepten; „Kaputte Kopfdaten“ lässt sich öffnen. Unter dem Streifenkuchen steht die Herkunft „Familienrezept“, unter der Linsensuppe „Beispielseite“.
 - [ ] A− und A+ ändern die Schriftgröße; sie bleibt nach dem Schließen erhalten.
 - [ ] „Das koche ich“ bei der Linsensuppe: Nach dem Schließen zeigen beide Kacheln die Linsensuppe mit „Wird gekocht“ und wechseln nicht mehr; Antippen öffnet sie wieder. „Fertig gekocht“ bringt den Wechsel zurück.
+- [ ] Pfannkuchen öffnen, „Einkaufen“: Fünf Zutaten stehen angewählt da, oben „4 Portionen“. Zweimal „+“: „6 Portionen“, aus 250 g Mehl werden 375 g. Salz abwählen (die Auswahl bleibt beim Umrechnen erhalten), „Auf die Liste setzen (4)“: Über dem Rezept steht, wie viele Zutaten neu auf die Liste kamen und wie viele schon dort standen; unter `?layout=einkauf` stehen „Mehl 375 g“ und „Butter zum Backen“. Milch und Eier standen schon dort und bleiben, wie sie sind.
+- [ ] Beim Streifenkuchen und bei der Linsensuppe fehlt „Einkaufen“ – sie haben keine Zutatentabelle.
 - [ ] Eine Datei in den Rezeptordner der Testinstanz legen: Sie erscheint ohne Neustart in der Liste.
 - [ ] „+ Rezept“ in der Liste: Einen Text einfügen, dessen erste Zeile der Titel ist – nach „Übernehmen“ öffnet sich das neue Rezept mit dem Vermerk „Hinzugefügt.“ und steht in der Liste unter „Sonstiges“.
 - [ ] Ein Foto wählen (gern über 5 MB): Das Rezept trägt den Namen der Datei, das Foto steht in der Leseansicht neben dem Text und erscheint auf der Kachel.
@@ -127,8 +129,16 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 **Sprechen** (Layout `haus`)
 - [ ] Die Kachel „Sprechen“ antippen. Mit Mikrofon und Chrome: „Eieruhr auf 5 Minuten“ sagen – unten erscheint der Satz, dann „Erledigt.“, die Antwort wird vorgelesen, und die Uhr daneben zählt rückwärts. Der Platzhalter der Claude-API versteht nur feste Sätze: Eieruhr auf n Minuten, „Setze … auf die Einkaufsliste“, „Spiele …“.
 - [ ] Ohne Spracherkennung (oder über ⌨) lässt sich der Satz tippen; „Setze Hefe auf die Einkaufsliste“ steht danach in der Liste (`?layout=einkauf`).
+- [ ] „Wie warm ist es Außen?“ (getippt oder gesprochen): Die Antwort nennt den Wert der Kachel „Außen“ – beim Platzhalter roh als „Außen: 15,8 °C“, das echte Sprachmodell macht daraus einen Satz. „Ist das Licht am Esstisch an?“ nennt den Schalter. Im Protokoll des Kerns steht, welche Werte gelesen wurden, nicht ihr Stand. Der Platzhalter liest, was im Satz beim Namen genannt ist, sonst den ersten Wert.
+- [ ] „Setz die Zutaten für die Pfannkuchen auf die Einkaufsliste“: „Erledigt.“, und die Zutaten stehen auf der Liste.
 - [ ] Ein Satz, den der Platzhalter nicht kennt, bekommt eine Antwort ohne Aktion; die Tafel verschwindet nach einigen Sekunden von selbst.
 - [ ] Aktivierungswort (nur mit Sprachmodell: `CULINOLA_VOSK_MODEL=<Pfad zu model.tar.gz> npm run test:instance`, Mikrofon und `localhost`): Unter der Taste steht „computer …“. „Computer, setz Hefe auf die Einkaufsliste“ führt ohne Antippen zum Eintrag; nur „Computer“ ergibt einen Ton und „Ich höre …“, der nächste Satz wird ausgeführt; ein Satz ohne das Wort bewirkt nichts. Nach einer Antwort ohne Aktion („nicht verstanden“) steht wieder „Ich höre …“ da, und der nächste Satz wird ohne das Wort ausgeführt; bleibt es still, verschwindet die Tafel nach einigen Sekunden.
+
+**Fremde Seiten** (Layout `web`: <http://localhost:8191/?layout=web>)
+- [ ] „Vorschau“ zeigt die Seite verkleinert, die Uhrzeit darin läuft. Antippen öffnet sie über die ganze Anzeige; dort zählt die Taste „Angetippt“ mit, und die Seite wurde dabei nicht neu geladen („Geladen um“ bleibt). „Versuch, die Anzeige zu verlassen“ bewirkt nichts – in der Konsole steht dazu eine Zeile über die verweigerte Navigation, die hier erwartet ist. Das Kreuz bringt die Kachel zurück.
+- [ ] „Bedienbar“ lässt sich schon in der Kachel bedienen und rollen, der Pfeil oben rechts zeigt sie groß; jede Minute wird sie neu geladen („Geladen um“ springt).
+- [ ] „Verboten“ sagt, dass die Seite das Einbetten nicht erlaubt, und nennt die Kopfzeile; „Ohne Adresse“ meldet eine ungültige Webadresse.
+- [ ] `curl "http://localhost:8191/api/v1/embed?url=https://example.org/"` wird mit 400 abgelehnt: Der Kern ruft nur Adressen ab, die in einer Kachel stehen.
 
 **Meldungen**
 - [ ] `curl -X POST http://localhost:8191/api/v1/events/hausglocke`: Auf jeder offenen Anzeige erscheint oben die Tafel „Jemand klingelt an der Haustür!“, die Türglocke ertönt (nach einer Berührung der Seite), der Text wird vorgelesen; nach 15 Sekunden oder durch Antippen verschwindet sie.
@@ -167,6 +177,9 @@ Das Folgende lässt sich nicht nachstellen und wird an der eigenen Installation 
 - FRITZ!Box: Anmeldung, Anrufliste, Abspielen einer echten Nachricht des Anrufbeantworters, Klingeln über den Anrufmonitor
 - E-Mail: Abruf aus einem echten Postfach, Öffnen einer HTML-Nachricht mit eingebetteten Bildern, Verhalten bei falschem Kennwort
 - Google: Anmeldung mit `npm run google:login` am echten Konto; danach zeigen die Kacheln die echten Termine und die Erinnerungen aus den Kontakten
+- Sprache mit dem echten Sprachmodell: Fragen nach Werten („Wie warm ist es draußen?“, „Wann geht die Sonne unter?“) – trifft die Antwort den richtigen Wert, ist sie als Satz gut vorzulesen?
+- Zutaten eines eigenen Rezepts auf die echte Einkaufsliste setzen: Mengen, Einheiten und die Warengruppen, die Merkio selbst vergibt
+- Fremde Seiten, die tatsächlich eingebettet werden sollen (Grafana, Geräteseiten): Anmeldung, Darstellung in der Kachel, Verhalten über HTTPS
 
 ## Vor einer Lieferung
 

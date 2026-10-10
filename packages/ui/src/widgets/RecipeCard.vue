@@ -23,6 +23,18 @@ interface RecipeInfo {
 interface Recipe extends RecipeInfo {
   markdown: string;
 }
+/** Was von einem Rezept auf die Einkaufsliste käme. */
+interface Shopping {
+  /** Ob es eine Einkaufsliste gibt, auf die sich etwas setzen lässt. */
+  ready: boolean;
+  /** Wofür das Rezept geschrieben ist und wofür gerade gerechnet wird – etwa 4 und 6 „Portionen“. */
+  base: number;
+  amount: number;
+  unit: string;
+  /** Ob das Rezept eine Zahl nennt; ohne Einheit sind dann Portionen gemeint, sonst das Vielfache des Rezepts. */
+  counted: boolean;
+  items: { name: string; amount: string; note: string | null }[];
+}
 
 /**
  * Rezepte: Die Kachel zeigt im Wechsel ein zufällig gewähltes Rezept mit Bild,
@@ -145,13 +157,74 @@ function pictureFailed(entry: RecipeInfo) {
 const categories = computed(() => [...new Set(list.value.map((entry) => entry.category).filter((name): name is string => !!name))].sort((a, b) => a.localeCompare(b)));
 const shown = computed(() => (category.value ? list.value.filter((entry) => entry.category === category.value) : list.value));
 
+// Zutaten auf die Einkaufsliste: Menge wählen, abwählen, was im Haus ist, und eintragen lassen
+const shopping = ref<Shopping>();
+const shopOpen = ref(false);
+const shopBusy = ref(false);
+const shopError = ref('');
+const chosen = reactive(new Set<string>());
+const shopPath = (id: string) => `/p/${encodeURIComponent(source.value)}/shopping/${encodeURIComponent(id)}`;
+async function loadShopping(id: string, amount?: number) {
+  try {
+    const next = await getJson<Shopping>(`${shopPath(id)}${amount ? `?amount=${amount}` : ''}`);
+    // Inzwischen ist ein anderes Rezept offen
+    if (recipe.value?.id === id) shopping.value = next;
+  } catch {
+    // Ohne Auskunft wird das Einkaufen nicht angeboten.
+    if (recipe.value?.id === id && !amount) shopping.value = undefined;
+  }
+}
+function startShopping() {
+  if (!shopping.value) return;
+  chosen.clear();
+  for (const item of shopping.value.items) chosen.add(item.name);
+  shopError.value = '';
+  notice.value = [];
+  shopOpen.value = true;
+}
+const toggle = (name: string) => void (chosen.has(name) ? chosen.delete(name) : chosen.add(name));
+function toggleAll() {
+  const all = shopping.value?.items ?? [];
+  if (chosen.size === all.length) chosen.clear();
+  else for (const item of all) chosen.add(item.name);
+}
+/** Mehr oder weniger: in ganzen Schritten der Angabe im Rezept, nie unter eins. */
+function resizeShopping(step: number) {
+  const current = recipe.value;
+  if (!current || !shopping.value) return;
+  const next = Math.max(1, Math.round(shopping.value.amount + step));
+  if (next !== shopping.value.amount) void loadShopping(current.id, next);
+}
+async function shop() {
+  const current = recipe.value;
+  if (!current || !shopping.value || shopBusy.value) return;
+  shopBusy.value = true;
+  shopError.value = '';
+  try {
+    const result = await postJson<{ added: number; known: number; failed: string[] }>(shopPath(current.id), { amount: shopping.value.amount, names: [...chosen] });
+    notice.value = [
+      t('recipes.shopDone', { n: result.added }, result.added),
+      ...(result.known ? [t('recipes.shopKnown', { n: result.known }, result.known)] : []),
+      ...(result.failed.length ? [t('recipes.shopFailed', { names: result.failed.join(', ') })] : []),
+    ];
+    shopOpen.value = false;
+  } catch (cause) {
+    shopError.value = cause instanceof Error ? cause.message : String(cause);
+  } finally {
+    shopBusy.value = false;
+  }
+}
+
 async function show(id: string, keepNotice = false) {
   open.value = true;
   adding.value = false;
+  shopOpen.value = false;
+  shopping.value = undefined;
   failed.value = '';
   if (!keepNotice) notice.value = [];
   try {
     recipe.value = await getJson<Recipe>(`/p/${encodeURIComponent(source.value)}/text/${encodeURIComponent(id)}`);
+    void loadShopping(id);
   } catch (cause) {
     recipe.value = undefined;
     failed.value = cause instanceof Error ? cause.message : String(cause);
@@ -233,6 +306,7 @@ function addFromFile(event: Event) {
 }
 function startAdding() {
   recipe.value = undefined;
+  shopOpen.value = false;
   notice.value = [];
   addError.value = '';
   adding.value = true;
@@ -289,6 +363,7 @@ function close() {
   open.value = false;
   recipe.value = undefined;
   adding.value = false;
+  shopOpen.value = false;
   notice.value = [];
 }
 </script>
@@ -308,8 +383,9 @@ function close() {
 
     <DetailOverlay v-if="open" :title="recipe?.title ?? heading" @close="close">
       <template #actions>
-        <button v-if="recipe || adding" class="back" @click="(recipe = undefined), (adding = false)">{{ t('recipes.list') }}</button>
+        <button v-if="recipe || adding" class="back" @click="(recipe = undefined), (adding = false), (shopOpen = false)">{{ t('recipes.list') }}</button>
         <button v-if="canAdd && !adding" :aria-label="t('recipes.add')" @click="startAdding">{{ t('recipes.addShort') }}</button>
+        <button v-if="recipe && shopping?.ready && shopping.items.length" class="cook" :class="{ on: shopOpen }" :aria-pressed="shopOpen" @click="shopOpen ? (shopOpen = false) : startShopping()">{{ t('recipes.shop') }}</button>
         <button v-if="recipe" class="cook" :class="{ on: cookingId === recipe.id }" :aria-pressed="cookingId === recipe.id" @click="setCooking(cookingId === recipe.id ? undefined : recipe.id)">{{ t(cookingId === recipe.id ? 'recipes.cookDone' : 'recipes.cook') }}</button>
         <button v-if="recipe" :aria-label="t('recipes.smaller')" :disabled="scale === SCALES[0]" @click="resize(-1)">A−</button>
         <button v-if="recipe" :aria-label="t('recipes.larger')" :disabled="scale === SCALES[SCALES.length - 1]" @click="resize(1)">A+</button>
@@ -353,6 +429,30 @@ function close() {
             <button type="button" class="go" :disabled="busy || !addText.trim()" @click="addFromText">{{ t('recipes.addGo') }}</button>
             <p v-if="busy" class="state" role="status">{{ t('recipes.addBusy') }}</p>
             <p v-else-if="addError" class="state bad" role="alert">{{ t('recipes.addFailed', { error: addError }) }}</p>
+          </form>
+          <form v-else-if="recipe && shopOpen && shopping" class="add shop" @submit.prevent>
+            <h3>{{ t('recipes.shopTitle') }}</h3>
+            <p class="amount">
+              <span>{{ t('recipes.shopFor') }}</span>
+              <button type="button" :aria-label="t('recipes.shopLess')" :disabled="shopBusy || shopping.amount <= 1" @click="resizeShopping(-1)">−</button>
+              <strong>{{ shopping.unit ? `${shopping.amount} ${shopping.unit}` : shopping.counted ? t('recipes.shopPortions', { n: shopping.amount }, shopping.amount) : t('recipes.shopTimes', { n: shopping.amount }) }}</strong>
+              <button type="button" :aria-label="t('recipes.shopMore')" :disabled="shopBusy" @click="resizeShopping(1)">+</button>
+            </p>
+            <ul>
+              <li v-for="item in shopping.items" :key="item.name">
+                <label :class="{ off: !chosen.has(item.name) }">
+                  <input type="checkbox" :checked="chosen.has(item.name)" :disabled="shopBusy" @change="toggle(item.name)" />
+                  <span class="qty">{{ item.amount }}</span>
+                  <span>{{ item.name }}<small v-if="item.note"> · {{ item.note }}</small></span>
+                </label>
+              </li>
+            </ul>
+            <p class="row">
+              <button type="button" class="go" :disabled="shopBusy || !chosen.size" @click="shop">{{ t('recipes.shopGo', { n: chosen.size }) }}</button>
+              <button type="button" class="quiet" :disabled="shopBusy" @click="toggleAll">{{ t(chosen.size === shopping.items.length ? 'recipes.shopNone' : 'recipes.shopAll') }}</button>
+            </p>
+            <p v-if="shopBusy" class="state" role="status">{{ t('recipes.shopBusy') }}</p>
+            <p v-else-if="shopError" class="state bad" role="alert">{{ t('recipes.shopError', { error: shopError }) }}</p>
           </form>
           <template v-else-if="recipe">
             <p v-for="line in notice" :key="line" class="notice">{{ line }}</p>
@@ -679,6 +779,59 @@ article .facts {
 }
 .add .state.bad {
   color: var(--alarm);
+}
+/* Zutaten für die Einkaufsliste: große Zeilen, die sich mit dem Finger an- und abwählen lassen */
+.shop .amount {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.shop .amount button {
+  width: 48px;
+  padding: 0;
+  font-size: 24px;
+}
+.shop .amount strong {
+  min-width: 7em;
+  text-align: center;
+}
+.shop ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+.shop li label {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  min-height: 52px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.shop li label.off {
+  color: var(--mute);
+  text-decoration: line-through;
+}
+.shop input[type='checkbox'] {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  accent-color: var(--accent);
+}
+.shop .qty {
+  flex: none;
+  width: 6.5em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.shop small {
+  color: var(--mute);
+}
+.shop .quiet {
+  background: var(--soft);
+  color: var(--ink);
 }
 .back {
   display: none;

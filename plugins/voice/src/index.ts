@@ -3,14 +3,21 @@ import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { definePlugin } from '@culinola/sdk';
 import { ask, DEFAULT_MODEL, explain } from './assistant.ts';
+import { knownValues, readValues, valuesTool } from './values.ts';
 
 interface Config {
   /** Sprachmodell, das den Satz den Aktionen zuordnet. */
   model: string;
   /** Sprache der Antworten: de, en oder fr. */
   language: string;
+  /** Werte, nach denen man zusätzlich fragen kann – oder die anders heißen sollen als auf der Anzeige. */
+  values: { id: string; name?: string }[];
+  /** Ob man nach allem fragen kann, was auf den Anzeigen steht. */
+  layoutValues: boolean;
 }
 
+const DATAPOINT_ID = /^[a-z][a-z0-9-]*:[\w.-]+$/;
+const REGIONS: Record<string, string> = { de: 'de-DE', en: 'en-GB', fr: 'fr-FR' };
 const MAX_TEXT_CHARS = 500;
 const MAX_HISTORY = 3;
 const TIMEOUT_MS = 30_000;
@@ -19,18 +26,28 @@ const TIMEOUT_MS = 30_000;
  * Sprachsteuerung. Die Anzeige schickt den Satz, den der Browser verstanden hat; ein Sprachmodell
  * ordnet ihn den Aktionen zu, die die anderen Plugins angemeldet haben – Eieruhr, Radio, Listen,
  * Rezepte –, führt sie aus und antwortet in einem Satz, den die Anzeige vorliest. Was heikel ist
- * (`sensitive`), lässt sich so nicht auslösen.
+ * (`sensitive`), lässt sich so nicht auslösen. Fragen nach Werten – „Wie warm ist es draußen?“ –
+ * beantwortet es aus dem, was auf den Anzeigen steht.
  */
 export default definePlugin<Config>({
   id: 'voice',
 
   parseConfig(raw) {
-    const config = raw as { model?: unknown; language?: unknown };
+    const config = raw as { model?: unknown; language?: unknown; values?: unknown; layoutValues?: unknown };
     const model = config.model ?? DEFAULT_MODEL;
     if (typeof model !== 'string' || !model) throw new Error('"model" muss die Kennung eines Sprachmodells sein.');
     const language = config.language ?? 'de';
     if (typeof language !== 'string' || !['de', 'en', 'fr'].includes(language)) throw new Error('"language" muss de, en oder fr sein.');
-    return { model, language };
+    if (config.layoutValues !== undefined && typeof config.layoutValues !== 'boolean') throw new Error('"layoutValues" muss true oder false sein.');
+    if (config.values !== undefined && !Array.isArray(config.values)) throw new Error('"values" muss eine Liste von Datenpunkten sein.');
+    const values = ((config.values as unknown[] | undefined) ?? []).map((entry) => {
+      const wish = (typeof entry === 'string' ? { datapoint: entry } : (entry ?? {})) as { datapoint?: unknown; name?: unknown };
+      if (typeof wish.datapoint !== 'string' || !DATAPOINT_ID.test(wish.datapoint) || (wish.name !== undefined && (typeof wish.name !== 'string' || !wish.name.trim()))) {
+        throw new Error('Ein Eintrag in "values" ist ein Datenpunkt ("openhab:Mess_TAussen") oder { "datapoint": …, "name": "Außentemperatur" }.');
+      }
+      return { id: wish.datapoint, ...(typeof wish.name === 'string' ? { name: wish.name.trim() } : {}) };
+    });
+    return { model, language, values, layoutValues: config.layoutValues !== false };
   },
 
   start(context) {
@@ -65,6 +82,10 @@ export default definePlugin<Config>({
 
       // Die Anbindung an die Claude-API wird erst geladen, wenn jemand spricht
       const { default: Anthropic } = await import('@anthropic-ai/sdk');
+      // Wonach man fragen kann: was auf den Anzeigen steht und was eigens genannt ist. Gelesen wird ein Wert erst,
+      // wenn das Sprachmodell danach fragt – so verlässt nur das Haus, was die Antwort braucht.
+      const known = knownValues(config.values, config.layoutValues ? context.datapoints.shown() : [], context.datapoints.list());
+      const tool = valuesTool(known);
       try {
         const answer = await ask(text, {
           client: new Anthropic({ apiKey, maxRetries: 1, timeout: TIMEOUT_MS }),
@@ -74,10 +95,12 @@ export default definePlugin<Config>({
           // Die Sprachsteuerung steuert die anderen, nicht sich selbst
           actions: context.actions.list().filter((action) => !action.name.startsWith(`${context.instanceId}.`)),
           run: (name, params) => context.actions.run(name, params),
+          ...(tool ? { values: { tool, read: (names) => readValues(known, names, context.datapoints.list(), { region: REGIONS[config.language] ?? 'de-DE' }) } } : {}),
           signal: request.signal,
         });
         // Ins Protokoll kommt, was ausgelöst wurde – nicht, was gesagt wurde
-        log.info(`Sprache: ${answer.actions.map((entry) => `${entry.action}${entry.ok ? '' : ' (gescheitert)'}`).join(', ') || 'keine Aktion'}`);
+        const did = [...answer.actions.map((entry) => `${entry.action}${entry.ok ? '' : ' (gescheitert)'}`), ...(answer.values.length ? [`Werte gelesen (${answer.values.join(', ')})`] : [])];
+        log.info(`Sprache: ${did.join(', ') || 'keine Aktion'}`);
         return Response.json(answer);
       } catch (error) {
         const { status, message } = explain(error);

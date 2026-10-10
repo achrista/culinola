@@ -33,7 +33,7 @@ function start(name: string, config: Record<string, unknown> = {}, secrets?: Rec
     log: { info: () => undefined, warn: (message) => void warnings.push(message), error: () => undefined },
     secrets: { get: (key) => (secrets ?? merkio.account)[key as 'email' | 'password'] },
     storageDir: join(dir, name),
-    datapoints: { set: (update) => void datapoints.set(update.id, update.value) },
+    datapoints: { set: (update) => void datapoints.set(update.id, update.value), list: () => [], shown: () => [] },
     actions: { register: (definition, handler) => void actions.set(definition.name, handler), list: () => [], run: async () => undefined },
     resources: { set: (key, value) => void resources.set(key, value) },
     routes: { get: () => undefined, post: () => undefined },
@@ -123,6 +123,12 @@ describe('Listen aus Merkio', () => {
     expect(shown.names('baumarkt')).toEqual(['Dübel 8 mm']);
     await shown.run('lists.add', { text: 'Schrauben', list: 'baumarkt' });
     expect(shown.names('baumarkt')).toEqual(['Dübel 8 mm', 'Schrauben']);
+
+    // Menge und Einheit eigens mitgegeben – so setzt ein Rezept seine Zutaten: Der Text ist dann allein der Name
+    await shown.run('lists.add', { text: '00 Mehl Type 405', quantity: '0.5', unit: 'kg' });
+    expect(merkio.items.at(-1)).toMatchObject({ listId: 11, name: '00 Mehl Type 405', quantity: '0.5', unit: 'kg' });
+    await shown.run('lists.add', { text: '3 Zitronen', unit: ' Netz ' });
+    expect(merkio.items.at(-1)).toMatchObject({ name: '3 Zitronen', quantity: null, unit: 'Netz' });
 
     // Was abgehakt auf der Liste steht, kommt zurück; was offen dort steht, bleibt einmal
     const before = merkio.items.length;

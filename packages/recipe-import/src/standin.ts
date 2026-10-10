@@ -17,8 +17,8 @@ export interface StandIn {
 
 export interface StandInRequest {
   model: string;
-  messages: { role: string; content: string | { type: string; text?: string; is_error?: boolean }[] }[];
-  tools?: { name: string }[];
+  messages: { role: string; content: string | { type: string; text?: string; name?: string; content?: unknown; is_error?: boolean }[] }[];
+  tools?: { name: string; input_schema?: { properties?: Record<string, { items?: { enum?: string[] } }> } }[];
   [key: string]: unknown;
 }
 
@@ -76,11 +76,26 @@ function toolAnswer(asked: StandInRequest) {
   const last = asked.messages.at(-1)!;
   const reply = (content: unknown[], stop: string) => ({ id: 'msg_platzhalter', type: 'message', role: 'assistant', model: asked.model, content, stop_reason: stop, stop_sequence: null, usage: { input_tokens: 100, output_tokens: 20 } });
   const say = (text: string) => reply([{ type: 'text', text }], 'end_turn');
-  if (typeof last.content !== 'string') return say(last.content.some((block) => block.is_error) ? 'Das hat nicht geklappt.' : 'Erledigt.');
+  if (typeof last.content !== 'string') {
+    if (last.content.some((block) => block.is_error)) return say('Das hat nicht geklappt.');
+    // Nach gelesenen Werten nennt der Platzhalter, was er bekam – deuten kann er es nicht
+    const before = asked.messages.at(-2)?.content;
+    const read = typeof before !== 'string' && before?.some((block) => block.type === 'tool_use' && block.name === 'values__read');
+    const result = last.content.map((block) => (typeof block.content === 'string' ? block.content : '')).join(' ');
+    return say(read ? result.replace(/\n/g, ', ') : 'Erledigt.');
+  }
 
   const text = last.content;
   const offered = (name: string) => asked.tools!.some((tool) => tool.name === name);
   const call = (name: string, input: unknown) => (offered(name) ? reply([{ type: 'tool_use', id: `toolu_platzhalter_${asked.messages.length}`, name, input }], 'tool_use') : say('Das kann ich hier nicht.'));
+  // Fragen nach Werten: Gelesen wird, was im Satz beim Namen genannt ist – sonst der erste bekannte Wert
+  const known = asked.tools!.find((tool) => tool.name === 'values__read')?.input_schema?.properties?.['names']?.items?.enum ?? [];
+  if (/^(wie|wer|wann|was|ist|sind)\b.*\?$/i.test(text.trim()) && known.length) {
+    const named = known.filter((name) => text.toLowerCase().includes(name.toLowerCase()));
+    return call('values__read', { names: named.length ? named : known.slice(0, 1) });
+  }
+  const dish = /zutaten\s+(?:für|von|vom)\s+(?:den|die|das|dem|der)?\s*(.+?)\s+auf\s+die\s+(?:einkaufs)?liste/i.exec(text)?.[1];
+  if (dish) return call('recipes__shop', { recipe: dish });
   const minutes = /(\d+)\s*min/i.exec(text)?.[1];
   if (/eieruhr|timer/i.test(text) && minutes) return call('timer__start', { minutes: Number(minutes) });
   if (/eieruhr|timer/i.test(text) && /aus|stopp/i.test(text)) return call('timer__stop', {});

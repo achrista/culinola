@@ -35,7 +35,7 @@ else log.info(`Zugriffsschutz aktiv: ${access.map((entry) => `${entry.name} (${e
 
 const registry = new DatapointRegistry();
 const actions = new ActionRegistry();
-const plugins = new PluginHost(registry, actions, secrets, log, dataDir);
+const plugins = new PluginHost(registry, actions, secrets, log, dataDir, config.layouts);
 const events = new EventHub(config.events ?? {}, log);
 // Meldungen, die an einem Datenpunkt hängen, feuern, sobald er ihre Bedingung neu erfüllt
 registry.on('change', (datapoint) => events.observe(datapoint));

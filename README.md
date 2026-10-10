@@ -84,6 +84,7 @@ Unter `layouts` dürfen mehrere Layouts stehen. Eine Anzeige zeigt `main`, mit d
 | `clock` | Uhrzeit mit Sekunden und Datum; Antippen stellt die Eieruhr | `timer` (Eieruhr-Instanz) |
 | `value-tile` | Messwert mit Statuspunkt und Verlaufslinie; eine Rasterzeile hoch zeigt sie alles in einer Zeile. Mit `gauge` steht der Wert in einer hohen Kachel in einem Ring, der sich mit ihm füllt – für Leistung, Ladestand oder Tankfüllung, mit dem Nebenwert (etwa der Reichweite) darunter | `datapoint`, `label`, `secondary`, `unit`, `decimals`, `factor`, `warn`, `map`, `gauge` (`{ "max": 100 }`, auf Wunsch mit `min`), `fresh` (Datenpunkt eines Schalters: ist er aus, steht die Kachel ausgegraut da – der Wert ist dann der letzte bekannte) |
 | `image` | Ein Bild von einer Webadresse, das sich von selbst erneuert, etwa das Standbild einer Webcam; Antippen zeigt es groß | `url`, `refreshSeconds` (Vorgabe 300), `label`, `fit` (`cover` oder `contain`) |
+| `web` | Eine fremde Webseite in der Kachel – Regenradar, ein Diagramm aus Grafana, die Seite eines Geräts im Haus. Die Kachel ist Vorschau; Antippen zeigt die Seite über die ganze Anzeige, dort lässt sie sich bedienen (siehe [Fremde Seiten](#fremde-seiten)) | `url`, `label`, `zoom` (0.5 zeigt doppelt so viel), `refreshMinutes`, `interactive` (schon in der Kachel bedienbar) |
 | `presence` | Wer zu Hause ist: je Person ein Feld mit Namen und „daheim“ oder „weg“. Als anwesend gilt ein eingeschalteter Schalter, eine Zahl über null oder ein Text wie `home` oder `daheim` | `items` (Liste aus `datapoint` und `label`), `home` (eigene Texte für „daheim“) |
 | `switches` | Feld von Schaltern, das sich dem Platz anpasst; ein Eintrag mit `"type": "cover"` bekommt drei Tasten zum Fahren – für Markise, Rollladen oder Jalousie – und zeigt die Stellung | `items: [{ datapoint, label }]`; je Eintrag `type` (`cover`), `up` und `down` (Beschriftung der Tasten, etwa „ein“ und „aus“) |
 | `chart` | Zeitverlauf für heute, Woche, Monat | `title`, `series: [{ datapoint, label, area, forecast }]` |
@@ -110,6 +111,21 @@ Im Diagramm läuft „Heute“ von 0 bis 24 Uhr. Eine Reihe mit `forecast: true`
 `warn` nimmt bis zu vier Grenzen: `lowAlarm`, `lowWarn`, `highWarn`, `highAlarm`. Der Punkt ist grün im Bereich, gelb bei Achtung, rot außerhalb und grau ohne Bewertung.
 
 `factor` rechnet einen Wert für die Anzeige um – etwa `100`, wenn die Quelle Feuchte als Bruchteil (0,58) statt in Prozent liefert.
+
+### Fremde Seiten
+
+Die Kachel `web` bettet eine Seite von einer anderen Adresse ein:
+
+```json
+{ "type": "web", "at": [0, 0, 12, 8], "config": { "url": "https://grafana.example/d/strom?kiosk", "label": "Strom", "zoom": 0.75, "refreshMinutes": 15 } }
+```
+
+Zu wissen:
+
+- **Viele Seiten verbieten das Einbetten** (Kopfzeilen `X-Frame-Options` oder `Content-Security-Policy: frame-ancestors`) – Nachrichtenseiten, Banken, die meisten großen Dienste. Der Browser zeigt dann nur eine leere Fläche. Der Kern sieht deshalb nach und die Kachel sagt, woran es liegt. Eigene Dienste lassen sich meist umstellen, Grafana etwa mit `allow_embedding = true`.
+- **Über HTTPS nur HTTPS:** Läuft die Anzeige über eine [gesicherte Verbindung](#gesicherte-verbindung-https), lässt der Browser keine Seite mit `http://` in die Kachel. Auch das meldet die Kachel.
+- **Abgeschottet:** Die Seite darf rechnen und Formulare schicken, aber weder die Anzeige auf eine andere Adresse lenken noch Fenster öffnen. Ohne `interactive` fängt die Kachel jede Berührung ab und öffnet die große Ansicht – so verstellt ein versehentlicher Fingertipp nichts.
+- Der Kern ruft dabei nur Adressen ab, die in einer Kachel `web` stehen (`GET /api/v1/embed?url=…`), nie eine, die ihm ein Aufrufer nennt.
 
 ### Meldungen
 
@@ -319,6 +335,10 @@ Alle Angaben sind freiwillig; deutsche Feldnamen (`Titel`, `Kategorie`, `Stichwo
 
 In der Leseansicht lässt sich die Schrift in Stufen vergrößern; solange ein Rezept offen ist, hält die Anzeige den Bildschirm wach, soweit der Browser das zulässt (gesicherte Verbindung oder `localhost`). Das Bild aus den Angaben steht dort neben dem Text. „Das koche ich“ hält ein Rezept fest: Es bleibt auf der Kachel stehen, statt im Wechsel zu verschwinden, und ein Fingertipp öffnet es wieder – bis „Fertig gekocht“ gedrückt wird oder sechs Stunden um sind. Der Vermerk liegt im Kern (Datenpunkt `recipes:cooking`, Aktionen `recipes.cook` und `recipes.finish`), gilt also für alle Anzeigen und übersteht ein Neuladen.
 
+#### Zutaten auf die Einkaufsliste
+
+Wo eine Einkaufsliste eingerichtet ist (siehe [Merkio](#einkaufs--und-aufgabenlisten-aus-merkio)), steht in der Leseansicht „Einkaufen“: Die Zutaten erscheinen zum An- und Abwählen, mit − und + wird auf eine andere Menge umgerechnet („6 Portionen“ statt 4, „2 Blech“ statt 1), und „Auf die Liste setzen“ trägt sie mit Menge und Einheit ein. Was schon offen auf der Liste steht, bleibt einmal dort. Gelesen werden die Tabellen unter der Überschrift „Zutaten“ – so, wie das Import-Werkzeug sie schreibt; gleiche Zutaten aus mehreren Abschnitten werden zusammengefasst. Per Sprache geht dasselbe für alle Zutaten: „Setz die Zutaten für die Pfannkuchen auf die Einkaufsliste“ (Aktion `recipes.shop` mit `recipe` und `amount`; ohne `recipe` das Rezept, das gerade gekocht wird). Mit `"shoppingList": "Einkaufen"` an der Quelle `recipes` geht es auf eine bestimmte Liste, sonst auf die erste, die gezeigt wird.
+
 #### Neue Rezepte hinzufügen
 
 Aus einer Webseite, einem Dokument (PDF, Word, LibreOffice, Text) oder einem Foto – etwa einer abfotografierten Kochbuchseite – macht Culinola ein Rezept im eigenen Format und legt es samt Foto des Gerichts als `<Kategorie>/<Titel>.md` in den Rezeptordner. Das Lesen und Ordnen übernimmt ein Sprachmodell von Anthropic (Claude Haiku); die Arbeit dahinter steckt im Paket [recipe-import](packages/recipe-import/README.md).
@@ -379,7 +399,7 @@ Am besten bekommt die Anzeige ein eigenes Merkio-Konto, das Mitglied der Familie
 
 `lists` nennt die Listen, die gezeigt werden – mit ihrem Namen, bei gleichnamigen Listen in mehreren Gruppen als `{ "name": "Einkauf", "group": "Familie" }`. Ohne die Angabe sind es alle Einkaufslisten des Kontos. Welche Listen es gibt, schreibt der Kern beim Start ins Protokoll, wenn eine genannte fehlt, und es steht unter `/api/v1/resources/merkio/available`. Jede Liste bekommt eine Kennung aus ihrem Namen (`Einkauf` → `einkauf`); die Kachel `checklist` wählt ihre Liste mit `list`.
 
-Antippen hakt einen Eintrag ab; Abgehaktes bleibt einige Stunden durchgestrichen stehen, damit sich der Haken zurücknehmen lässt. „+“ öffnet ein Eingabefeld: „2 kg Mehl“ wird in Menge, Einheit und Namen zerlegt, und was schon abgehakt auf der Liste steht, wird wieder offen statt doppelt. Dasselbe geht über die Aktionen `lists.add` (`text`, `list`) und `lists.check` (`item`, `checked`).
+Antippen hakt einen Eintrag ab; Abgehaktes bleibt einige Stunden durchgestrichen stehen, damit sich der Haken zurücknehmen lässt. „+“ öffnet ein Eingabefeld: „2 kg Mehl“ wird in Menge, Einheit und Namen zerlegt, und was schon abgehakt auf der Liste steht, wird wieder offen statt doppelt. Dasselbe geht über die Aktionen `lists.add` (`text`, `list`; Menge und Einheit auf Wunsch getrennt als `quantity` und `unit`) und `lists.check` (`item`, `checked`).
 
 Das Plugin meldet sich mit Konto und Kennwort an, merkt sich Merkios Erneuerungstoken in `data/merkio/token.json` und meldet sich von selbst neu an, wenn es abgelaufen ist. Der Datenpunkt `merkio:state` sagt, wie es steht: `ok`, `nogroup` (angemeldet, aber das Konto ist noch in keiner Gruppe – in Merkio beitreten und bestätigen lassen), `login` (Zugangsdaten fehlen oder werden abgelehnt) oder `offline`. Mit `url` lässt sich eine eigene Merkio-Installation ansprechen, mit `refreshMinutes` (Vorgabe 5) der Abstand, in dem zusätzlich zum Echtzeitkanal alles neu gelesen wird.
 
@@ -392,6 +412,14 @@ Das Plugin meldet sich mit Konto und Kennwort an, merkt sich Merkios Erneuerungs
 ```
 
 So läuft es ab: Antippen startet die Spracherkennung des Browsers; den erkannten Satz schickt die Anzeige an den Kern. Dort ordnet ein Sprachmodell von Anthropic (Claude Haiku) ihn den **Aktionen** zu, die die anderen Plugins angemeldet haben (`GET /api/v1/actions`), löst sie aus und antwortet in einem Satz, den die Anzeige zeigt und vorliest. Jede neue Aktion ist damit von selbst auch per Sprache erreichbar; was als heikel angemeldet ist (`sensitive`), bleibt ausgenommen.
+
+**Nach Werten fragen.** „Wie warm ist es draußen?“, „Wie viel Strom macht die PV?“, „Ist Uli zu Hause?“, „Wann geht die Sonne unter?“: Fragen kann man nach allem, was auf den Anzeigen steht – die Werte heißen so, wie die Kacheln sie beschriften. Dem Sprachmodell werden dazu nur die Namen genannt; den Stand eines Werts bekommt es erst, wenn eine Frage ihn braucht. Weitere Werte oder andere Namen nennt die Quelle:
+
+```json
+{ "id": "voice", "plugin": "voice", "config": { "values": [{ "datapoint": "openhab:Mess_TKeller", "name": "Keller" }, "astro:sunset"] } }
+```
+
+Mit `"layoutValues": false` gilt nur diese Liste. Zeitpunkte nennt die Antwort in der Ortszeit des Rechners, auf dem der Kern läuft – im Container also `TZ` setzen.
 
 Voraussetzungen:
 
@@ -425,6 +453,7 @@ Die Oberfläche benutzt dieselbe Schnittstelle wie jedes andere Programm. Alle P
 | `GET /actions` | Verzeichnis der Aktionen |
 | `POST /actions/{name}` | Aktion auslösen, Parameter im Rumpf – z. B. `switch.set` mit `{ "datapoint": "…", "on": true }` |
 | `GET /layouts/{id}` | Layout |
+| `GET /embed?url=` | Ob eine Seite aus einer Kachel `web` das Einbetten erlaubt |
 | WebSocket `/stream` | Änderungen in Echtzeit; abonnieren mit `{ "op": "sub", "topics": ["dp/*"] }` |
 
 ### Zugriffsschutz

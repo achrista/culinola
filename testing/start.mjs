@@ -2,6 +2,7 @@
 // Bausteinen, die ohne eigene Geräte laufen. Die Vorlage aus `testing/instance` wird bei
 // jedem Start frisch in einen Wegwerfordner gelegt – die eigenen Daten bleiben unberührt.
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,6 +12,8 @@ const target = join(tmpdir(), 'culinola-testinstanz');
 rmSync(target, { recursive: true, force: true });
 cpSync(fileURLToPath(new URL('./instance', import.meta.url)), target, { recursive: true });
 writeFileSync(join(target, 'recipes', 'Kuchen', 'kuchen.png'), stripes(480, 320));
+// Ein Rezept mit Zutatentabelle – für die Einkaufsliste. Es ist das Beispiel, das dem Rezept-Plugin beiliegt.
+cpSync(fileURLToPath(new URL('../plugins/recipes/examples/pfannkuchen.md', import.meta.url)), join(target, 'recipes', 'pfannkuchen.md'));
 
 process.env.CULINOLA_DATA = target;
 
@@ -36,11 +39,42 @@ const merkio = await startMerkio();
 const configFile = join(target, 'config.json');
 const config = JSON.parse(readFileSync(configFile, 'utf8'));
 config.sources.find((source) => source.id === 'merkio').config = { url: merkio.url, lists: ['Einkauf', 'Aufgaben'] };
+// Fremde Seiten: Die Kachel "web" bettet hier zwei Seiten von diesem Rechner ein – eine, die es erlaubt,
+// und eine, die es wie viele Seiten im Netz verbietet. So braucht die Prüfung kein Internet.
+const pages = await startPages();
+for (const widget of config.layouts.web.widgets) if (widget.type === 'web') widget.config.url = widget.config.url.replace('http://fremde-seiten', pages);
+console.log(`Platzhalter für fremde Seiten auf ${pages}`);
 writeFileSync(configFile, JSON.stringify(config, null, 2));
 writeFileSync(join(target, 'secrets.json'), JSON.stringify({ merkio: merkio.account }, null, 2));
 console.log(`Platzhalter für Merkio auf ${merkio.url}`);
 console.log(`Testinstanz in ${target}`);
 await import('../packages/core/src/main.ts');
+
+/** Zwei kleine Seiten zum Einbetten: `/frei` zeigt Uhrzeit, einen Zähler und Verweise, `/verboten` untersagt das Einbetten. */
+async function startPages() {
+  const page = (title, body) => `<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title>
+<body style="margin:0;padding:24px;font:18px system-ui;background:#eef3f7;color:#123"><h1 style="margin-top:0">${title}</h1>${body}</body></html>`;
+  const free = page(
+    'Fremde Seite',
+    `<p>Geladen um <strong id="geladen"></strong>, jetzt ist es <strong id="jetzt"></strong>.</p>
+<p><button id="taste" style="font:inherit;padding:10px 20px">Angetippt: 0</button></p>
+<p><a href="/zweite">Zur zweiten Seite</a> · <a href="https://example.org/" target="_top">Versuch, die Anzeige zu verlassen</a></p>
+<p style="height:900px;border-left:6px solid #9bb">Lange Seite zum Rollen</p><p>Ende der Seite.</p>
+<script>const zeit=()=>new Date().toLocaleTimeString('de-DE');document.getElementById('geladen').textContent=zeit();
+setInterval(()=>document.getElementById('jetzt').textContent=zeit(),1000);let n=0;
+document.getElementById('taste').onclick=(e)=>e.target.textContent='Angetippt: '+(++n);</script>`,
+  );
+  const server = createServer((request, response) => {
+    const path = (request.url ?? '/').split('?')[0];
+    const send = (status, body, headers = {}) => (response.writeHead(status, { 'Content-Type': 'text/html; charset=utf-8', ...headers }), response.end(body));
+    if (path === '/frei') return send(200, free);
+    if (path === '/zweite') return send(200, page('Zweite Seite', '<p><a href="/frei">Zurück</a></p>'));
+    if (path === '/verboten') return send(200, page('Verboten', '<p>Diese Seite sollte in keiner Kachel zu sehen sein.</p>'), { 'X-Frame-Options': 'DENY' });
+    return send(404, page('Nicht gefunden', ''));
+  });
+  await new Promise((ready) => server.listen(0, '127.0.0.1', ready));
+  return `http://localhost:${server.address().port}`;
+}
 
 /** Ein Streifenbild als PNG, hier erzeugt – so braucht die Testinstanz kein fremdes Foto. */
 function stripes(width, height) {

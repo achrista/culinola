@@ -115,7 +115,7 @@ describe('Prognose als Plugin', () => {
       log: { info: () => undefined, warn: (message) => void warnings.push(message), error: () => undefined },
       secrets: { get: () => undefined },
       storageDir: join(dir, name),
-      datapoints: { set: (update) => void datapoints.set(update.id, update.value) },
+      datapoints: { set: (update) => void datapoints.set(update.id, update.value), list: () => [], shown: () => [] },
       actions: { register: () => undefined, list: () => [], run: async () => undefined },
       resources: { set: () => undefined },
       routes: { get: () => undefined, post: () => undefined },

@@ -7,6 +7,7 @@ import type { Datapoint, DatapointValue, Logger } from '@culinola/sdk';
 import { type AccessToken, authorize, bearerToken, requiredRole } from './access.ts';
 import { type ActionRegistry, InvalidParams, UnknownAction } from './actions.ts';
 import type { AppConfig } from './config.ts';
+import { EmbedCheck } from './embed.ts';
 import { type EventHub, type Raised, UnknownEvent } from './events.ts';
 import type { PluginHost } from './plugins.ts';
 import type { DatapointRegistry } from './registry.ts';
@@ -168,6 +169,15 @@ export async function buildServer({ config, registry, plugins, actions, events, 
     if (text !== undefined && typeof text !== 'string') throw new BadRequest('"text" muss ein Text sein.');
     const raised = events.raise(request.params.name, text);
     return { ok: true, id: raised.id };
+  });
+
+  // Fremde Seiten in einer Kachel: Viele Seiten verbieten das Einbetten, und der Browser zeigt dann nur eine
+  // leere Fläche. Der Kern sieht nach und sagt der Anzeige, woran es liegt – nur für Seiten, die im Layout stehen.
+  const embeds = new EmbedCheck(config.layouts);
+  app.get<{ Querystring: { url?: string } }>('/api/v1/embed', async (request) => {
+    const url = request.query.url ?? '';
+    if (!embeds.allows(url)) throw new BadRequest('Diese Adresse steht in keiner Kachel "web".');
+    return embeds.check(url, request.headers.host);
   });
 
   app.get<{ Params: { id: string } }>('/api/v1/layouts/:id', (request, reply) => {

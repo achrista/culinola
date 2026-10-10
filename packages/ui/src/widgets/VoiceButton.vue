@@ -23,6 +23,8 @@ interface Recognition {
 interface Answer {
   reply: string;
   actions: { action: string; ok: boolean }[];
+  /** Namen der Werte, die für die Antwort gelesen wurden. */
+  values?: string[];
 }
 
 /**
@@ -218,7 +220,8 @@ async function send(text: string, spoken = false) {
   try {
     const answer = await postJson<Answer>(`/p/${encodeURIComponent(source.value)}/ask`, { text, history });
     reply.value = answer.reply;
-    again = spoken && wake.value === 'on' && answer.actions.length === 0;
+    // Eine Auskunft über einen Wert ist eine fertige Antwort, keine Rückfrage
+    again = spoken && wake.value === 'on' && answer.actions.length === 0 && !answer.values?.length;
     if (again) unresolved = { text, reply: answer.reply };
     state.value = 'answer';
     hideSoon();

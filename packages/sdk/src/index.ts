@@ -90,7 +90,13 @@ export interface PluginContext<C> {
   secrets: { get(name: string): string | undefined };
   /** Eigener Ordner der Instanz im Datenordner, etwa für erzeugte Einstellungsdateien. */
   storageDir: string;
-  datapoints: { set(update: DatapointUpdate): void };
+  datapoints: {
+    set(update: DatapointUpdate): void;
+    /** Der jetzige Stand aller Datenpunkte, auch der anderen Quellen – etwa, um Fragen danach zu beantworten. */
+    list(): Datapoint[];
+    /** Die Datenpunkte, die auf den Anzeigen stehen, mit ihrer Beschriftung dort; ohne Beschriftung ist der Name leer. */
+    shown(): { id: string; name: string }[];
+  };
   actions: {
     /** Meldet an, was man mit dem Plugin tun kann. */
     register(definition: ActionDefinition, handler: ActionHandler): void;

@@ -2,8 +2,9 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DatapointValue, Logger, PluginDefinition, RouteHandler, SeriesPoint } from '@culinola/sdk';
 import type { ActionRegistry } from './actions.ts';
-import type { SourceConfig } from './config.ts';
+import type { LayoutConfig, SourceConfig } from './config.ts';
 import type { DatapointRegistry } from './registry.ts';
+import { type ShownDatapoint, shownDatapoints } from './shown.ts';
 
 type CommandHandler = (id: string, value: DatapointValue) => Promise<void>;
 type HistoryHandler = (id: string, from: Date, to: Date) => Promise<SeriesPoint[]>;
@@ -39,9 +40,12 @@ export class PluginHost {
   private readonly log: Logger;
 
   private readonly dataDir: string;
+  /** Was auf den Anzeigen steht – so heißen die Werte im Haus. */
+  private readonly shown: ShownDatapoint[];
 
-  constructor(registry: DatapointRegistry, actions: ActionRegistry, secrets: Record<string, Record<string, string>>, log: Logger, dataDir: string) {
+  constructor(registry: DatapointRegistry, actions: ActionRegistry, secrets: Record<string, Record<string, string>>, log: Logger, dataDir: string, layouts: Record<string, LayoutConfig> = {}) {
     this.dataDir = dataDir;
+    this.shown = shownDatapoints(layouts);
     this.registry = registry;
     this.actions = actions;
     this.secrets = secrets;
@@ -88,6 +92,8 @@ export class PluginHost {
             quality: update.quality ?? 'good',
           });
         },
+        list: () => this.registry.all(),
+        shown: () => this.shown.map((entry) => ({ ...entry })),
       },
       actions: {
         register: (definition, handler) => this.actions.register(definition, handler),

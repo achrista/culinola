@@ -89,7 +89,22 @@
     "added": "Added. | Added. | {n} recipes added: {titles}",
     "cook": "Cooking this",
     "cookDone": "Done cooking",
-    "cooking": "Cooking now"
+    "cooking": "Cooking now",
+    "shop": "Shopping",
+    "shopTitle": "Ingredients to the shopping list",
+    "shopFor": "For",
+    "shopPortions": "{n} servings | 1 serving | {n} servings",
+    "shopTimes": "{n} × the recipe",
+    "shopLess": "Less",
+    "shopMore": "More",
+    "shopAll": "Select all",
+    "shopNone": "Select none",
+    "shopGo": "Add to the list ({n})",
+    "shopBusy": "Adding the ingredients …",
+    "shopError": "Not added: {error}",
+    "shopDone": "Nothing new added to the shopping list. | 1 ingredient added to the shopping list. | {n} ingredients added to the shopping list.",
+    "shopKnown": "– | 1 was already there. | {n} were already there.",
+    "shopFailed": "Not added: {names}"
   },
   "timer": {
     "title": "Kitchen timer",
@@ -244,6 +259,13 @@
     "say": "“{word} …”",
     "wakeLoading": "loading …",
     "wakeFailed": "no microphone"
+  },
+  "web": {
+    "open": "Show {title} full screen",
+    "close": "Close",
+    "invalid": "Not a valid web address.",
+    "mixed": "This display runs over HTTPS and can therefore only embed HTTPS pages.",
+    "refused": "This page does not allow embedding ({detail})."
   },
   "events": {
     "close": "Dismiss"

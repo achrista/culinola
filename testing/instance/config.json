@@ -1734,6 +1734,110 @@
           }
         }
       ]
+    },
+    "web": {
+      "grid": {
+        "columns": 12,
+        "rows": 6
+      },
+      "widgets": [
+        {
+          "type": "web",
+          "at": [
+            0,
+            0,
+            5,
+            4
+          ],
+          "config": {
+            "url": "http://fremde-seiten/frei",
+            "label": "Vorschau",
+            "zoom": 0.75
+          }
+        },
+        {
+          "type": "web",
+          "at": [
+            5,
+            0,
+            4,
+            4
+          ],
+          "config": {
+            "url": "http://fremde-seiten/frei?bedienbar",
+            "label": "Bedienbar",
+            "interactive": true,
+            "refreshMinutes": 1
+          }
+        },
+        {
+          "type": "web",
+          "at": [
+            9,
+            0,
+            3,
+            2
+          ],
+          "config": {
+            "url": "http://fremde-seiten/verboten",
+            "label": "Verboten"
+          }
+        },
+        {
+          "type": "web",
+          "at": [
+            9,
+            2,
+            3,
+            2
+          ],
+          "config": {
+            "url": "kein-netz",
+            "label": "Ohne Adresse"
+          }
+        },
+        {
+          "type": "clock",
+          "at": [
+            0,
+            4,
+            4,
+            2
+          ]
+        },
+        {
+          "type": "voice",
+          "at": [
+            4,
+            4,
+            2,
+            2
+          ]
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            6,
+            4,
+            3,
+            2
+          ],
+          "config": {
+            "datapoint": "demo:temp_aussen",
+            "label": "Außen",
+            "decimals": 1
+          }
+        },
+        {
+          "type": "recipes",
+          "at": [
+            9,
+            4,
+            3,
+            2
+          ]
+        }
+      ]
     }
   },
   "events": {

@@ -223,15 +223,23 @@ export default definePlugin<Config>({
         description: 'Setzt einen Eintrag auf eine Einkaufs- oder Aufgabenliste, etwa "2 kg Mehl". Steht er dort schon abgehakt, wird er wieder offen.',
         params: {
           text: { type: 'string', description: 'Der Eintrag, auf Wunsch mit Menge und Einheit davor', required: true },
+          quantity: { type: 'string', description: 'Menge als Text, etwa "2" oder "0.5" – nur, wenn sie nicht schon im Eintrag steht' },
+          unit: { type: 'string', description: 'Einheit zur Menge, etwa "kg" oder "Packung"' },
           list: { type: 'string', description: 'Kennung oder Name der Liste; ohne Angabe die erste' },
         },
       },
-      async ({ text, list }) => {
+      async ({ text, list, quantity, unit }) => {
         const wanted = typeof list === 'string' ? list.trim().toLowerCase() : '';
         const hit = [...shown].find(([key, entry]) => !wanted || key === wanted || entry.info.name.toLowerCase() === wanted);
         if (!hit) throw new InvalidInput(wanted ? `Die Liste "${String(list)}" wird nicht gezeigt.` : 'Es ist keine Liste eingerichtet.');
         const [key, target] = hit;
-        const entry = splitEntry(typeof text === 'string' ? text : '');
+        // Kommen Menge und Einheit eigens mit, ist der Text allein der Name – sonst stehen sie vielleicht davor
+        const given = typeof quantity === 'string' && quantity.trim() ? quantity.trim().slice(0, 50) : undefined;
+        const measure = typeof unit === 'string' && unit.trim() ? unit.trim().slice(0, 20) : undefined;
+        const entry =
+          given || measure
+            ? { name: (typeof text === 'string' ? text : '').replace(/\s+/g, ' ').trim().slice(0, 255), ...(given ? { quantity: given } : {}), ...(measure ? { unit: measure } : {}) }
+            : splitEntry(typeof text === 'string' ? text : '');
         if (!entry.name) throw new InvalidInput('Der Eintrag ist leer.');
 
         // Was schon abgehakt auf der Liste steht, kommt zurück, statt doppelt zu erscheinen
