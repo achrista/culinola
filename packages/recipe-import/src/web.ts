@@ -194,8 +194,16 @@ export function readHtml(html: string, baseUrl: string): PageContent {
   return { text: pageText(html), ...(image ? { imageUrl: image } : {}) };
 }
 
+/** Inhalt einer Angabe aus dem Kopf der Seite, gleich in welcher Reihenfolge ihre Attribute stehen. */
+function meta(html: string, attribute: 'name' | 'property', key: string): string {
+  const tag = new RegExp(`<meta\\b[^>]*\\b${attribute}=["']${key}["'][^>]*>`, 'i').exec(html)?.[0] ?? '';
+  return plain(/\bcontent=(?:"([^"]*)"|'([^']*)')/i.exec(tag)?.slice(1).find((value) => value !== undefined));
+}
+
 function pageText(html: string): string {
   const title = plain(/<title[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1]);
+  // Beiträge aus sozialen Netzen tragen ihren Text oft nur in der Beschreibung der Seite – bei Instagram steht dort das Rezept
+  const description = [meta(html, 'property', 'og:description'), meta(html, 'name', 'description')].filter((text, index, all) => text && all.indexOf(text) === index).join('\n');
   const body = html
     .replace(/<(script|style|noscript|svg|template|title)\b[\s\S]*?<\/\1>/gi, ' ')
     .replace(/<!--[\s\S]*?-->/g, ' ')
@@ -206,5 +214,5 @@ function pageText(html: string): string {
     .map((line) => line.replace(/\s+/g, ' ').trim())
     .filter(Boolean)
     .join('\n');
-  return title ? `Seitentitel: ${title}\n${text}` : text;
+  return [title ? `Seitentitel: ${title}` : '', description ? `Beschreibung der Seite: ${description}` : '', text].filter(Boolean).join('\n');
 }

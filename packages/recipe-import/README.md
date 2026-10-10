@@ -1,6 +1,6 @@
 # recipe-import
 
-In Culinola steckt es hinter „+ Rezept“ in der Rezeptansicht (Plugin [`recipes`](../../README.md#neue-rezepte-hinzufügen)) und hinter `npm run recipes:import` für ganze Ordner. Der Einbau in Merkio steht aus.
+In Culinola steckt es hinter „+ Rezept“ in der Rezeptansicht (Plugin [`recipes`](../../README.md#neue-rezepte-hinzufügen)) und hinter `npm run recipes:import` für ganze Ordner. Merkio nutzt es für seinen Listentyp „Rezepte“: Das Backend führt eine gebündelte Kopie (`backend/vendor/recipe-import.cjs`, erzeugt mit `npm run vendor:recipe-import` im Merkio-Backend).
 
 Wandelt Rezepte aus beliebigen Vorlagen in das Rezeptformat von Culinola und in eine gegliederte Form für die geplante Rezept-Erweiterung von Merkio um. Das Lesen und Ordnen übernimmt Claude Haiku.
 

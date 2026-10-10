@@ -45,6 +45,11 @@ describe('Rezeptseiten', () => {
     expect(readHtml(html, 'https://example.org/')).toEqual({ text: 'Seitentitel: Omas Käsekuchen\nKäsekuchen\n500 g Quark\n3 Eier', imageUrl: 'https://example.org/kuchen.jpg' });
   });
 
+  it('nimmt die Beschreibung der Seite mit – dort steht bei Beiträgen aus sozialen Netzen der Text', () => {
+    const html = `<html><head><title>Anna auf Instagram</title><meta content="Zitronenkuchen &#x1f34b; 200 g Mehl, 3 Eier" property="og:description"><meta name="description" content="Zitronenkuchen &#x1f34b; 200 g Mehl, 3 Eier"></head><body><p>Anmelden</p></body></html>`;
+    expect(readHtml(html, 'https://www.instagram.com/p/ABC/').text).toBe('Seitentitel: Anna auf Instagram\nBeschreibung der Seite: Zitronenkuchen 🍋 200 g Mehl, 3 Eier\nAnmelden');
+  });
+
   it('ergänzt den Fließtext, wenn die Angaben der Seite keine Zubereitung nennen', () => {
     const html = `<script type="application/ld+json">${JSON.stringify({ '@type': 'Recipe', name: 'Brandteig', recipeIngredient: ['100 g Mehl'] })}</script><p>Wasser aufkochen und Mehl einrühren.</p>`;
     expect(readHtml(html, 'https://example.org/').text).toBe('Rezept: Brandteig\nZutaten:\n- 100 g Mehl\n\nText der Seite:\nWasser aufkochen und Mehl einrühren.');
