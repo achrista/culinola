@@ -40,7 +40,7 @@ npm run test:instance
 
 Sie läuft auf <http://localhost:8191>, neben einer eigenen Installation auf Port 8090. Die Vorlage liegt in `testing/instance` und wird bei jedem Start frisch in einen Wegwerfordner gelegt; was dort verändert wird, ist nach dem nächsten Start vergessen.
 
-Die Testinstanz enthält: Sonne und Mond für drei Orte, erfundene Messwerte, zwei Autos, vier Familienmitglieder, Schalter, Wetterdaten, Termine, Erinnerungen, E-Mails und Anrufe, Eieruhr, vier Rezepte (mit Bild, ohne Angaben, mit kaputten Angaben, mit Zutatentabelle), Nachrichten aus zwei echten Feeds und einem unerreichbaren, einen Radiosender und absichtlich ein unbekanntes Widget. Nachrichten und Radio brauchen Internet. Die Einkaufsliste kommt von einem Platzhalter für Merkio (`plugins/source-merkio/src/standin.ts`) mit einer erfundenen Familie; er bildet Anmeldung, Listen, Einträge und Echtzeitkanal nach, ist aber nicht das echte Merkio. Für das Hinzufügen von Rezepten startet sie einen Platzhalter der Claude-API auf dem eigenen Rechner (`packages/recipe-import/src/standin.ts`): Er antwortet in der Form der echten Schnittstelle mit einem festen Rezept. So läuft der ganze Weg vom Hochladen bis zur Rezeptdatei, ohne dass etwas das Haus verlässt oder kostet – was das Sprachmodell aus einer echten Vorlage macht, prüft das nicht. Geräte über MQTT kommen von einem Platzhalter-Broker (`plugins/connector-mqtt/src/standin.ts`) mit einem nachgespielten Luftsensor und einem schaltbaren Licht, die sich wie Tasmota selbst anmelden. Für die Kachel `web` startet sie zwei kleine Seiten auf dem eigenen Rechner: eine, die sich einbetten lässt, und eine, die es verbietet.
+Die Testinstanz enthält: Sonne und Mond für drei Orte, erfundene Messwerte, zwei Autos, vier Familienmitglieder, Schalter, Wetterdaten, Termine, Erinnerungen, E-Mails und Anrufe, Eieruhr, vier Rezepte (mit Bild, ohne Angaben, mit kaputten Angaben, mit Zutatentabelle), Nachrichten aus zwei echten Feeds und einem unerreichbaren, einen Radiosender und absichtlich ein unbekanntes Widget. Nachrichten und Radio brauchen Internet. Die Einkaufsliste kommt von einem Platzhalter für Merkio (`plugins/source-merkio/src/standin.ts`) mit einer erfundenen Familie; er bildet Anmeldung, Listen, Einträge und Echtzeitkanal nach, ist aber nicht das echte Merkio. Für das Hinzufügen von Rezepten startet sie einen Platzhalter der Claude-API auf dem eigenen Rechner (`packages/recipe-import/src/standin.ts`): Er antwortet in der Form der echten Schnittstelle mit einem festen Rezept. So läuft der ganze Weg vom Hochladen bis zur Rezeptdatei, ohne dass etwas das Haus verlässt oder kostet – was das Sprachmodell aus einer echten Vorlage macht, prüft das nicht. Geräte über MQTT kommen von einem Platzhalter-Broker (`plugins/connector-mqtt/src/standin.ts`) mit einem nachgespielten Luftsensor und einem schaltbaren Licht, die sich wie Tasmota selbst anmelden. Homematic kommt von einer Platzhalter-Zentrale (`plugins/connector-homematic/src/standin.ts`) mit Schalter, Rollladen und Wandthermostat. Für die Kachel `web` startet sie zwei kleine Seiten auf dem eigenen Rechner: eine, die sich einbetten lässt, und eine, die es verbietet.
 
 ## Prüfliste Oberfläche
 
@@ -140,6 +140,11 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] „Nachtlicht“ lässt sich ein- und ausschalten; der Schalter folgt der Rückmeldung des Geräts.
 - [ ] `GET /api/v1/datapoints` nennt unter `mqtt:` nur die verstandenen Geräte – der Sensor mit rechnender Vorlage und die Heizung fehlen; im Protokoll des Kerns steht, wie viele angemeldet und wie viele übergangen wurden.
 
+**Homematic** (Layout `homematic`: <http://localhost:8191/?layout=homematic>)
+- [ ] „Bad“ zeigt 22,4 °C mit 58 % darunter, „Rollladen“ einen Ring bei 50 %, „Rollladen fährt“ den Text „STABLE“, „Zentrale“ zeigt „ok“.
+- [ ] „Flurlicht“ lässt sich schalten und bleibt nach einer Sekunde in der neuen Stellung. Am Rollladen fährt ▲ auf 100 %, ▼ auf 0 %; der Ring folgt.
+- [ ] Im Protokoll des Kerns steht, dass alle Werte in einem Aufruf kommen.
+
 **Fremde Seiten** (Layout `web`: <http://localhost:8191/?layout=web>)
 - [ ] „Vorschau“ zeigt die Seite verkleinert, die Uhrzeit darin läuft. Antippen öffnet sie über die ganze Anzeige; dort zählt die Taste „Angetippt“ mit, und die Seite wurde dabei nicht neu geladen („Geladen um“ bleibt). „Versuch, die Anzeige zu verlassen“ bewirkt nichts – in der Konsole steht dazu eine Zeile über die verweigerte Navigation, die hier erwartet ist. Das Kreuz bringt die Kachel zurück.
 - [ ] „Bedienbar“ lässt sich schon in der Kachel bedienen und rollen, der Pfeil oben rechts zeigt sie groß; jede Minute wird sie neu geladen („Geladen um“ springt).
@@ -177,6 +182,7 @@ Das Folgende lässt sich nicht nachstellen und wird an der eigenen Installation 
 
 - Schalten gegen das echte openHAB (ein Licht, dessen Zustand man sieht)
 - Kameras: Bild füllt die Kachel ohne schwarze Ränder, Vollbild beim Antippen zeigt das ganze Bild, Verhalten bei abgezogener Kamera
+- Homematic an einer echten Zentrale: einlesen, einen Schalter schalten und zurückstellen – nur lesende Aufrufe und `setValue`; der Konnektor darf sich nie für Meldungen anmelden (`init`), das kann die Zentrale lahmlegen
 - MQTT am echten Broker: Anmeldung, ein Gerät lesen, ein Gerät schalten und den vorigen Zustand wiederherstellen, selbst angemeldete Geräte
 - Fernsehen: Bild und Ton über go2rtc und ffmpeg, Umschalten zwischen Sendern
 - Ton der Anzeige am vorgesehenen Bildschirm: Radio, Klingelton der Eieruhr, Start ohne vorheriges Antippen
@@ -200,4 +206,4 @@ Das Folgende lässt sich nicht nachstellen und wird an der eigenen Installation 
 
 - Die Oberfläche hat noch keine automatischen Tests; die Prüfliste oben ersetzt sie vorerst. Vorgesehen sind Browsertests gegen die Testinstanz mit Playwright (Apache-2.0).
 - Die Abdeckung der Tests wird nicht gemessen.
-- Die Plugins für openHAB, MQTT, Radio und Video sind in ihrer Logik und – bei MQTT – gegen einen Platzhalter-Broker getestet, nicht automatisch gegen echte Gegenstellen.
+- Die Plugins für openHAB, MQTT, Homematic, Radio und Video sind in ihrer Logik und – bei MQTT und Homematic – gegen Platzhalter getestet, nicht automatisch gegen echte Gegenstellen.

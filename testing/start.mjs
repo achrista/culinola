@@ -52,6 +52,12 @@ const broker = await startBroker();
 config.sources.find((source) => source.id === 'mqtt').config.url = broker.url;
 writeFileSync(configFile, JSON.stringify(config, null, 2));
 writeFileSync(join(target, 'secrets.json'), JSON.stringify({ merkio: merkio.account, mqtt: broker.account }, null, 2));
+// Homematic: eine Platzhalter-Zentrale mit Schalter, Rollladen und Wandthermostat.
+const { startStandIn: startCcu } = await import('../plugins/connector-homematic/src/standin.ts');
+const ccu = await startCcu();
+Object.assign(config.sources.find((source) => source.id === 'homematic').config, { host: ccu.host, interfaces: [{ name: 'alle', port: ccu.port }], regaPort: ccu.port });
+writeFileSync(configFile, JSON.stringify(config, null, 2));
+console.log(`Platzhalter für Homematic auf ${ccu.host}:${ccu.port}`);
 console.log(`Platzhalter für MQTT auf ${broker.url}`);
 console.log(`Platzhalter für Merkio auf ${merkio.url}`);
 console.log(`Testinstanz in ${target}`);

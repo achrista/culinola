@@ -147,6 +147,29 @@ Auf welchen Themen ein Gerät sendet, hängt von seiner Einstellung ab – bei T
 
 Ein von Hand eingerichteter Datenpunkt geht vor, wenn ein Gerät dieselbe Kennung anmeldet. Der Datenpunkt `mqtt:state` sagt, wie es um die Verbindung steht: `ok`, `offline` oder `login` (Zugangsdaten fehlen oder werden abgelehnt). Einen Verlauf führt ein Broker nicht; Diagramme zeigen, was der Kern seit seinem Start mitgeschrieben hat (höchstens 24 Stunden).
 
+### Homematic
+
+Das Plugin `connector-homematic` bindet eine Homematic-Zentrale an – CCU2, CCU3 oder RaspberryMatic, klassische Geräte wie Homematic IP. Zusatzsoftware auf der Zentrale braucht es nicht.
+
+```json
+{ "id": "homematic", "plugin": "connector-homematic", "config": { "host": "192.168.178.9" } }
+```
+
+Jeder Wert eines Geräts wird ein Datenpunkt, benannt nach Adresse, Kanal und Wert: `homematic:NEQ0370539.1.STATE` (ein Schalter), `homematic:00111A0000BBBB.4.LEVEL` (ein Rollladen, 0 bis 100 %), `…​.1.ACTUAL_TEMPERATURE`. Bezeichnung und Einheit kommen von der Zentrale; welche Datenpunkte es gibt, zeigt `GET /api/v1/datapoints`. Schalter lassen sich schalten, Stellungen setzen und – als Eintrag mit `"type": "cover"` im Schalterfeld – fahren und anhalten. Ein Gerät, das die Zentrale gerade nicht erreicht, steht mit seinem letzten Wert als veraltet da.
+
+| Angabe | Wirkung |
+|---|---|
+| `host` | Adresse der Zentrale |
+| `interfaces` | Gerätefamilien: `"rf"` (klassisch, Port 2001), `"ip"` (Homematic IP, 2010), `"wired"` (2000) oder `{ "name": …, "port": … }`; Vorgabe `["rf", "ip"]` |
+| `pollSeconds` | Abstand der Abfragen, Vorgabe 5 |
+| `regaPort` | Port der Logikschicht der Zentrale (Vorgabe 8181); `0` verzichtet auf sie |
+
+**So liest Culinola.** Alle Werte kommen in einem einzigen Aufruf an die Logikschicht der Zentrale, die den Stand ihrer Geräte ohnehin mitführt; das dauert Zehntelsekunden und wird alle paar Sekunden wiederholt. Eine Änderung am Wandschalter erscheint also mit wenigen Sekunden Verzug, nach eigenem Schalten liest Culinola sofort nach. Ist die Logikschicht nicht erreichbar (in der Zentrale gesperrt oder `regaPort: 0`), fragt Culinola stattdessen Kanal für Kanal ab – höchstens alle 30 Sekunden, weil das die Zentrale spürbar beschäftigt – und die Datenpunkte heißen nach ihrer Adresse.
+
+**Bewusst nicht:** Die Zentrale könnte Änderungen auch von sich aus melden, wie es andere Anbindungen nutzen. Dazu müsste sie Culinola erreichen können – und gelingt ihr das nicht (falsche Adresse, Firewall, Container ohne Portfreigabe), bleibt ihre Geräteschnittstelle hängen, bis sie neu gestartet wird; im ganzen Haus lässt sich dann nichts mehr schalten. Der Konnektor baut deshalb alle Verbindungen selbst auf und meldet sich bei der Zentrale nirgends an.
+
+In der Zentrale müssen die Zugriffe erlaubt sein (Einstellungen → Systemsteuerung → Firewall: „XML-RPC API“ und „Remote HomeMatic-Script API“). Verlangt sie eine Anmeldung, stehen Benutzer und Kennwort in `secrets.json`: `{ "homematic": { "username": "…", "password": "…" } }`. `homematic:state` sagt, wie es um die Verbindung steht: `ok`, `offline` oder `login`. Einen Verlauf liefert die Zentrale nicht; Diagramme zeigen, was der Kern seit seinem Start mitgeschrieben hat.
+
 ### Fremde Seiten
 
 Die Kachel `web` bettet eine Seite von einer anderen Adresse ein:

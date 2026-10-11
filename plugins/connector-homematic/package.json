@@ -1,0 +1,14 @@
+{
+  "name": "@culinola/plugin-connector-homematic",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Bindet eine Homematic-Zentrale (CCU, RaspberryMatic) an: klassische und IP-Geräte, lesen und schalten.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@culinola/sdk": "*"
+  }
+}
