@@ -58,6 +58,13 @@ const ccu = await startCcu();
 Object.assign(config.sources.find((source) => source.id === 'homematic').config, { host: ccu.host, interfaces: [{ name: 'alle', port: ccu.port }], regaPort: ccu.port });
 writeFileSync(configFile, JSON.stringify(config, null, 2));
 console.log(`Platzhalter für Homematic auf ${ccu.host}:${ccu.port}`);
+// Home Assistant: ein Platzhalter mit ein paar erfundenen Geräten, Echtzeitkanal und Verlauf.
+const { startStandIn: startHomeAssistant } = await import('../plugins/connector-homeassistant/src/standin.ts');
+const homeAssistant = await startHomeAssistant();
+config.sources.find((source) => source.id === 'ha').config.url = homeAssistant.url;
+writeFileSync(configFile, JSON.stringify(config, null, 2));
+writeFileSync(join(target, 'secrets.json'), JSON.stringify({ merkio: merkio.account, mqtt: broker.account, ha: { token: homeAssistant.token } }, null, 2));
+console.log(`Platzhalter für Home Assistant auf ${homeAssistant.url}`);
 console.log(`Platzhalter für MQTT auf ${broker.url}`);
 console.log(`Platzhalter für Merkio auf ${merkio.url}`);
 console.log(`Testinstanz in ${target}`);

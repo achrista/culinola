@@ -147,6 +147,30 @@ Auf welchen Themen ein Gerät sendet, hängt von seiner Einstellung ab – bei T
 
 Ein von Hand eingerichteter Datenpunkt geht vor, wenn ein Gerät dieselbe Kennung anmeldet. Der Datenpunkt `mqtt:state` sagt, wie es um die Verbindung steht: `ok`, `offline` oder `login` (Zugangsdaten fehlen oder werden abgelehnt). Einen Verlauf führt ein Broker nicht; Diagramme zeigen, was der Kern seit seinem Start mitgeschrieben hat (höchstens 24 Stunden).
 
+### Home Assistant
+
+Das Plugin `connector-homeassistant` holt Geräte und Werte aus Home Assistant – und damit alles, was dort angebunden ist.
+
+```json
+{ "id": "ha", "plugin": "connector-homeassistant", "config": { "url": "http://homeassistant.local:8123" } }
+```
+
+Das Zugangstoken steht in `secrets.json`: `{ "ha": { "token": "…" } }`. Es wird in Home Assistant im eigenen Benutzerprofil unter „Sicherheit“ als **langlebiges Zugangstoken** erzeugt. Culinola darf damit, was dieser Benutzer darf – ein eigener Benutzer für die Anzeige hält das überschaubar.
+
+Jedes Gerät wird ein Datenpunkt mit seiner Kennung aus Home Assistant: `ha:sensor.aussen_temperatur`, `ha:light.kueche`, `ha:cover.wohnzimmer`. Name und Einheit kommen von dort. Der Stand aller Geräte kommt beim Verbinden, jede Änderung danach sofort; Diagramme lesen den Verlauf aus der Aufzeichnung von Home Assistant.
+
+| Art in Home Assistant | In Culinola |
+|---|---|
+| `sensor` | Messwert oder Text |
+| `binary_sensor`, `person`, `device_tracker`, `sun` | Zustand (ein/aus bzw. Text wie `home`) – für die Kachel `presence` geeignet |
+| `switch`, `light`, `input_boolean`, `fan` | Schalter, schaltbar |
+| `cover` | Stellung in Prozent; im Schalterfeld mit `"type": "cover"` fahren und anhalten |
+| `number`, `input_number`, `select`, `input_select`, `input_text` | Wert, setzbar |
+
+Nicht übernommen wird, was keinen Messwert hat oder zu heikel zum Schalten ist: Schlösser, Alarmanlagen, Kameras, Medienspieler, Szenen, Tasten, Heizungsregler. Mit `"entities": ["lock.haustuer", …]` oder `"domains": ["sensor", "light"]` gilt stattdessen genau diese Auswahl. Bei Lichtern wird ein- und ausgeschaltet; Helligkeit und Farbe bleiben, wie sie sind.
+
+Was Home Assistant als nicht verfügbar führt, steht ohne Wert und als veraltet da. `ha:state` sagt, wie es um die Verbindung steht: `ok`, `offline` oder `login` (Token fehlt oder wird abgelehnt). Culinola baut die Verbindung selbst auf; in Home Assistant ist nichts einzurichten außer dem Token.
+
 ### Homematic
 
 Das Plugin `connector-homematic` bindet eine Homematic-Zentrale an – CCU2, CCU3 oder RaspberryMatic, klassische Geräte wie Homematic IP. Zusatzsoftware auf der Zentrale braucht es nicht.

@@ -1,0 +1,18 @@
+{
+  "name": "@culinola/plugin-connector-homeassistant",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Bindet Home Assistant an: Stand aller Geräte in Echtzeit, schalten über Dienste, Verlauf.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@culinola/sdk": "*"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1",
+    "ws": "^8.18.3"
+  }
+}
