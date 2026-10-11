@@ -33,11 +33,11 @@ function ready(): AudioContext | undefined {
   return context?.state === 'running' ? context : undefined;
 }
 
-/** Kurze hohe Töne hintereinander: drei als Klingeln der Eieruhr, einer als Erinnerung. */
-export function beep(count: number): void {
+/** Kurze hohe Töne hintereinander: drei als Klingeln der Eieruhr, einer als Erinnerung. `level` ist die Lautstärke, 1 der gewohnte Stand. */
+export function beep(count: number, level = 1): void {
   const audio = ready();
-  if (!audio) return;
-  for (let index = 0; index < count; index++) tone(audio.currentTime + index * 0.22, 1320, 0.16, 0.5);
+  if (!audio || level <= 0) return;
+  for (let index = 0; index < count; index++) tone(audio.currentTime + index * 0.22, 1320, 0.16, Math.min(1, 0.5 * level));
 }
 
 /** Türglocke: zwei volle Töne, der zweite tiefer – zweimal hintereinander. */

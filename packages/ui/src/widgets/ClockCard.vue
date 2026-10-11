@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { postJson } from '../api.ts';
 import { region } from '../i18n.ts';
+import { volumeLevel } from '../format.ts';
 import { beep, unlockSound } from '../sound.ts';
 import { datapoints } from '../store.ts';
 
@@ -14,6 +15,10 @@ const props = defineProps<{
   config: {
     /** Instanz des Plugins `timer`; ohne die Angabe ist die Uhr nur eine Uhr. */
     timer?: string;
+    /** Lautstärke des Klingelns in Prozent; Vorgabe 100, höchstens 200. */
+    ringVolume?: number;
+    /** Lautstärke des kurzen Tons, der danach alle zwei Sekunden erinnert; Vorgabe 40, 0 schaltet ihn stumm. */
+    reminderVolume?: number;
   };
 }>();
 
@@ -108,7 +113,9 @@ onMounted(() => {
   ticker = window.setInterval(() => {
     now.value = new Date();
     // Abgelaufen: erst klingeln, danach alle zwei Sekunden ein kurzer Ton, bis jemand antippt oder die Nachlaufzeit um ist
-    if (mode.value === 'done' && shownSeconds.value % 2 === 0) beep(shownSeconds.value < RING_SECONDS ? 3 : 1);
+    if (mode.value !== 'done' || shownSeconds.value % 2 !== 0) return;
+    if (shownSeconds.value < RING_SECONDS) beep(3, volumeLevel(props.config.ringVolume, 100));
+    else beep(1, volumeLevel(props.config.reminderVolume, 40));
   }, 1000);
 });
 const onKey = (event: KeyboardEvent) => {

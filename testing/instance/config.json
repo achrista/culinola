@@ -1803,7 +1803,12 @@
             4,
             4,
             2
-          ]
+          ],
+          "config": {
+            "timer": "timer",
+            "ringVolume": 50,
+            "reminderVolume": 0
+          }
         },
         {
           "type": "voice",

@@ -81,7 +81,7 @@ Unter `layouts` dürfen mehrere Layouts stehen. Eine Anzeige zeigt `main`, mit d
 
 | Typ | Zeigt | Wichtigste Angaben |
 |---|---|---|
-| `clock` | Uhrzeit mit Sekunden und Datum; Antippen stellt die Eieruhr | `timer` (Eieruhr-Instanz) |
+| `clock` | Uhrzeit mit Sekunden und Datum; Antippen stellt die Eieruhr | `timer` (Eieruhr-Instanz), `ringVolume`, `reminderVolume` |
 | `value-tile` | Messwert mit Statuspunkt und Verlaufslinie; eine Rasterzeile hoch zeigt sie alles in einer Zeile. Mit `gauge` steht der Wert in einer hohen Kachel in einem Ring, der sich mit ihm füllt – für Leistung, Ladestand oder Tankfüllung, mit dem Nebenwert (etwa der Reichweite) darunter | `datapoint`, `label`, `secondary`, `unit`, `decimals`, `factor`, `warn`, `map`, `gauge` (`{ "max": 100 }`, auf Wunsch mit `min`), `fresh` (Datenpunkt eines Schalters: ist er aus, steht die Kachel ausgegraut da – der Wert ist dann der letzte bekannte) |
 | `image` | Ein Bild von einer Webadresse, das sich von selbst erneuert, etwa das Standbild einer Webcam; Antippen zeigt es groß | `url`, `refreshSeconds` (Vorgabe 300), `label`, `fit` (`cover` oder `contain`) |
 | `web` | Eine fremde Webseite in der Kachel – Regenradar, ein Diagramm aus Grafana, die Seite eines Geräts im Haus. Die Kachel ist Vorschau; Antippen zeigt die Seite über die ganze Anzeige, dort lässt sie sich bedienen (siehe [Fremde Seiten](#fremde-seiten)) | `url`, `label`, `zoom` (0.5 zeigt doppelt so viel), `refreshMinutes`, `interactive` (schon in der Kachel bedienbar) |
@@ -270,7 +270,7 @@ Mit `{ "id": "timer", "plugin": "timer" }` als Quelle und `"timer": "timer"` in 
 
 Die Eieruhr lebt im Kern, nicht in der Anzeige: Sie übersteht ein Neuladen und einen Neustart, alle Anzeigen zeigen dieselbe, und sie lässt sich über die Aktionen `timer.start` (`minutes`, `seconds`), `timer.stopwatch`, `timer.add` (`seconds`) und `timer.stop` auch von außen stellen. Damit die Restzeit stimmt, müssen die Uhren von Kern und Anzeigerechner gleich gehen – bei beiden also die Zeit aus dem Netz beziehen.
 
-Den Klingelton erzeugt der Browser selbst. Browser spielen Ton erst, nachdem die Seite einmal angetippt wurde; wird die Eieruhr nur von außen gestellt, bleibt es sonst bei der sichtbaren Meldung.
+Wie laut es klingelt, stellt die Kachel `clock` ein, je Anzeige: `ringVolume` für das Klingeln (Prozent, Vorgabe 100) und `reminderVolume` für den kurzen Ton danach (Vorgabe 40; `0` schaltet ihn stumm, gezählt wird weiter). Den Klingelton erzeugt der Browser selbst. Browser spielen Ton erst, nachdem die Seite einmal angetippt wurde; wird die Eieruhr nur von außen gestellt, bleibt es sonst bei der sichtbaren Meldung.
 
 ### Radio und Fernsehen
 

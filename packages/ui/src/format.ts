@@ -21,3 +21,9 @@ export function shortWhen(date: string): string {
   if (days < 7) return new Intl.DateTimeFormat(region.value, { weekday: 'short' }).format(time);
   return new Intl.DateTimeFormat(region.value, { day: 'numeric', month: 'numeric' }).format(time);
 }
+
+/** Eine Lautstärke in Prozent als Faktor: 100 ist der gewohnte Stand, 0 stumm, mehr als 200 gibt es nicht. Unbrauchbares ergibt die Vorgabe. */
+export function volumeLevel(percent: unknown, fallback: number): number {
+  const value = typeof percent === 'number' && Number.isFinite(percent) ? percent : fallback;
+  return Math.min(200, Math.max(0, value)) / 100;
+}
