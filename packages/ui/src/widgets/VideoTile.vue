@@ -15,10 +15,16 @@ const props = defineProps<{
      * solange weicht das Kamerabild. So braucht das Fernsehen keine eigene Fläche.
      */
     tv?: string;
+    /**
+     * Wie das Kamerabild die Kachel nutzt: `cover` (Vorgabe) füllt sie und schneidet am Rand ab, `fill` füllt sie
+     * und verzerrt dabei, `contain` zeigt das ganze Bild mit Rändern. Groß angetippt ist immer das ganze Bild zu sehen.
+     */
+    fit?: 'cover' | 'fill' | 'contain';
   };
 }>();
 const { t } = useI18n();
 const full = ref(false);
+const fit = computed(() => (['cover', 'fill', 'contain'] as const).find((way) => way === props.config.fit) ?? 'cover');
 const station = computed(() => {
   const playing = props.config.tv ? currentStation(props.config.tv) : undefined;
   return playing?.kind === 'video' ? playing : undefined;
@@ -34,7 +40,7 @@ const name = computed(() => station.value?.name ?? props.config.label ?? props.c
   <!-- Antippen füllt den ganzen Bildschirm, erneutes Antippen stellt die Ansicht wieder her -->
   <button class="video" :class="{ full }" :aria-label="t(full ? 'video.shrink' : 'video.enlarge', { name })" @click="full = !full">
     <StreamPlayer v-if="station" :key="station.id" :source="props.config.source ?? 'video'" :stream="station.id" :muted="false" :volume="volume" :aspect="16 / 9" />
-    <StreamPlayer v-else :source="props.config.source ?? 'video'" :stream="props.config.stream" muted />
+    <StreamPlayer v-else :source="props.config.source ?? 'video'" :stream="props.config.stream" :fit="full ? 'contain' : fit" muted />
     <span v-if="station || props.config.label" class="label">{{ name }}</span>
   </button>
 </template>

@@ -92,7 +92,7 @@ Unter `layouts` dürfen mehrere Layouts stehen. Eine Anzeige zeigt `main`, mit d
 | `radio` | Sendertasten, Lautstärke, laufender Titel | `source` (Radio-Instanz) |
 | `voice` | Sprechen statt tippen: antippen, einen Satz sagen; die Antwort erscheint unten auf der Anzeige und wird vorgelesen | `source` (Vorgabe `voice`), `title`, `speak` (`false` schaltet das Vorlesen ab), `wakeWord` (Aktivierungswort, etwa `computer`) |
 | `video` (mit `tv`) | Die Kamerakachel kann auch das Fernsehen übernehmen: Mit `"tv": "radio"` zeigt sie das Bild eines laufenden Fernsehsenders samt Ton, und das Kamerabild weicht so lange | zusätzlich `tv` (Radio-Instanz) |
-| `video` | Live-Bild einer Kamera oder eines Streams; Antippen füllt den Bildschirm | `source` (Video-Instanz), `stream`, `label` |
+| `video` | Live-Bild einer Kamera oder eines Streams; Antippen füllt den Bildschirm. Das Bild füllt die Kachel und wird dafür am Rand beschnitten; groß angetippt ist es ganz zu sehen | `source` (Video-Instanz), `stream`, `label`, `tv`, `fit` (`cover` als Vorgabe, `fill` verzerrt statt zu beschneiden, `contain` zeigt alles mit Rändern) |
 | `media-window` | Fernsehbild beim Fernsehsender, Logo beim Radiosender | `source` (Radio-Instanz), `video` (Video-Instanz), `idle` |
 | `news` | Eine Meldung mit Bild, reihum aus allen Feeds; Antippen öffnet den Artikel | `source` (Nachrichten-Instanz), `feeds`, `seconds`, `closeAfter` |
 | `weather` | Wetterlage mit Symbol, Windrose, UV-Index und Vorhersage ab heute | `temperature`, `condition`, `code`, `wind`, `uv`, `sunrise`, `sunset`, `days` |

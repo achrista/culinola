@@ -25,6 +25,11 @@ const props = defineProps<{
    * es sonst gestaucht. Ohne Angabe gilt das Verhältnis, das der Strom selbst mitbringt.
    */
   aspect?: number;
+  /**
+   * Wie das Bild seine Fläche nutzt: `contain` zeigt es ganz und lässt Ränder frei, `cover` füllt die Fläche und
+   * schneidet dafür am Rand ab, `fill` füllt sie ganz und verzerrt dabei. Ohne Angabe `contain`.
+   */
+  fit?: 'contain' | 'cover' | 'fill';
 }>();
 
 const { t } = useI18n();
@@ -179,7 +184,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="player" :class="{ forced: !!props.aspect }" :style="props.aspect ? { '--aspect': String(props.aspect) } : undefined">
+  <div class="player" :class="{ forced: !!props.aspect }" :style="{ ...(props.aspect ? { '--aspect': String(props.aspect) } : {}), '--fit': props.fit ?? 'contain' }">
     <img v-if="info?.mode === 'mjpeg'" :src="mediaUrl(`/p/${encodeURIComponent(source)}/mjpeg/${encodeURIComponent(stream)}`)" :alt="info.name" />
     <video v-else ref="video" autoplay playsinline></video>
     <span v-if="state !== 'playing'" class="state">{{ t(state === 'failed' ? 'video.reconnecting' : 'video.connecting') }}</span>
@@ -210,7 +215,7 @@ video,
 img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: var(--fit, contain);
   display: block;
 }
 .sound {

@@ -171,7 +171,7 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 Das Folgende lässt sich nicht nachstellen und wird an der eigenen Installation geprüft – bewusst und einzeln, nie nebenbei:
 
 - Schalten gegen das echte openHAB (ein Licht, dessen Zustand man sieht)
-- Kameras: Bild, Vollbild beim Antippen, Verhalten bei abgezogener Kamera
+- Kameras: Bild füllt die Kachel ohne schwarze Ränder, Vollbild beim Antippen zeigt das ganze Bild, Verhalten bei abgezogener Kamera
 - Fernsehen: Bild und Ton über go2rtc und ffmpeg, Umschalten zwischen Sendern
 - Ton der Anzeige am vorgesehenen Bildschirm: Radio, Klingelton der Eieruhr, Start ohne vorheriges Antippen
 - Artikelfenster im vorgesehenen Browser und Vollbildmodus der Anzeige
