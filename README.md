@@ -484,6 +484,8 @@ Ohne Einrichtung ist die API offen: Jeder im Netz kann lesen und schalten. Der K
 | `control` | lesen, schalten, Aktionen auslösen |
 | `admin` | zusätzlich einrichten (noch ohne Funktion) |
 
+Ein Kamerabild ansehen zählt als Lesen: Auch eine Anzeige mit der Stufe `read` zeigt Kameras und Fernsehen.
+
 Programme schicken das Token in der Kopfzeile `Authorization: Bearer …`. Eine Anzeige wird freigeschaltet, indem man die Adresse einmal mit `#token=…` am Ende öffnet; sie merkt sich den Zugang und entfernt das Token wieder aus der Adresszeile.
 
 Der Schutz regelt, wer etwas darf. Er verschlüsselt nichts – außerhalb des eigenen Heimnetzes gehört HTTPS davor.

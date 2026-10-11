@@ -67,7 +67,9 @@ export async function buildServer({ config, registry, plugins, actions, events, 
     const mayUseAddress = request.url.startsWith('/api/v1/stream') || (request.method === 'GET' && request.url.startsWith('/api/v1/p/'));
     const fromAddress = mayUseAddress ? (request.query as { token?: string } | undefined)?.token : undefined;
     const presented = bearerToken(request.headers.authorization) ?? fromAddress;
-    const result = authorize(access, presented, requiredRole(request.method));
+    // Eine Adresse kann ihre Stufe selbst nennen – etwa ein POST, der nur liest
+    const declared = (request.routeOptions?.config as { role?: 'read' } | undefined)?.role;
+    const result = authorize(access, presented, declared ?? requiredRole(request.method));
     if (!result.ok) return reply.code(result.status).send({ error: result.error });
   });
 
@@ -131,6 +133,7 @@ export async function buildServer({ config, registry, plugins, actions, events, 
       method: route.method,
       url: `/api/v1/p/${route.instance}${route.path}`,
       ...(route.method === 'POST' ? { bodyLimit: PLUGIN_BODY_LIMIT } : {}),
+      ...(route.role ? { config: { role: route.role } } : {}),
       handler: async (request, reply) => {
         const gone = new AbortController();
         reply.raw.on('close', () => gone.abort());

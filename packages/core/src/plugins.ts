@@ -14,6 +14,8 @@ export interface PluginRoute {
   instance: string;
   path: string;
   handler: RouteHandler;
+  /** Abweichende Stufe, die der Aufruf braucht; ohne Angabe entscheidet die Methode. */
+  role?: 'read';
 }
 
 export interface SourceStatus {
@@ -103,7 +105,7 @@ export class PluginHost {
       resources: { set: (name, value) => this.resources.set(`${source.id}/${name}`, value) },
       routes: {
         get: (path, handler) => this.routes.push({ method: 'GET', instance: source.id, path, handler }),
-        post: (path, handler) => this.routes.push({ method: 'POST', instance: source.id, path, handler }),
+        post: (path, handler, options) => this.routes.push({ method: 'POST', instance: source.id, path, handler, ...(options?.role ? { role: options.role } : {}) }),
       },
       onCommand: (handler) => this.commands.set(source.id, handler),
       provideHistory: (handler) => this.histories.set(source.id, handler),

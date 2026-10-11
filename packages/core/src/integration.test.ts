@@ -56,6 +56,9 @@ async function core(access: readonly AccessToken[]): Promise<FastifyInstance> {
   registry.on('change', (datapoint) => events.observe(datapoint));
   hosts.push(plugins);
   await plugins.startAll(config.sources);
+  // Zwei Adressen wie von einem Plugin angemeldet: eine, die nur liest, obwohl sie POST benutzt, und eine gewöhnliche
+  plugins.routes.push({ method: 'POST', instance: 'probe', path: '/lesen', role: 'read', handler: () => Response.json({ ok: true }) });
+  plugins.routes.push({ method: 'POST', instance: 'probe', path: '/schalten', handler: () => Response.json({ ok: true }) });
   const server = await buildServer({ config, registry, plugins, actions, events, log: quiet, access });
   servers.push(server);
   return server;
@@ -255,6 +258,15 @@ describe('Kern mit Zugriffsschutz', () => {
     const stop = { method: 'POST', url: '/api/v1/actions/timer.stop', payload: {} } as const;
     expect((await app.inject({ ...stop, headers: as('token-vom-flur-0123456789') })).statusCode).toBe(403);
     expect((await app.inject({ ...stop, headers: as('token-der-kueche-0123456789') })).statusCode).toBe(200);
+  });
+
+  it('lässt eine als lesend angemeldete Adresse auch mit POST für den Lesezugang zu', async () => {
+    const post = (path: string, token?: string) => app.inject({ method: 'POST', url: `/api/v1/p/probe/${path}`, payload: {}, ...(token ? { headers: as(token) } : {}) });
+    expect((await post('lesen', 'token-vom-flur-0123456789')).statusCode).toBe(200);
+    expect((await post('schalten', 'token-vom-flur-0123456789')).statusCode).toBe(403);
+    expect((await post('schalten', 'token-der-kueche-0123456789')).statusCode).toBe(200);
+    // Ohne Token bleibt auch Lesen verschlossen
+    expect((await post('lesen')).statusCode).toBe(401);
   });
 
   it('lässt Meldungen nur mit der Stufe zum Schalten auslösen', async () => {

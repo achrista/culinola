@@ -108,7 +108,14 @@ export interface PluginContext<C> {
   /** Listen und Verzeichnisse des Plugins, abrufbar unter `/api/v1/resources/<Instanz>/<Name>`. */
   resources: { set(name: string, value: unknown): void };
   /** Eigene Adressen des Plugins unter `/api/v1/p/<Instanz>/…`, etwa für Datenströme. */
-  routes: { get(path: string, handler: RouteHandler): void; post(path: string, handler: RouteHandler): void };
+  routes: {
+    get(path: string, handler: RouteHandler): void;
+    /**
+     * Aufrufe mit POST gelten als Schalten und brauchen die Stufe `control`. Mit `{ role: 'read' }` genügt Lesen –
+     * für Adressen, die nur aus technischen Gründen POST benutzen und nichts verändern, etwa den Aufbau eines Videobilds.
+     */
+    post(path: string, handler: RouteHandler, options?: { role?: 'read' }): void;
+  };
   /** Wird aufgerufen, wenn ein schreibbarer Datenpunkt dieser Instanz gesetzt werden soll. */
   onCommand(handler: (id: string, value: DatapointValue) => Promise<void>): void;
   /** Meldet die Instanz als Quelle für Verlaufsdaten an. */

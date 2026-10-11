@@ -1,7 +1,7 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { definePlugin } from '@culinola/sdk';
+import { definePlugin, type PluginRequest } from '@culinola/sdk';
 import { go2rtcYaml, isStreamId, type Mode, modeOf, type StreamConfig } from './streams.ts';
 
 interface Config {
@@ -106,7 +106,9 @@ export default definePlugin<Config>({
     };
 
     // Verbindungsaufbau für WebRTC: Die Anzeige schickt ihr Angebot an den Kern, der es an go2rtc weiterreicht.
-    context.routes.post('/webrtc/:id', async (request) => {
+    // Ein Bild ansehen ist Lesen – auch eine Anzeige, die nichts schalten darf, zeigt Kameras.
+    context.routes.post('/webrtc/:id', webrtc, { role: 'read' });
+    async function webrtc(request: PluginRequest): Promise<Response> {
       const stream = streams.get(request.params.id ?? '');
       const offer = (request.body as { sdp?: unknown } | null)?.sdp;
       if (!stream || stream.mode !== 'webrtc') return Response.json({ error: 'Videoquelle unbekannt.' }, { status: 404 });
@@ -135,7 +137,7 @@ export default definePlugin<Config>({
       reported.delete(id);
       const answer = (await response.json()) as { sdp?: string };
       return Response.json({ sdp: answer.sdp });
-    });
+    }
 
     // Kameras, die ihr Bild als fortlaufende Bildfolge über HTTP liefern, reicht der Kern durch.
     context.routes.get('/mjpeg/:id', async (request) => {
