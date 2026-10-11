@@ -96,7 +96,8 @@ export default definePlugin<Config>({
       announced = true;
     });
     client.on('close', () => {
-      if (state === 'ok') {
+      // Beim Anhalten trennt der Konnektor selbst – das ist keine Störung
+      if (state === 'ok' && !context.signal.aborted) {
         log.warn('Verbindung zum Broker getrennt – neuer Versuch folgt.');
         setState('offline');
       }

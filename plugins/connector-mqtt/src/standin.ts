@@ -29,7 +29,7 @@ export const DISCOVERY = 'homeassistant';
 const ANNOUNCED: [topic: string, config: Record<string, unknown>][] = [
   [`${DISCOVERY}/sensor/4E3812_CO2/config`, { name: 'Luft CO₂', stat_t: 'luft/tele/SENSOR', avty_t: 'luft/tele/LWT', pl_avail: 'Online', pl_not_avail: 'Offline', uniq_id: '4E3812_CO2', unit_of_meas: 'ppm', val_tpl: "{{value_json['MHZ19B']['CarbonDioxide']}}" }],
   [`${DISCOVERY}/sensor/4E3812_T/config`, { name: 'Luft Temperatur', '~': 'luft', stat_t: '~/tele/SENSOR', avty_t: '~/tele/LWT', pl_avail: 'Online', pl_not_avail: 'Offline', uniq_id: '4E3812_T', unit_of_meas: '°C', val_tpl: '{{value_json.MHZ19B.Temperature}}' }],
-  [`${DISCOVERY}/sensor/4E3812_Signal/config`, { name: 'Luft Empfang', stat_t: 'luft/tele/STATE', uniq_id: '4E3812_Signal', unit_of_meas: '%', val_tpl: "{{value_json['Wifi']['RSSI'] | int}}" }],
+  [`${DISCOVERY}/sensor/4E3812_Signal/config`, { name: 'Luft Empfang', stat_t: 'luft/tele/STATE', uniq_id: '4E3812_Signal', unit_of_meas: '%', val_tpl: "{{ (value_json['Wifi']['RSSI'] | int) * 2 }}" }],
   [`${DISCOVERY}/switch/A1B2C3_RL_1/config`, { name: 'Nachtlicht', stat_t: 'nachtlicht/tele/STATE', cmd_t: 'nachtlicht/cmnd/POWER', avty_t: 'nachtlicht/tele/LWT', pl_avail: 'Online', pl_not_avail: 'Offline', pl_on: 'ON', pl_off: 'OFF', uniq_id: 'A1B2C3_RL_1', val_tpl: '{{value_json.POWER}}' }],
   [`${DISCOVERY}/climate/heizung/config`, { name: 'Heizung' }],
 ];

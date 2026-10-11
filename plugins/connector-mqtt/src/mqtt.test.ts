@@ -91,8 +91,13 @@ describe('Geräte, die sich selbst anmelden', () => {
     expect(templatePath('{{value_json.a["b c"]}}')).toEqual(['a', 'b c']);
     expect(templatePath(undefined)).toBe('plain');
     expect(templatePath('{{ value }}')).toBe('plain');
+    // Zusätze, die nur absichern oder die Art des Werts nennen, ändern die Stelle nicht
+    expect(templatePath("{{value_json['Wifi']['RSSI'] | int}}")).toEqual(['Wifi', 'RSSI']);
+    expect(templatePath('{{ value_json.temp | float | default(0) }}')).toEqual(['temp']);
+    expect(templatePath("{{value_json.burngas if value_json.burngas is defined else 'off'}}")).toEqual(['burngas']);
+    expect(templatePath('{{value_json.a.b if value_json.a.b is defined else 0}}')).toEqual(['a', 'b']);
     // Vorlagen, die rechnen oder umformen, werden nicht geraten
-    for (const template of ["{{value_json['RSSI'] | int}}", '{{ value_json.t * 1.8 + 32 }}', '{% if value %}an{% endif %}', '{{value_json}}']) expect(templatePath(template), template).toBeUndefined();
+    for (const template of ['{{ value_json.t * 1.8 + 32 }}', '{{ value_json.t | round(1) }}', '{{ value_json.t | int + 1 }}', "{{value_json.a if value_json.b is defined else 0}}", "{{value_json.a if value_json.a == 'x' else 0}}", '{% if value %}an{% endif %}', '{{value_json}}']) expect(templatePath(template), template).toBeUndefined();
   });
 
   it('werden zu Datenpunkten mit Thema, Namen und Einheit', () => {

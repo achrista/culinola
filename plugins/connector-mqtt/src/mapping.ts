@@ -151,15 +151,22 @@ const SHORT: Record<string, string> = {
 const COMPONENTS = ['sensor', 'binary_sensor', 'switch', 'light'];
 
 /**
- * Liest aus einer Vorlage die Stelle im JSON: `{{value_json.A.B}}` oder `{{value_json['A']['B']}}`. Vorlagen,
- * die rechnen oder umformen, versteht Culinola nicht – dann gibt es `undefined`. Eine leere Vorlage oder
- * `{{value}}` meint die ganze Nachricht.
+ * Liest aus einer Vorlage die Stelle im JSON: `{{value_json.A.B}}` oder `{{value_json['A']['B']}}`. Zusätze, die
+ * den Wert nur absichern oder seine Art nennen, ändern daran nichts und werden überlesen: `… if … is defined else …`,
+ * `| int`, `| float`, `| default(…)`. Vorlagen, die rechnen oder umformen, versteht Culinola nicht – dann gibt es
+ * `undefined`. Eine leere Vorlage oder `{{value}}` meint die ganze Nachricht.
  */
 export function templatePath(template: string | undefined): string[] | undefined | 'plain' {
   const text = (template ?? '').trim();
   if (!text || /^\{\{\s*value\s*\}\}$/.test(text)) return 'plain';
-  const inner = /^\{\{\s*value_json((?:\.[A-Za-z_][\w-]*|\[\s*(?:'[^']*'|"[^"]*")\s*\])+)\s*\}\}$/.exec(text)?.[1];
-  if (!inner) return undefined;
+  const whole = /^\{\{\s*value_json((?:\.[A-Za-z_][\w-]*|\[\s*(?:'[^']*'|"[^"]*")\s*\])+)\s*(.*?)\s*\}\}$/.exec(text);
+  if (!whole) return undefined;
+  const [, inner = '', rest = ''] = whole;
+  // Erlaubt ist danach nur, was den Wert nicht verändert – und die Absicherung muss dieselbe Stelle meinen
+  const literal = String.raw`(?:'[^']*'|"[^"]*"|-?\d+(?:\.\d+)?|none|None|true|false|True|False)`;
+  const filters = String.raw`(?:\s*\|\s*(?:int|float|default\(\s*${literal}\s*\)))*`;
+  const guard = new RegExp(String.raw`^(${filters})\s*(?:if\s+value_json(\S+)\s+is\s+defined\s+else\s+${literal})?$`).exec(rest);
+  if (!guard || (guard[2] !== undefined && guard[2] !== inner)) return undefined;
   return [...inner.matchAll(/\.([A-Za-z_][\w-]*)|\[\s*(?:'([^']*)'|"([^"]*)")\s*\]/g)].map((part) => part[1] ?? part[2] ?? part[3] ?? '');
 }
 

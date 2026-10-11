@@ -143,6 +143,8 @@ Benutzer und Kennwort des Brokers stehen in `secrets.json`: `{ "mqtt": { "userna
 | `label`, `unit`, `type` | Bezeichnung, Einheit und – wo es nicht von selbst stimmt – die Art des Werts: `number`, `switch` oder `text` |
 | `retain` | Geschaltete Werte bleiben auf dem Broker liegen |
 
+Auf welchen Themen ein Gerät sendet, hängt von seiner Einstellung ab – bei Tasmota vom „FullTopic“: je nachdem `gerät/stat/POWER` oder `gerät/POWER`. Im Zweifel zeigt es ein Mithören am Broker (`mosquitto_sub -v -t "gerät/#"`). Übernommen werden auch Vorlagen, die den Wert nur absichern oder seine Art nennen (`… if … is defined else …`, `| int`, `| float`).
+
 Ein von Hand eingerichteter Datenpunkt geht vor, wenn ein Gerät dieselbe Kennung anmeldet. Der Datenpunkt `mqtt:state` sagt, wie es um die Verbindung steht: `ok`, `offline` oder `login` (Zugangsdaten fehlen oder werden abgelehnt). Einen Verlauf führt ein Broker nicht; Diagramme zeigen, was der Kern seit seinem Start mitgeschrieben hat (höchstens 24 Stunden).
 
 ### Fremde Seiten
