@@ -46,6 +46,13 @@ for (const widget of config.layouts.web.widgets) if (widget.type === 'web') widg
 console.log(`Platzhalter für fremde Seiten auf ${pages}`);
 writeFileSync(configFile, JSON.stringify(config, null, 2));
 writeFileSync(join(target, 'secrets.json'), JSON.stringify({ merkio: merkio.account }, null, 2));
+// Geräte über MQTT: ein Platzhalter-Broker mit einem nachgespielten Luftsensor und einem schaltbaren Licht.
+const { startStandIn: startBroker } = await import('../plugins/connector-mqtt/src/standin.ts');
+const broker = await startBroker();
+config.sources.find((source) => source.id === 'mqtt').config.url = broker.url;
+writeFileSync(configFile, JSON.stringify(config, null, 2));
+writeFileSync(join(target, 'secrets.json'), JSON.stringify({ merkio: merkio.account, mqtt: broker.account }, null, 2));
+console.log(`Platzhalter für MQTT auf ${broker.url}`);
 console.log(`Platzhalter für Merkio auf ${merkio.url}`);
 console.log(`Testinstanz in ${target}`);
 await import('../packages/core/src/main.ts');

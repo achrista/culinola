@@ -112,6 +112,39 @@ Im Diagramm läuft „Heute“ von 0 bis 24 Uhr. Eine Reihe mit `forecast: true`
 
 `factor` rechnet einen Wert für die Anzeige um – etwa `100`, wenn die Quelle Feuchte als Bruchteil (0,58) statt in Prozent liefert.
 
+### Geräte über MQTT
+
+Das Plugin `connector-mqtt` hängt Culinola an einen MQTT-Broker – für Tasmota, ESPHome, Zigbee2MQTT, Shelly und alles andere, was dort Werte meldet.
+
+```json
+{ "id": "mqtt", "plugin": "connector-mqtt", "config": { "url": "mqtt://192.168.178.10:1883" } }
+```
+
+Benutzer und Kennwort des Brokers stehen in `secrets.json`: `{ "mqtt": { "username": "…", "password": "…" } }`. Gesichert geht es mit `mqtts://`.
+
+**Geräte, die sich selbst anmelden.** Viele Geräte melden sich nach dem Muster von Home Assistant an (bei Tasmota: `SetOption19 1`). Sie erscheinen ohne weitere Einrichtung als Datenpunkte, mit Namen und Einheit; ihre Kennung ist die des Geräts, etwa `mqtt:4E3812_MHZ19B_CarbonDioxide`. Welche es gibt, zeigt `GET /api/v1/datapoints`. Übernommen werden Sensoren, Kontakte, Schalter und Lichter (ein und aus). Übergangen wird, was seinen Wert erst ausrechnet (Vorlagen mit Formeln) – solche Werte lassen sich von Hand einrichten. `"discovery": false` schaltet das Erkennen ab, `"discovery": "anderer/anfang"` nennt einen anderen Anfang der Themen als `homeassistant`.
+
+**Von Hand.** Jeder Datenpunkt hängt an einem Thema:
+
+```json
+"datapoints": [
+  { "id": "co2", "topic": "ACLuft/tele/SENSOR", "json": "MHZ19B.CarbonDioxide", "unit": "ppm", "label": "CO₂", "availability": "ACLuft/tele/LWT" },
+  { "id": "nachtlicht", "topic": "ledschlafen/stat/POWER", "command": "ledschlafen/cmnd/POWER", "label": "Nachtlicht" }
+]
+```
+
+| Angabe | Wirkung |
+|---|---|
+| `id`, `topic` | Kennung des Datenpunkts (`mqtt:co2`) und das Thema, auf dem sein Wert ankommt |
+| `json` | Stelle in der Nachricht, wenn sie ein JSON ist: `MHZ19B.CarbonDioxide` |
+| `command` | Thema, auf das geschaltet wird; damit ist der Datenpunkt schaltbar |
+| `on`, `off` | Was „ein“ und „aus“ heißt, gesendet wie empfangen; Vorgabe `ON` und `OFF` |
+| `availability` | Thema, auf dem das Gerät seine Erreichbarkeit meldet (`Online`/`Offline`, andere Worte als `{ "topic": …, "online": …, "offline": … }`); ein abgemeldetes Gerät steht als veraltet da |
+| `label`, `unit`, `type` | Bezeichnung, Einheit und – wo es nicht von selbst stimmt – die Art des Werts: `number`, `switch` oder `text` |
+| `retain` | Geschaltete Werte bleiben auf dem Broker liegen |
+
+Ein von Hand eingerichteter Datenpunkt geht vor, wenn ein Gerät dieselbe Kennung anmeldet. Der Datenpunkt `mqtt:state` sagt, wie es um die Verbindung steht: `ok`, `offline` oder `login` (Zugangsdaten fehlen oder werden abgelehnt). Einen Verlauf führt ein Broker nicht; Diagramme zeigen, was der Kern seit seinem Start mitgeschrieben hat (höchstens 24 Stunden).
+
 ### Fremde Seiten
 
 Die Kachel `web` bettet eine Seite von einer anderen Adresse ein:

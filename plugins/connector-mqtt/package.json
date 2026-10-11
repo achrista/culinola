@@ -1,0 +1,18 @@
+{
+  "name": "@culinola/plugin-connector-mqtt",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Bindet Geräte über MQTT an: einzelne Themen von Hand oder Geräte, die sich selbst anmelden (Tasmota, Home-Assistant-Muster).",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@culinola/sdk": "*",
+    "mqtt": "^5.16.0"
+  },
+  "devDependencies": {
+    "mqtt-packet": "^9.0.2"
+  }
+}
