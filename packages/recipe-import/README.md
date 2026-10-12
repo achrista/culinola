@@ -1,74 +1,74 @@
 # recipe-import
 
-In Culinola steckt es hinter „+ Rezept“ in der Rezeptansicht (Plugin [`recipes`](../../README.md#neue-rezepte-hinzufügen)) und hinter `npm run recipes:import` für ganze Ordner. Merkio nutzt es für seinen Listentyp „Rezepte“: Das Backend führt eine gebündelte Kopie (`backend/vendor/recipe-import.cjs`, erzeugt mit `npm run vendor:recipe-import` im Merkio-Backend).
+In Culinola it sits behind "+ Recipe" in the recipe view (plugin [`recipes`](../../README.md#adding-new-recipes)) and behind `npm run recipes:import` for whole folders. Merkio uses it for its list type "Recipes": the backend keeps a bundled copy (`backend/vendor/recipe-import.cjs`, generated with `npm run vendor:recipe-import` in the Merkio backend).
 
-Wandelt Rezepte aus beliebigen Vorlagen in das Rezeptformat von Culinola und in eine gegliederte Form für die geplante Rezept-Erweiterung von Merkio um. Das Lesen und Ordnen übernimmt Claude Haiku.
+Converts recipes from arbitrary sources into Culinola's recipe format and into a structured form for Merkio's planned recipe extension. Reading and organizing is done by Claude Haiku.
 
-| Vorlage | Wie sie gelesen wird |
+| Source | How it is read |
 |---|---|
-| PDF | geht unverändert an das Modell – auch Scans ohne Textebene; eingebettete Fotos werden herausgelöst |
-| Word (`.docx`), LibreOffice (`.odt`) | Text samt Tabellen, dazu die enthaltenen Bilder |
-| Word alt (`.doc`) | Text; Dateien vor Word 97 behelfsmäßig |
-| Text, Markdown, HTML | Text |
-| Bild (`.jpg`, `.png`, `.webp`, `.gif`) | das Modell liest das abfotografierte Rezept |
-| Webadresse | bevorzugt die maschinenlesbaren Angaben der Seite (schema.org/Recipe), sonst ihr Fließtext; kein Zugriff auf Adressen im eigenen Netz |
+| PDF | goes to the model unchanged – including scans without a text layer; embedded photos are extracted |
+| Word (`.docx`), LibreOffice (`.odt`) | text including tables, plus the images they contain |
+| Word old (`.doc`) | text; files from before Word 97 as a makeshift |
+| Text, Markdown, HTML | text |
+| Image (`.jpg`, `.png`, `.webp`, `.gif`) | the model reads the photographed recipe |
+| Web address | preferably the page's machine-readable data (schema.org/Recipe), otherwise its running text; no access to addresses in your own network |
 
-### Das Foto des Gerichts
+### The photo of the dish
 
-Ein Rezept bekommt sein Foto aus der ersten Quelle, die eines hergibt:
+A recipe gets its photo from the first source that yields one:
 
-1. **Aus der Vorlage** – Bilder in Word- und LibreOffice-Dateien, eingebettete JPEG-Fotos in PDFs, das Bild selbst bei einer Bildvorlage. Das Modell sieht sie und sagt, welches das fertige Gericht zeigt; Zubereitungsfotos, Logos und eingescannter Text scheiden so aus.
-2. **Das Titelbild der Webseite** (`image` in den Rezeptangaben, sonst `og:image`). Es wird geholt und beim Rezept abgelegt – die Adressen solcher Bilder gelten oft nur Stunden.
-3. **Ein Bild neben der Vorlage** mit demselben Namen: `Apfelkuchen.pdf` und `Apfelkuchen.jpg`. Im Ordnerlauf ist so ein Bild keine eigene Vorlage. Beim Einbau entspricht dem die Angabe `photo` neben `data`.
+1. **From the source** – images in Word and LibreOffice files, embedded JPEG photos in PDFs, the image itself for an image source. The model sees them and says which one shows the finished dish; preparation photos, logos and scanned text are thereby ruled out.
+2. **The web page's cover image** (`image` in the recipe details, otherwise `og:image`). It is fetched and stored with the recipe – the addresses of such images often only last hours.
+3. **An image next to the source** with the same name: `Apfelkuchen.pdf` and `Apfelkuchen.jpg`. In a folder run, such an image is not a source of its own. When integrating, the setting `photo` next to `data` corresponds to this.
 
-Grenzen: Aus altem Word (`.doc`) und aus PDFs mit anders verpackten Bildern kommt kein Foto heraus; hier hilft Weg 3. Bilder für das Modell dürfen 5 MB groß sein, Titelbild und Beibild 15 MB.
+Limits: from old Word (`.doc`) and from PDFs with images packaged differently, no photo comes out; way 3 helps here. Images for the model may be 5 MB, cover image and accompanying image 15 MB.
 
-## Ergebnis
+## Result
 
-Je Rezept entstehen zwei Dateien:
+Two files are produced per recipe:
 
-- **Culinola:** `culinola/<Kategorie>/<Titel>.md` – Kopfdaten und Markdown nach dem Vorbild [`pfannkuchen.md`](../../plugins/recipes/examples/pfannkuchen.md), dazu das Foto des Gerichts unter demselben Namen, in den Kopfdaten als `image` genannt. Der Ordner lässt sich unverändert als Rezeptordner des Plugins `recipes` verwenden. Mit `--recipes <Ordner>` landen Rezept und Foto stattdessen gleich im Rezeptordner – dort wird nichts überschrieben und nichts gelöscht; gibt es den Namen schon, bekommt das neue Rezept eine Nummer.
-- **Merkio:** `merkio/<kennung>.json` – dasselbe Rezept gegliedert (`Recipe` in [src/types.ts](src/types.ts)): Zutaten mit Menge, Einheit, Name und Warengruppe (`iconKey` wie in Merkios Einkaufsliste), Schritte, Hinweise, Herkunft und das fertige Markdown.
+- **Culinola:** `culinola/<category>/<title>.md` – header details and Markdown following the model of [`pfannkuchen.md`](../../plugins/recipes/examples/pfannkuchen.md), plus the photo of the dish under the same name, named as `image` in the header details. The folder can be used unchanged as the recipe folder of the `recipes` plugin. With `--recipes <folder>`, recipe and photo land directly in the recipe folder instead – nothing is overwritten and nothing is deleted there; if the name already exists, the new recipe gets a number.
+- **Merkio:** `merkio/<id>.json` – the same recipe structured (`Recipe` in [src/types.ts](src/types.ts)): ingredients with quantity, unit, name and product group (`iconKey` as in Merkio's shopping list), steps, notes, origin and the finished Markdown.
 
-Der Vermerk zur Herkunft (`--label`) steht als Stichwort in `tags`, in den Kopfdaten als `source` – so zeigt ihn die Rezeptliste von Culinola – und im JSON unter `source.label`.
+The note on origin (`--label`) appears as a keyword in `tags`, in the header details as `source` – this is how Culinola's recipe list shows it – and in the JSON under `source.label`.
 
-## Aufruf
+## Usage
 
-Voraussetzung: ein Schlüssel für die Claude-API. Gesucht wird er als Umgebungsvariable `ANTHROPIC_API_KEY`, in einer Datei `.env` im Ordner des Aufrufs (`ANTHROPIC_API_KEY=…`) und dort, wo ihn auch das Plugin liest: in `data/secrets.json` als `{ "recipes": { "anthropicApiKey": "…" } }`. Die Aufrufe gelten im Hauptordner von Culinola.
+Requirement: a key for the Claude API. It is looked for as the environment variable `ANTHROPIC_API_KEY`, in a file `.env` in the folder of the call (`ANTHROPIC_API_KEY=…`) and where the plugin also reads it: in `data/secrets.json` as `{ "recipes": { "anthropicApiKey": "…" } }`. The calls apply in Culinola's main folder.
 
 ```bash
-npm run recipes:import -- ./vorlagen --label Familienrezept --recipes data/recipes
+npm run recipes:import -- ./sources --label "Family recipe" --recipes data/recipes
 ```
 
 ```bash
-npm run recipes:import -- https://example.org/rezepte/brandteig --out ausgabe
+npm run recipes:import -- https://example.org/rezepte/brandteig --out output
 ```
 
-Ein Ordner wird ohne seine Unterordner gelesen (`--recursive` nimmt sie mit). `--dry-run` liest nur die Vorlagen und ruft das Modell nicht auf. Was umgewandelt ist, steht in `ausgabe/protokoll.json`; ein zweiter Lauf überspringt unveränderte Vorlagen und holt nur Fehlgeschlagenes nach (`--force` wandelt alles neu um). Alle Optionen: `npm run recipes:import -- --help`.
+A folder is read without its subfolders (`--recursive` includes them). `--dry-run` only reads the sources and does not call the model. What has been converted is recorded in `output/protokoll.json`; a second run skips unchanged sources and only catches up on what failed (`--force` converts everything anew). All options: `npm run recipes:import -- --help`.
 
-## Einbau
+## Integration
 
 ```ts
 import { convertRecipe, toShoppingItems } from '@culinola/recipe-import';
 
 const { recipes } = await convertRecipe({ url: 'https://…' }, { label: 'Web' });
-// auch: { file: 'rezept.pdf' } · { data: bytes, name: 'upload.docx', mediaType } · { text: '…' }
+// also: { file: 'rezept.pdf' } · { data: bytes, name: 'upload.docx', mediaType } · { text: '…' }
 
 for (const converted of recipes) {
   const { recipe, markdown, photo } = converted;
-  // recipe   – gegliederte Form (Merkio)
-  // markdown – Datei für den Rezeptordner (Culinola)
-  // photo    – Foto des Gerichts: aus der Vorlage, sonst Titelbild oder Beibild
-  toShoppingItems(recipe, 6); // Zutaten für 6 Portionen als Einträge der Einkaufsliste
-  saveRecipe('data/recipes', converted); // legt <Kategorie>/<Titel>.md samt Foto ab, ohne etwas zu überschreiben
+  // recipe   – structured form (Merkio)
+  // markdown – file for the recipe folder (Culinola)
+  // photo    – photo of the dish: from the source, otherwise cover image or accompanying image
+  toShoppingItems(recipe, 6); // ingredients for 6 servings as shopping-list entries
+  saveRecipe('data/recipes', converted); // stores <category>/<title>.md including photo, without overwriting anything
 }
 ```
 
-Scheitert die Umwandlung, ordnet `explainError(error)` den Fehler ein – fehlender Zugang, API nicht erreichbar, leere Vorlage, unbrauchbare Antwort – und liefert einen Satz für den Nutzer.
+If the conversion fails, `explainError(error)` classifies the error – missing access, API unreachable, empty source, unusable response – and returns a sentence for the user.
 
-- **Culinola** läuft ohne Übersetzen; `exports` zeigt auf `src/index.ts`.
-- **Merkio-Backend** (CommonJS): `npm run build -w @culinola/recipe-import` erzeugt `dist/`; eingebunden mit `await import('…/dist/index.js')`. Der vorhandene Client lässt sich übergeben: `convertRecipe(input, { client })`.
+- **Culinola** runs without compiling; `exports` points to `src/index.ts`.
+- **Merkio backend** (CommonJS): `npm run build -w @culinola/recipe-import` generates `dist/`; it is included with `await import('…/dist/index.js')`. The existing client can be passed in: `convertRecipe(input, { client })`.
 
-Das Modell ist `claude-haiku-5-5` (Option `model`), die Ausgabesprache `de`, `en` oder `fr` (Option `language`), die Kategorien sind vorgegeben und austauschbar (Option `categories`).
+The model is `claude-haiku-5-5` (option `model`), the output language `de`, `en` or `fr` (option `language`), the categories are predefined and replaceable (option `categories`).
 
-Die Tests rufen das Modell nicht auf. Wo der ganze Weg bis zur Rezeptdatei geprüft wird – im Plugin `recipes` und in der Testinstanz –, antwortet ein Platzhalter auf dem eigenen Rechner ([src/standin.ts](src/standin.ts)) in der Form der Claude-API mit einem festen Rezept.
+The tests do not call the model. Where the whole path up to the recipe file is tested – in the `recipes` plugin and in the test instance –, a stand-in on your own computer ([src/standin.ts](src/standin.ts)) answers with a fixed recipe in the shape of the Claude API.
