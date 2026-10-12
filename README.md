@@ -2,7 +2,7 @@
 
 **The home dashboard for the screen in your kitchen.** Culinola brings your house, your media and your family's day together on one touch display: readings and switches, charts, cameras, radio and TV, news, calendar, shopping list and recipes – arranged the way you want, without writing a line of configuration.
 
-![Culinola on a kitchen display: camera, clock, weather, readings, charts, calls, e-mail, switches, radio, news, calendar and shopping list](docs/images/dashboard-night.png)
+![Culinola on a kitchen display: camera, clock, weather, readings, charts, calls, e-mail, switches, radio, recipes, calendar and shopping list](docs/images/dashboard-night.png)
 
 ## Why Culinola
 
