@@ -212,6 +212,19 @@ describe('LayoutStore: anlegen, umbenennen, löschen', () => {
     expect(backups()).toHaveLength(3);
   });
 
+  it('sichert jeden Stand einzeln, auch wenn Änderungen in derselben Millisekunde aufeinander folgen', () => {
+    const { store } = start();
+    const states = [readFileSync(file, 'utf8')];
+    for (let n = 0; n < 6; n++) {
+      store.create(`neu-${n}`, main);
+      states.push(readFileSync(file, 'utf8'));
+    }
+    const kept = backups().map((name) => readFileSync(join(dir, name), 'utf8'));
+    expect(kept).toHaveLength(6);
+    expect(new Set(kept).size).toBe(6);
+    expect(kept.sort()).toEqual(states.slice(0, 6).sort());
+  });
+
   it('behält beim Umbenennen den Platz in der Datei', () => {
     const { store } = start();
     store.rename('main', 'kueche');

@@ -48,7 +48,10 @@ export class JsonFile {
     const dir = dirname(this.path);
     mkdirSync(dir, { recursive: true });
     if (this.exists()) {
-      copyFileSync(this.path, join(dir, `${this.stem}.vor-${stamp(new Date())}.json`));
+      // Zwei Änderungen in derselben Millisekunde dürfen einander die Sicherung nicht überschreiben
+      let when = new Date();
+      while (existsSync(join(dir, `${this.stem}.vor-${stamp(when)}.json`))) when = new Date(when.getTime() + 1);
+      copyFileSync(this.path, join(dir, `${this.stem}.vor-${stamp(when)}.json`));
       // Nur was dieses Muster trägt, hat der Kern angelegt – von Hand benannte Sicherungen (`config.vor-umbau.json`) rührt er nicht an
       const own = readdirSync(dir).filter((name) => name.startsWith(`${this.stem}.vor-`) && /^\d{8}-\d{6}-\d{3}\.json$/.test(name.slice(this.stem.length + '.vor-'.length))).sort();
       for (const name of own.slice(0, -KEEP_BACKUPS)) rmSync(join(dir, name), { force: true });
