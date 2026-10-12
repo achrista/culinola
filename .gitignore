@@ -19,3 +19,6 @@ Thumbs.db
 
 # Heruntergeladene Hilfsprogramme (z. B. go2rtc) werden nicht mitverteilt
 tools/
+
+# Interne Arbeitspapiere bleiben auf diesem Rechner
+intern/
