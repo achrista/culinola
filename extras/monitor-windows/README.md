@@ -1,28 +1,28 @@
-# Monitor ein und aus (Windows)
+# Monitor on and off (Windows)
 
-Ein kleines Hilfsprogramm für den Rechner, an dem die Anzeige hängt. Es schaltet dessen Bildschirm aus und ein – etwa wenn ein Bewegungsmelder der Haussteuerung meldet, dass niemand mehr in der Küche ist.
+A small helper program for the computer the display is attached to. It switches that computer's screen off and on – for example when a motion detector of the home automation reports that nobody is in the kitchen any more.
 
-Es gehört nicht zu Culinola selbst: Ein Browser kann keinen Monitor schalten, und wie das geht, hängt am Betriebssystem. Das Skript braucht keinen offenen Port am Anzeigerechner und keine Rechte eines Administrators.
+It is not part of Culinola itself: a browser cannot switch a monitor, and how it is done depends on the operating system. The script needs no open port on the display computer and no administrator rights.
 
-Voraussetzung ist Windows 10 oder 11 mit dem mitgelieferten PowerShell. Installiert wird nichts.
+The requirement is Windows 10 or 11 with the PowerShell that comes with it. Nothing is installed.
 
-## Drei Wege, den Monitor zu steuern
+## Three ways to control the monitor
 
-**Direkt aus openHAB** – der einfachste, wo openHAB das Haus steuert. Dort gibt es einen Schalter „Bildschirm an“ (ein Switch-Item); die Regel mit dem Bewegungsmelder schaltet ihn. Das Skript fragt den Schalter alle zwei Sekunden ab: ein heißt an, aus heißt aus. Culinola ist daran nicht beteiligt – der Monitor wird auch geschaltet, wenn dessen Rechner aus ist.
+**Directly from openHAB** – the simplest, where openHAB controls the house. There is a switch "Screen on" (a Switch item); the rule with the motion detector switches it. The script queries the switch every two seconds: on means on, off means off. Culinola is not involved – the monitor is switched even if its computer's Culinola is off.
 
 ```json
 { "openhab": "http://192.168.178.10:8080", "item": "Kueche_Display" }
 ```
 
-Verlangt openHAB eine Anmeldung, kommt `"openhabToken"` dazu; `"pollSeconds"` ändert den Abstand der Abfragen.
+If openHAB requires a login, `"openhabToken"` is added; `"pollSeconds"` changes the interval between queries.
 
-**Über einen Datenpunkt von Culinola.** Für jede Quelle, die Culinola kennt, nicht nur openHAB. Das Skript hört am Echtzeitkanal mit und folgt dem Datenpunkt: eingeschaltet oder größer als null heißt an.
+**Via a Culinola datapoint.** For every source Culinola knows, not only openHAB. The script listens on the real-time channel and follows the datapoint: switched on or greater than zero means on.
 
 ```json
 { "server": "http://192.168.178.10:8090", "token": "…", "datapoint": "openhab:Kueche_Display" }
 ```
 
-**Über zwei Meldungen von Culinola.** Eine Regel ruft `POST /api/v1/events/monitor-aus` und `…/monitor-an` auf. Damit die Anzeigen dabei nichts zeigen, stehen die beiden in `config.json` als reine Signale:
+**Via two Culinola messages.** A rule calls `POST /api/v1/events/monitor-aus` and `…/monitor-an`. So that the displays show nothing in the process, the two are listed in `config.json` as pure signals:
 
 ```json
 "events": { "monitor-aus": { "show": false }, "monitor-an": { "show": false } }
@@ -32,32 +32,32 @@ Verlangt openHAB eine Anmeldung, kommt `"openhabToken"` dazu; `"pollSeconds"` ä
 { "server": "http://192.168.178.10:8090", "token": "…", "off": "monitor-aus", "on": "monitor-an" }
 ```
 
-Bei den beiden Wegen über Culinola ist `server` dessen Adresse – nicht die der Haussteuerung –, und `token` das Token eines Zugangs der Stufe `read` (leer, wenn die API offen ist). Der Rechner mit Culinola muss vom Anzeigerechner aus erreichbar sein; unter Windows fragt die Firewall beim ersten Start von Culinola danach.
+With the two ways via Culinola, `server` is its address – not that of the home automation – and `token` is the token of an access of level `read` (empty if the API is open). The computer running Culinola must be reachable from the display computer; under Windows the firewall asks about this the first time Culinola starts.
 
-## Einrichten
+## Setting up
 
-1. Den Ordner `monitor-windows` auf den Anzeigerechner kopieren, etwa nach `C:\Culinola\monitor-windows`.
-2. `monitor.example.json` nach `monitor.json` kopieren und einen der drei Wege eintragen.
-3. Ausprobieren, ohne dass geschaltet wird:
+1. Copy the folder `monitor-windows` to the display computer, for example to `C:\Culinola\monitor-windows`.
+2. Copy `monitor.example.json` to `monitor.json` and enter one of the three ways.
+3. Try it out without anything being switched:
 
    ```
    powershell -ExecutionPolicy Bypass -File C:\Culinola\monitor-windows\monitor.ps1 -DryRun
    ```
 
-   Im Fenster und in `monitor.log` steht dann, was geschähe: „Probelauf: Monitor aus (…)“.
-4. Ohne `-DryRun` schaltet es wirklich. Damit es nach jeder Anmeldung läuft: mit `Win+R` den Ordner `shell:startup` öffnen und dort eine Verknüpfung mit diesem Ziel anlegen:
+   The window and `monitor.log` then show what would happen: "Probelauf: Monitor aus (…)" (the script's own wording: "dry run: monitor off").
+4. Without `-DryRun` it really switches. To make it run after every sign-in: open the folder `shell:startup` with `Win+R` and create a shortcut there with this target:
 
    ```
    powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File "C:\Culinola\monitor-windows\monitor.ps1"
    ```
 
-Das Skript muss in der Sitzung des angemeldeten Benutzers laufen, nicht als Dienst – nur dort erreicht es den Bildschirm.
+The script must run in the session of the signed-in user, not as a service – only there does it reach the screen.
 
-## Zu wissen
+## Good to know
 
-- Geschaltet wird über Windows selbst, so wie es auch der Energiesparmodus tut. Beim Einschalten kommt eine winzige Mausbewegung dazu, weil nicht jeder Bildschirm allein auf das Signal hin aufwacht.
-- Solange der Monitor an sein soll, wiederholt das Skript das Einschalten jede Minute (`keepOnSeconds`, `0` schaltet das ab). So bleibt er an, auch wenn Windows ihn nach seiner eigenen Wartezeit abschalten wollte – und er kommt zurück, falls er doch einmal ausging.
-- Jede Berührung und jede Mausbewegung weckt den Bildschirm ebenfalls; das Skript schaltet ihn erst beim nächsten „aus“ wieder ab.
-- Ein Schalter, der noch nie gesetzt wurde (openHAB meldet `NULL`), bewirkt nichts: Der Monitor bleibt, wie er ist.
-- Ist die Gegenstelle nicht erreichbar, versucht das Skript es weiter und meldet das einmal im Protokoll. Der Bildschirm bleibt so lange, wie er ist.
-- `monitor.json` kann ein Token enthalten und gehört deshalb nicht ins Repository; `monitor.log` bleibt klein und beginnt ab 200 KB neu.
+- Switching happens through Windows itself, just as power saving does it. When switching on, a tiny mouse movement is added, because not every screen wakes up on the signal alone.
+- As long as the monitor is meant to be on, the script repeats the switching on every minute (`keepOnSeconds`, `0` turns this off). This keeps it on even if Windows wanted to turn it off after its own timeout – and it comes back if it did go off after all.
+- Every touch and every mouse movement also wakes the screen; the script only turns it off again at the next "off".
+- A switch that has never been set (openHAB reports `NULL`) has no effect: the monitor stays as it is.
+- If the counterpart cannot be reached, the script keeps trying and reports this once in the log. The screen stays as it is meanwhile.
+- `monitor.json` may contain a token and therefore does not belong in the repository; `monitor.log` stays small and starts over from 200 KB.
