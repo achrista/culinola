@@ -1,4 +1,4 @@
-import { definePlugin } from '@culinola/sdk';
+import { definePlugin, explain } from '@culinola/sdk';
 import { AccessTokens, LoginRequired, readClient, readToken } from './auth.ts';
 import { type ApiEvent, type CalendarEvent, sortEvents, toEvents } from './calendar.ts';
 import { type ApiGroup, type ApiPerson, type ApiYearlyEvent, calendarOccasions, type Occasion, occasions, upcoming } from './reminders.ts';
@@ -33,6 +33,17 @@ const CONTACTS_EVERY_MS = 6 * 60 * 60 * 1000;
 /** Anbindung an ein Google-Konto: Termine aus Kalendern und Erinnerungen aus den Kontakten. */
 export default definePlugin<Config>({
   id: 'source-google',
+  name: { de: 'Google', en: 'Google' },
+  text: { de: 'Termine aus dem Google-Kalender und Erinnerungen aus den Kontakten. Die Anmeldung geschieht einmalig mit „npm run google:login“.', en: 'Appointments from Google Calendar and reminders from the contacts. Sign in once with “npm run google:login”.' },
+  help: { de: 'Die Anmeldung am Google-Konto geschieht nicht hier, sondern einmalig auf dem Rechner des Kerns mit „npm run google:login“. Die Schritte stehen in docs/google-einrichten.md.', en: 'Signing in to the Google account does not happen here but once on the computer of the core with “npm run google:login”. The steps are described in docs/google-einrichten.md.' },
+  settings: [
+    { key: 'calendars', type: 'tags', label: { de: 'Kalender', en: 'Calendars' }, hint: { de: 'Name oder Kennung; leer gilt der Hauptkalender (primary).', en: 'Name or id; empty means the main calendar (primary).' } },
+    { key: 'reminderCalendars', type: 'tags', label: { de: 'Kalender für Erinnerungen', en: 'Calendars for reminders' }, hint: { de: 'Ihre jährlichen ganztägigen Termine gelten als Erinnerungen.', en: 'Their yearly all-day events count as reminders.' } },
+    { key: 'days', type: 'number', label: { de: 'Termine … Tage voraus', en: 'Appointments … days ahead' }, min: 1, max: 366, placeholder: 14 },
+    { key: 'leadDays', type: 'number', label: { de: 'Erinnerung … Tage vorher', en: 'Reminder … days before' }, min: 0, max: 60, placeholder: 3 },
+    { key: 'deceasedGroup', type: 'text', label: { de: 'Kontaktgruppe der Verstorbenen', en: 'Contact group of the deceased' }, placeholder: 'Verstorben' },
+    { key: 'refreshMinutes', type: 'number', label: { de: 'Abruf alle … Minuten', en: 'Fetch every … minutes' }, min: 2, max: 1440, placeholder: 10 },
+  ],
 
   parseConfig(raw) {
     const config = raw as Partial<Config>;
@@ -64,7 +75,7 @@ export default definePlugin<Config>({
     } catch (error) {
       // Eine fehlende Anmeldung ist kein Absturz: Der Kern läuft weiter und sagt, was zu tun ist.
       context.datapoints.set({ id: 'state', value: 'nicht angemeldet', label: 'Google: Anmeldung' });
-      log.warn(error instanceof Error ? error.message : String(error));
+      log.warn(explain(error));
       return;
     }
 
@@ -140,7 +151,7 @@ export default definePlugin<Config>({
         trouble = '';
       } catch (error) {
         if (context.signal.aborted) return;
-        const message = error instanceof Error ? error.message : String(error);
+        const message = explain(error);
         // Die zuletzt geholten Termine bleiben stehen; gemeldet wird eine Störung einmal.
         if (message !== trouble) log.warn(message);
         trouble = message;

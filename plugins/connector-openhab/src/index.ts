@@ -1,4 +1,4 @@
-import { definePlugin, type PluginContext, type SeriesPoint } from '@culinola/sdk';
+import { definePlugin, type PluginContext, type SeriesPoint, explain } from '@culinola/sdk';
 import { isMovable, isSwitchable, itemFromTopic, parseState, toCommand } from './parse.ts';
 
 interface Config {
@@ -19,6 +19,16 @@ const RECONNECT_MS = 5000;
 
 export default definePlugin<Config>({
   id: 'connector-openhab',
+  name: { de: 'openHAB', en: 'openHAB' },
+  text: { de: 'Items aus openHAB, mit Schalten und Verlauf.', en: 'Items from openHAB, with switching and history.' },
+  help: { de: 'Adresse: die von openHAB mit Port, wie im Browser – etwa http://192.168.178.10:8080.\nAPI-Token: nur nötig, wenn openHAB den Zugriff auf seine API ohne Anmeldung nicht erlaubt. Erzeugt wird es in openHAB selbst: unten links auf den eigenen Benutzer klicken, im Profil „Neues API-Token erstellen“ wählen, einen Namen vergeben. Das Token beginnt mit „oh.“ und wird nur einmal angezeigt – gleich hier eintragen.\nNur diese Items: leer lassen, dann stehen alle Items als Datenpunkte „<Kennung>:<Itemname>“ zur Auswahl.', en: 'Address: that of openHAB with port, as in the browser – such as http://192.168.178.10:8080.\nAPI token: only needed if openHAB does not allow access to its API without login. It is created in openHAB itself: click your user at the bottom left, choose “Create new API token” in the profile and give it a name. The token starts with “oh.” and is shown only once – enter it here right away.\nOnly these items: leave empty and all items are available as datapoints “<id>:<item name>”.' },
+  settings: [
+    { key: 'url', type: 'text', label: { de: 'Adresse', en: 'Address' }, placeholder: 'http://openhab:8080' },
+    { key: 'items', type: 'tags', label: { de: 'Nur diese Items', en: 'Only these items' }, hint: { de: 'Leer übernimmt alle.', en: 'Empty takes all.' } },
+  ],
+  secrets: [
+    { key: 'token', label: { de: 'API-Token', en: 'API token' }, hint: { de: 'Nur nötig, wenn openHAB für die API eine Anmeldung verlangt.', en: 'Only needed if openHAB requires a login for the API.' } },
+  ],
 
   parseConfig(raw) {
     const config = raw as Partial<Config>;
@@ -118,7 +128,7 @@ async function follow(
       context.log.warn('Ereignisstrom von openHAB wurde beendet – verbinde neu.');
     } catch (error) {
       if (context.signal.aborted) return;
-      context.log.warn(`Ereignisstrom von openHAB unterbrochen (${error instanceof Error ? error.message : String(error)}) – neuer Versuch in ${RECONNECT_MS / 1000} s.`);
+      context.log.warn(`Ereignisstrom von openHAB unterbrochen (${explain(error)}) – neuer Versuch in ${RECONNECT_MS / 1000} s.`);
     }
     await new Promise((resolve) => setTimeout(resolve, RECONNECT_MS));
   }

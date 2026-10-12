@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
-import { closeSync, copyFileSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, rmSync, unwatchFile, watchFile, writeSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { unwatchFile, watchFile } from 'node:fs';
 import { type Logger, layoutProblems } from '@culinola/sdk';
 import type { LayoutConfig } from './config.ts';
+import { JsonFile } from './jsonfile.ts';
 
 /** Das Layout gibt es nicht. */
 export class UnknownLayout extends Error {}
@@ -18,10 +18,6 @@ export class LayoutConflict extends Error {
   }
 }
 
-/** So viele selbst angelegte Sicherungen bleiben liegen. */
-const KEEP_BACKUPS = 10;
-/** Nur was dieses Muster trägt, hat der Kern angelegt – von Hand benannte Sicherungen (`config.vor-umbau.json`) rührt er nicht an. */
-const OWN_BACKUP = /^config\.vor-\d{8}-\d{6}-\d{3}\.json$/;
 const WATCH_MS = 2000;
 /** Der Name eines Layouts steht in der Adresse der Anzeige (`?layout=…`) – deshalb schlicht. */
 const LAYOUT_ID = /^[a-z][a-z0-9-]{0,39}$/;
@@ -36,11 +32,6 @@ export function revisionOf(layout: unknown): string {
   return createHash('sha256').update(JSON.stringify(layout) ?? '').digest('hex').slice(0, 12);
 }
 
-function stamp(now: Date): string {
-  const two = (value: number) => String(value).padStart(2, '0');
-  return `${now.getFullYear()}${two(now.getMonth() + 1)}${two(now.getDate())}-${two(now.getHours())}${two(now.getMinutes())}${two(now.getSeconds())}-${String(now.getMilliseconds()).padStart(3, '0')}`;
-}
-
 type RawConfig = Record<string, unknown> & { layouts: Record<string, LayoutConfig> };
 
 /**
@@ -51,7 +42,7 @@ type RawConfig = Record<string, unknown> & { layouts: Record<string, LayoutConfi
 export class LayoutStore {
   /** Dasselbe Objekt wie `config.layouts`: Wer es hält, sieht jede Änderung. */
   private readonly layouts: Record<string, LayoutConfig>;
-  private readonly file: string;
+  private readonly file: JsonFile;
   /** Die ganze Konfiguration für den Fall, dass es noch keine Datei gibt (Start mit Beispielwerten). */
   private readonly initial: object;
   private readonly log: Logger;
@@ -60,9 +51,11 @@ export class LayoutStore {
   private rest: string | undefined;
   private complaint = '';
 
-  constructor(layouts: Record<string, LayoutConfig>, file: string, initial: object, log: Logger) {
+  constructor(layouts: Record<string, LayoutConfig>, file: string | JsonFile, initial: object, log: Logger) {
     this.layouts = layouts;
-    this.file = file;
+    this.file = typeof file === 'string' ? new JsonFile(file) : file;
+    // Schreibt der Kern die Datei selbst – auch für anderes als Layouts –, ist das keine Änderung von Hand
+    this.file.onWritten((config) => (this.rest = this.restOf(config as RawConfig)));
     this.initial = initial;
     this.log = log;
     try {
@@ -217,20 +210,15 @@ export class LayoutStore {
         this.complaint = message;
       }
     };
-    watchFile(this.file, { interval: WATCH_MS, persistent: false }, onChange);
-    return () => unwatchFile(this.file, onChange);
+    watchFile(this.file.path, { interval: WATCH_MS, persistent: false }, onChange);
+    return () => unwatchFile(this.file.path, onChange);
   }
 
   private read(): RawConfig | undefined {
-    if (!existsSync(this.file)) return undefined;
-    let raw: unknown;
-    try {
-      raw = JSON.parse(readFileSync(this.file, 'utf8'));
-    } catch (error) {
-      throw new Error(`${this.file} lässt sich nicht lesen: ${error instanceof Error ? error.message : String(error)}.`);
-    }
+    const raw = this.file.read();
+    if (raw === undefined) return undefined;
     const layouts = (raw as { layouts?: unknown } | null)?.layouts;
-    if (!layouts || typeof layouts !== 'object' || Array.isArray(layouts)) throw new Error(`${this.file}: "layouts" fehlt.`);
+    if (!layouts || typeof layouts !== 'object' || Array.isArray(layouts)) throw new Error(`${this.file.path}: "layouts" fehlt.`);
     return raw as RawConfig;
   }
 
@@ -239,22 +227,6 @@ export class LayoutStore {
   }
 
   private write(config: RawConfig): void {
-    const dir = dirname(this.file);
-    mkdirSync(dir, { recursive: true });
-    if (existsSync(this.file)) {
-      copyFileSync(this.file, join(dir, `config.vor-${stamp(new Date())}.json`));
-      const own = readdirSync(dir).filter((name) => OWN_BACKUP.test(name)).sort();
-      for (const name of own.slice(0, -KEEP_BACKUPS)) rmSync(join(dir, name), { force: true });
-    }
-    // Erst vollständig daneben schreiben, dann umbenennen: Ein Stromausfall hinterlässt die alte oder die neue Datei, nie eine halbe
-    const neighbour = `${this.file}.neu`;
-    const handle = openSync(neighbour, 'w');
-    try {
-      writeSync(handle, `${JSON.stringify(config, null, 2)}\n`);
-      fsyncSync(handle);
-    } finally {
-      closeSync(handle);
-    }
-    renameSync(neighbour, this.file);
+    this.file.write(config);
   }
 }

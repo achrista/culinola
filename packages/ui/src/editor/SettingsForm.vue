@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import type { Source } from '../widgets/catalog.ts';
-import { type Field, datapointIn, shifted, tagsOf, withDatapoint, withValue } from '../widgets/settings.ts';
+import { type Field, blankEntry, datapointIn, editable, shifted, tagsOf, withDatapoint, withValue } from '../widgets/settings.ts';
 import DatapointPicker from './DatapointPicker.vue';
 
 const props = defineProps<{
@@ -13,15 +13,29 @@ const props = defineProps<{
   sources: readonly Source[];
 }>();
 const emit = defineEmits<{ update: [value: Record<string, unknown>] }>();
-const { t, te } = useI18n();
+const { t, te, locale } = useI18n();
 
 /** Die Bezeichnung einer Einstellung: die der Kachelart, sonst die allgemeine, sonst ihr Name. */
-function text(key: string): string {
+const own = (texts: Record<string, string>) => texts[locale.value] ?? texts['en'] ?? Object.values(texts)[0] ?? '';
+function text(field: Field): string {
+  if (field.label) return own(field.label);
+  const key = field.key;
   if (te(`fields.${props.type}.${key}`)) return t(`fields.${props.type}.${key}`);
   return te(`fields.common.${key}`) ? t(`fields.common.${key}`) : key;
 }
-const hint = (key: string) => (te(`fields.${props.type}.${key}Hint`) ? t(`fields.${props.type}.${key}Hint`) : te(`fields.common.${key}Hint`) ? t(`fields.common.${key}Hint`) : '');
-const option = (key: string, value: string) => (te(`fields.options.${key}.${value}`) ? t(`fields.options.${key}.${value}`) : value);
+function hint(field: Field): string {
+  if (field.hint) return own(field.hint);
+  const key = field.key;
+  return te(`fields.${props.type}.${key}Hint`) ? t(`fields.${props.type}.${key}Hint`) : te(`fields.common.${key}Hint`) ? t(`fields.common.${key}Hint`) : '';
+}
+const option = (key: string, value: string) => (value === '' ? t('form.usual') : te(`fields.options.${key}.${value}`) ? t(`fields.options.${key}.${value}`) : value);
+/** Die Vorgabe einer Auswahl steht nicht in der Konfiguration – es sei denn, das Plugin verlangt die Angabe immer. */
+const chosen = (field: Extract<Field, { type: 'select' }>, value: string) => (value === '' || (value === field.options[0] && !field.explicit) ? undefined : value);
+
+/** Ein Beispiel im leeren Feld soll nicht aussehen, als stünde dort schon ein Wert. */
+const example = (value: string | number | undefined) => (value === undefined || value === '' ? '' : t('form.example', { value }));
+/** Was im leeren Feld steht: die Vorgabe, die dann gilt – sonst ein Beispiel. */
+const empty = (field: { placeholder?: string | number; initial?: string | number }) => (field.initial !== undefined ? t('form.default', { value: field.initial }) : example(field.placeholder));
 
 const set = (key: string, value: unknown) => emit('update', withValue(props.value, key, value));
 const typed = (event: Event) => (event.target as HTMLInputElement).value;
@@ -38,7 +52,7 @@ function setEntry(key: string, index: number, value: Record<string, unknown>): v
   set(key, list);
 }
 const titleOf = (entry: Record<string, unknown>, index: number) => {
-  const named = [entry['label'], entry['datapoint'], entry['condition'], entry['max']].find((candidate) => typeof candidate === 'string' && candidate);
+  const named = [entry['label'], entry['name'], entry['datapoint'], entry['id'], entry['condition'], entry['max']].find((candidate) => typeof candidate === 'string' && candidate);
   return typeof named === 'string' ? named : t('form.entry', { number: index + 1 });
 };
 
@@ -53,15 +67,15 @@ function instances(plugin: string, current: unknown): string[] {
   <div class="form">
     <template v-for="field in fields" :key="field.key">
       <label v-if="field.type === 'text'" class="row">
-        <span>{{ text(field.key) }}</span>
-        <input type="text" :value="value[field.key] ?? ''" :placeholder="field.placeholder" @change="set(field.key, typed($event))" />
-        <small v-if="hint(field.key)">{{ hint(field.key) }}</small>
+        <span>{{ text(field) }}</span>
+        <input type="text" :value="value[field.key] ?? ''" :placeholder="empty(field)" @change="set(field.key, typed($event))" />
+        <small v-if="hint(field)">{{ hint(field) }}</small>
       </label>
 
       <label v-else-if="field.type === 'number'" class="row">
-        <span>{{ text(field.key) }}</span>
-        <input type="number" inputmode="decimal" :value="value[field.key] ?? ''" :min="field.min" :max="field.max" :step="field.step ?? 'any'" :placeholder="field.placeholder?.toString()" @change="set(field.key, number($event))" />
-        <small v-if="hint(field.key)">{{ hint(field.key) }}</small>
+        <span>{{ text(field) }}</span>
+        <input type="number" inputmode="decimal" :value="value[field.key] ?? ''" :min="field.min" :max="field.max" :step="field.step ?? 'any'" :placeholder="empty(field)" @change="set(field.key, number($event))" />
+        <small v-if="hint(field)">{{ hint(field) }}</small>
       </label>
 
       <label v-else-if="field.type === 'boolean'" class="row check">
@@ -71,49 +85,54 @@ function instances(plugin: string, current: unknown): string[] {
           :checked="typeof value[field.key] === 'boolean' ? (value[field.key] as boolean) : !!field.fallback"
           @change="set(field.key, ($event.target as HTMLInputElement).checked === !!field.fallback ? undefined : ($event.target as HTMLInputElement).checked)"
         />
-        <span>{{ text(field.key) }}</span>
-        <small v-if="hint(field.key)">{{ hint(field.key) }}</small>
+        <span>{{ text(field) }}</span>
+        <small v-if="hint(field)">{{ hint(field) }}</small>
       </label>
 
+      <div v-else-if="!editable(field, value[field.key])" class="row">
+        <span>{{ text(field) }}</span>
+        <small>{{ t('form.jsonOnly') }}</small>
+      </div>
+
       <label v-else-if="field.type === 'tags'" class="row">
-        <span>{{ text(field.key) }}</span>
+        <span>{{ text(field) }}</span>
         <input type="text" :value="Array.isArray(value[field.key]) ? (value[field.key] as unknown[]).join(', ') : ''" @change="set(field.key, tagsOf(typed($event)))" />
-        <small>{{ hint(field.key) || t('form.tags') }}</small>
+        <small>{{ hint(field) || t('form.tags') }}</small>
       </label>
 
       <label v-else-if="field.type === 'select'" class="row">
-        <span>{{ text(field.key) }}</span>
+        <span>{{ text(field) }}</span>
         <!-- Der erste Wert ist die Vorgabe und wird nicht eigens eingetragen -->
-        <select :value="value[field.key] ?? field.options[0]" @change="set(field.key, typed($event) === field.options[0] ? undefined : typed($event))">
+        <select :value="value[field.key] ?? field.options[0]" @change="set(field.key, chosen(field, typed($event)))">
           <option v-for="entry in field.options" :key="entry" :value="entry">{{ option(field.key, entry) }}</option>
         </select>
-        <small v-if="hint(field.key)">{{ hint(field.key) }}</small>
+        <small v-if="hint(field)">{{ hint(field) }}</small>
       </label>
 
       <div v-else-if="field.type === 'datapoint'" class="row">
-        <span>{{ text(field.key) }}</span>
+        <span>{{ text(field) }}</span>
         <DatapointPicker :model-value="datapointIn(value[field.key], field.inner)" :writable="!!field.writable" @update:model-value="set(field.key, withDatapoint(value[field.key], $event, field.inner))" />
-        <small v-if="hint(field.key)">{{ hint(field.key) }}</small>
+        <small v-if="hint(field)">{{ hint(field) }}</small>
       </div>
 
       <label v-else-if="field.type === 'source'" class="row">
-        <span>{{ text(field.key) }}</span>
+        <span>{{ text(field) }}</span>
         <select :value="value[field.key] ?? ''" @change="set(field.key, typed($event))">
           <option value="">{{ t('form.usual') }}</option>
           <option v-for="entry in instances(field.plugin, value[field.key])" :key="entry" :value="entry">{{ entry }}</option>
         </select>
-        <small v-if="hint(field.key)">{{ hint(field.key) }}</small>
+        <small v-if="hint(field)">{{ hint(field) }}</small>
       </label>
 
       <details v-else-if="field.type === 'group'" class="group" :open="Object.keys(object(value[field.key])).length > 0">
-        <summary>{{ text(field.key) }}</summary>
-        <small v-if="hint(field.key)">{{ hint(field.key) }}</small>
+        <summary>{{ text(field) }}</summary>
+        <small v-if="hint(field)">{{ hint(field) }}</small>
         <SettingsForm :type="type" :fields="field.fields" :value="object(value[field.key])" :sources="sources" @update="setGroup(field.key, $event)" />
       </details>
 
       <fieldset v-else-if="field.type === 'list'" class="list">
-        <legend>{{ text(field.key) }}</legend>
-        <small v-if="hint(field.key)">{{ hint(field.key) }}</small>
+        <legend>{{ text(field) }}</legend>
+        <small v-if="hint(field)">{{ hint(field) }}</small>
         <details v-for="(entry, index) in entries(field.key)" :key="index" class="entry">
           <summary>
             <span class="what">{{ titleOf(entry, index) }}</span>
@@ -123,7 +142,7 @@ function instances(plugin: string, current: unknown): string[] {
           </summary>
           <SettingsForm :type="type" :fields="field.fields" :value="entry" :sources="sources" @update="setEntry(field.key, index, $event)" />
         </details>
-        <button type="button" class="more" @click="set(field.key, [...entries(field.key), {}])">{{ t('form.add') }}</button>
+        <button type="button" class="more" @click="set(field.key, [...entries(field.key), blankEntry(field.fields)])">{{ t('form.add') }}</button>
       </fieldset>
     </template>
   </div>
@@ -179,6 +198,10 @@ small {
   color: var(--mute);
   font-size: 12px;
   line-height: 1.3;
+}
+input::placeholder {
+  color: var(--none);
+  font-style: italic;
 }
 .group,
 .list,

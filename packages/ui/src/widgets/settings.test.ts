@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import de from '../locales/de.json' with { type: 'json' };
 import en from '../locales/en.json' with { type: 'json' };
 import { catalog } from './catalog.ts';
-import { type Field, datapointIn, settings, shifted, tagsOf, withDatapoint, withValue } from './settings.ts';
+import { type Field, blankEntry, initialValues, datapointIn, editable, settings, shifted, tagsOf, withDatapoint, withValue } from './settings.ts';
 
 type Texts = Record<string, Record<string, unknown>>;
 
@@ -86,5 +86,33 @@ describe('Listen', () => {
     expect(shifted(['a', 'b', 'c'], 1, 1)).toEqual(['a', 'c', 'b']);
     expect(shifted(['a', 'b', 'c'], 0, -1)).toEqual(['a', 'b', 'c']);
     expect(shifted(['a', 'b', 'c'], 2, 1)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('Angaben, die das Formular nicht anfasst', () => {
+  const list: Field = { key: 'feeds', type: 'list', fields: [{ key: 'id', type: 'text' }] };
+  const tags: Field = { key: 'lists', type: 'tags' };
+
+  it('bearbeitet Listen aus Objekten und Texte mit Komma', () => {
+    expect(editable(list, [{ id: 'a' }, {}])).toBe(true);
+    expect(editable(tags, ['Einkauf', 'Aufgaben'])).toBe(true);
+    expect(editable(list, undefined)).toBe(true);
+    expect(editable({ key: 'url', type: 'text' }, 7)).toBe(true);
+  });
+
+  it('lässt stehen, was es verstümmeln würde', () => {
+    expect(editable(list, ['dw-de', { id: 'a' }])).toBe(false);
+    expect(editable(list, 'kein Feld')).toBe(false);
+    expect(editable(tags, ['Einkauf', { name: 'Aufgaben', group: 'Familie' }])).toBe(false);
+    expect(editable(tags, [3])).toBe(false);
+  });
+
+  it('trägt in eine neue Quelle ein, was ihr Plugin als Vorgabe nennt', () => {
+    expect(initialValues([{ key: 'url', type: 'text', initial: 'https://api.merkio.de' }, { key: 'refreshMinutes', type: 'number', placeholder: 5 }, { key: 'days', type: 'number', initial: 14 }, { key: 'lists', type: 'tags' }])).toEqual({ url: 'https://api.merkio.de', days: 14 });
+    expect(initialValues([])).toEqual({});
+  });
+
+  it('gibt einem neuen Eintrag mit, was das Plugin immer verlangt', () => {
+    expect(blankEntry([{ key: 'name', type: 'text' }, { key: 'kind', type: 'select', options: ['audio', 'video'], explicit: true }, { key: 'mode', type: 'select', options: ['', 'hls'] }])).toEqual({ kind: 'audio' });
   });
 });

@@ -5,15 +5,19 @@
  *
  * Was hier nicht steht, bleibt in der Kachel erhalten und lässt sich im Editor als JSON ändern.
  */
-export type Field =
-  | { key: string; type: 'text'; placeholder?: string }
-  | { key: string; type: 'number'; min?: number; max?: number; step?: number; placeholder?: number }
+export type Field = {
+  /** Bezeichnung und Hinweis, die die Einstellung selbst mitbringt – so beschreiben Plugins ihre Einstellungen. */
+  label?: Record<string, string>;
+  hint?: Record<string, string>;
+} & (
+  | { key: string; type: 'text'; placeholder?: string; initial?: string }
+  | { key: string; type: 'number'; min?: number; max?: number; step?: number; placeholder?: number; initial?: number }
   /** `fallback` ist, was ohne die Angabe gilt – genau dann steht sie nicht in der Konfiguration. */
   | { key: string; type: 'boolean'; fallback?: boolean }
   /** Mehrere kurze Texte, im Formular durch Komma getrennt. */
   | { key: string; type: 'tags' }
   /** Auswahl aus festen Werten; der erste ist die Vorgabe. Bezeichnungen unter `fields.options.<Name>.<Wert>`. */
-  | { key: string; type: 'select'; options: readonly string[] }
+  | { key: string; type: 'select'; options: readonly string[]; explicit?: boolean }
   /**
    * Ein Datenpunkt. `writable` grenzt die Auswahl zunächst auf Schaltbares ein. Mit `inner` darf die Angabe auch
    * ein Objekt sein, das den Datenpunkt unter diesem Namen trägt – dann bleibt der Rest des Objekts stehen.
@@ -24,7 +28,30 @@ export type Field =
   /** Einträge zum Hinzufügen, Sortieren und Entfernen. */
   | { key: string; type: 'list'; fields: readonly Field[] }
   /** Zusammengehörige Angaben in einem aufklappbaren Abschnitt. */
-  | { key: string; type: 'group'; fields: readonly Field[] };
+  | { key: string; type: 'group'; fields: readonly Field[] }
+);
+
+/**
+ * Lässt sich die Angabe im Formular bearbeiten? Eine Liste, in der anderes als Objekte steht (etwa Kurzformen
+ * wie "dw-de"), und Texte mit Komma, zwischen denen anderes als Text steht, würde das Formular verstümmeln –
+ * sie bleiben, wie sie sind, und lassen sich als JSON ändern.
+ */
+export function editable(field: Field, value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (field.type === 'list') return Array.isArray(value) && value.every((entry) => entry && typeof entry === 'object' && !Array.isArray(entry));
+  if (field.type === 'tags') return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
+  return true;
+}
+
+/** Die Einstellungen, mit denen eine neue Quelle beginnt: was ihr Plugin als Vorgabe nennt – so steht es sichtbar im Formular. */
+export function initialValues(fields: readonly Field[]): Record<string, unknown> {
+  return Object.fromEntries(fields.flatMap((field) => ((field.type === 'text' || field.type === 'number') && field.initial !== undefined ? [[field.key, field.initial]] : [])));
+}
+
+/** Ein neuer Eintrag einer Liste: leer – bis auf Auswahlen, die das Plugin immer verlangt. */
+export function blankEntry(fields: readonly Field[]): Record<string, unknown> {
+  return Object.fromEntries(fields.flatMap((field) => (field.type === 'select' && field.explicit ? [[field.key, field.options[0]]] : [])));
+}
 
 const title: Field = { key: 'title', type: 'text' };
 const label: Field = { key: 'label', type: 'text' };

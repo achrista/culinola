@@ -1,6 +1,7 @@
 // Verträge zwischen Kern und Plugins. Ein Plugin importiert ausschließlich aus diesem Paket.
 
 export { type Grid, type Place, MAX_GRID, inside, layoutProblems, overlaps } from './layout.ts';
+export { explain } from './explain.ts';
 
 /** Güte eines Werts: frisch, veraltet oder fehlerhaft. */
 export type Quality = 'good' | 'stale' | 'error';
@@ -126,8 +127,52 @@ export interface PluginContext<C> {
   signal: AbortSignal;
 }
 
+/** Ein Text je Sprache: `{ de: "Adresse", en: "Address" }`. Fehlt die Sprache der Oberfläche, gilt Englisch, sonst der erste. */
+export type Texts = Record<string, string>;
+
+/**
+ * Eine Einstellung eines Plugins, so beschrieben, dass die Oberfläche daraus ein Formularfeld bauen kann.
+ * Was ein Plugin nicht beschreibt, lässt sich weiter als JSON einstellen.
+ */
+export type SettingField = { key: string; label: Texts; hint?: Texts } & (
+  /**
+   * `placeholder` ist ein Beispiel für das leere Feld. `initial` ist der Wert, der ohne die Angabe gilt: Eine neue
+   * Quelle bekommt ihn gleich eingetragen, und ein geleertes Feld nennt ihn als Vorgabe.
+   */
+  | { type: 'text'; placeholder?: string; initial?: string }
+  | { type: 'number'; min?: number; max?: number; step?: number; placeholder?: number; initial?: number }
+  /** `fallback` ist, was ohne die Angabe gilt. */
+  | { type: 'boolean'; fallback?: boolean }
+  /** Mehrere kurze Texte. */
+  | { type: 'tags' }
+  /**
+   * Auswahl aus festen Werten. Der erste ist die Vorgabe und wird nicht eigens eingetragen – außer mit `explicit`,
+   * wenn das Plugin die Angabe immer verlangt. Ein leerer Wert steht für „keine Angabe“.
+   */
+  | { type: 'select'; options: readonly string[]; explicit?: boolean }
+  /** Einträge zum Hinzufügen, Sortieren und Entfernen. */
+  | { type: 'list'; fields: readonly SettingField[] }
+  /** Zusammengehörige Angaben. */
+  | { type: 'group'; fields: readonly SettingField[] }
+);
+
+/** Eine Zugangsangabe eines Plugins – Kennwort, Token, Schlüssel. Sie steht in `secrets.json` und wird nur geschrieben, nie herausgegeben. */
+export interface SecretField {
+  key: string;
+  label: Texts;
+  hint?: Texts;
+}
+
 export interface PluginDefinition<C = unknown> {
   id: string;
+  /** Name und ein Satz Beschreibung für die Liste der Quellen in der Oberfläche. */
+  name?: Texts;
+  text?: Texts;
+  /** Was zum Einrichten zu wissen ist – wo man ein Token erzeugt, was am Gerät freizugeben ist. Absätze durch Zeilenumbruch getrennt. */
+  help?: Texts;
+  /** Die Einstellungen der Instanz (`config`) und ihre Zugangsangaben, für das Formular in der Oberfläche. */
+  settings?: readonly SettingField[];
+  secrets?: readonly SecretField[];
   /** Prüft die rohe Konfiguration und liefert sie typisiert zurück; wirft bei Fehlern. */
   parseConfig?(raw: unknown): C;
   start?(context: PluginContext<C>): Promise<void> | void;

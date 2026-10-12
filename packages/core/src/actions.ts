@@ -20,6 +20,11 @@ export class ActionRegistry {
     this.entries.set(definition.name, { definition, handler });
   }
 
+  /** Nimmt eine Aktion wieder heraus – etwa, wenn die Quelle anhält, die sie angemeldet hat. */
+  unregister(name: string): void {
+    this.entries.delete(name);
+  }
+
   list(): ActionDefinition[] {
     return [...this.entries.values()].map((entry) => entry.definition).sort((a, b) => a.name.localeCompare(b.name));
   }

@@ -31,6 +31,17 @@ const TIMEOUT_MS = 30_000;
  */
 export default definePlugin<Config>({
   id: 'voice',
+  name: { de: 'Sprachsteuerung', en: 'Voice control' },
+  text: { de: 'Ordnet einen gesprochenen oder getippten Satz den Aktionen zu und beantwortet Fragen nach Werten.', en: 'Maps a spoken or typed sentence to the actions and answers questions about values.' },
+  help: { de: 'Der Schlüssel der Claude-API wird unter https://platform.claude.com bei den API-Schlüsseln erzeugt und beginnt mit „sk-ant-“ – derselbe wie für das Hinzufügen von Rezepten. Jeder Satz kostet einen Bruchteil eines Cents.', en: 'The Claude API key is created at https://platform.claude.com under API keys and starts with “sk-ant-” – the same one as for adding recipes. Every sentence costs a fraction of a cent.' },
+  settings: [
+    { key: 'language', type: 'select', label: { de: 'Sprache der Antworten', en: 'Language of the answers' }, options: ['de', 'en', 'fr'] },
+    { key: 'model', type: 'text', label: { de: 'Sprachmodell', en: 'Language model' } },
+    { key: 'layoutValues', type: 'boolean', label: { de: 'Nach allem fragen lassen, was auf den Anzeigen steht', en: 'Allow questions about everything shown on the displays' }, fallback: true },
+  ],
+  secrets: [
+    { key: 'anthropicApiKey', label: { de: 'Schlüssel der Claude-API', en: 'Claude API key' } },
+  ],
 
   parseConfig(raw) {
     const config = raw as { model?: unknown; language?: unknown; values?: unknown; layoutValues?: unknown };

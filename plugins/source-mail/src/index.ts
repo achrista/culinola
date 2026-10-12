@@ -1,4 +1,4 @@
-import { definePlugin } from '@culinola/sdk';
+import { definePlugin, explain } from '@culinola/sdk';
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import { type Address, hasAttachments, loginOf, type MailEntry, newestFirst, senderOf, type StructureNode } from './mail.ts';
@@ -35,6 +35,15 @@ const KEEP_OPENED = 20;
  */
 export default definePlugin<Config>({
   id: 'source-mail',
+  name: { de: 'E-Mail', en: 'E-mail' },
+  text: { de: 'Die neuesten Nachrichten aus einem oder mehreren Postfächern (IMAP).', en: 'The latest messages from one or more mailboxes (IMAP).' },
+  help: { de: 'Je Postfach eine Kennung (etwa „privat“), den Server des Anbieters für IMAP und den Anmeldenamen eintragen.\nDas Kennwort gehört zu den Zugangsdaten: unter „Weitere Zugangsangabe“ als Name die Kennung des Postfachs („privat“) und als Wert das Kennwort eintragen – einmal je Postfach, jeweils speichern.\nViele Anbieter verlangen für IMAP ein eigenes App-Kennwort statt des gewöhnlichen; es wird in den Sicherheitseinstellungen des Kontos beim Anbieter erzeugt.', en: 'Enter an id per mailbox (such as “private”), the provider’s IMAP server and the login name.\nThe password belongs with the credentials: under “Further credential” enter the id of the mailbox (“private”) as name and the password as value – once per mailbox, saving each time.\nMany providers require a separate app password for IMAP instead of the usual one; it is created in the security settings of the account at the provider.' },
+  settings: [
+    { key: 'accounts', type: 'list', label: { de: 'Postfächer', en: 'Mailboxes' }, fields: [{ key: 'id', type: 'text', label: { de: 'Kennung', en: 'Id' }, hint: { de: 'Kleinbuchstaben, Ziffern, Bindestriche. Das Kennwort steht bei den Zugangsdaten unter „<Kennung>.password“.', en: 'Lower-case letters, digits, hyphens. The password goes with the credentials as “<id>.password”.' } }, { key: 'name', type: 'text', label: { de: 'Name', en: 'Name' } }, { key: 'host', type: 'text', label: { de: 'Server', en: 'Server' } }, { key: 'port', type: 'number', label: { de: 'Port', en: 'Port' }, min: 1, max: 65535, placeholder: 993 }, { key: 'user', type: 'text', label: { de: 'Anmeldename', en: 'Login name' } }, { key: 'folder', type: 'text', label: { de: 'Ordner', en: 'Folder' }, placeholder: 'INBOX' }] },
+    { key: 'perAccount', type: 'number', label: { de: 'Nachrichten je Postfach', en: 'Messages per mailbox' }, min: 1, max: 200, placeholder: 30 },
+    { key: 'refreshMinutes', type: 'number', label: { de: 'Abruf alle … Minuten', en: 'Fetch every … minutes' }, min: 1, max: 1440, placeholder: 5 },
+    { key: 'remoteImages', type: 'boolean', label: { de: 'Bilder aus dem Netz nachladen (Absender bemerken daran das Öffnen)', en: 'Load remote images (lets senders notice the opening)' } },
+  ],
 
   parseConfig(raw) {
     const config = raw as { accounts?: unknown; perAccount?: unknown; refreshMinutes?: unknown; remoteImages?: unknown };
@@ -117,7 +126,7 @@ export default definePlugin<Config>({
             if (trouble.delete(account.id)) log.info(`Postfach "${account.name}" ist wieder erreichbar.`);
           } catch (error) {
             if (context.signal.aborted) return;
-            const message = error instanceof Error ? error.message : String(error);
+            const message = explain(error);
             // Die zuletzt geholten Nachrichten bleiben stehen; gemeldet wird eine Störung einmal.
             if (trouble.get(account.id) !== message) log.warn(`Postfach "${account.name}" nicht abrufbar: ${message}`);
             trouble.set(account.id, message);
@@ -153,7 +162,7 @@ export default definePlugin<Config>({
         if (opened.size > KEEP_OPENED) opened.delete(opened.keys().next().value!);
         return Response.json(result);
       } catch (error) {
-        log.warn(`Nachricht aus "${account.name}" nicht lesbar: ${error instanceof Error ? error.message : String(error)}`);
+        log.warn(`Nachricht aus "${account.name}" nicht lesbar: ${explain(error)}`);
         return Response.json({ error: 'Die Nachricht ließ sich nicht aus dem Postfach holen.' }, { status: 502 });
       }
     });

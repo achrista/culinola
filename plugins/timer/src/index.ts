@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { definePlugin } from '@culinola/sdk';
+import { definePlugin, explain } from '@culinola/sdk';
 import { countdown, DEFAULT_OVERRUN, extend, restore, settle, stopwatch, type TimerState } from './timer.ts';
 
 interface Config {
@@ -15,6 +15,11 @@ interface Config {
  */
 export default definePlugin<Config>({
   id: 'timer',
+  name: { de: 'Eieruhr', en: 'Egg timer' },
+  text: { de: 'Eieruhr und Stoppuhr für die Uhr-Kachel.', en: 'Egg timer and stopwatch for the clock tile.' },
+  settings: [
+    { key: 'overrunSeconds', type: 'number', label: { de: 'Weiterzählen nach Ablauf (Sekunden)', en: 'Keep counting after expiry (seconds)' }, hint: { de: 'So lange zählt die abgelaufene Eieruhr weiter, wenn niemand sie ausschaltet.', en: 'For this long the expired timer keeps counting if nobody switches it off.' }, min: 0, max: 3600, placeholder: 120 },
+  ],
 
   parseConfig(raw) {
     const overrun = (raw as { overrunSeconds?: unknown }).overrunSeconds ?? DEFAULT_OVERRUN;
@@ -50,7 +55,7 @@ export default definePlugin<Config>({
       try {
         writeFileSync(file, JSON.stringify(state));
       } catch (error) {
-        log.warn(`Zustand der Eieruhr nicht speicherbar: ${error instanceof Error ? error.message : String(error)}`);
+        log.warn(`Zustand der Eieruhr nicht speicherbar: ${explain(error)}`);
       }
       context.datapoints.set({ id: 'state', value: state.mode, label: 'Eieruhr: Zustand' });
       context.datapoints.set({ id: 'end', value: iso(state.mode === 'down' || state.mode === 'done' ? state.end : undefined), label: 'Eieruhr: Ende' });

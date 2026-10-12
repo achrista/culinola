@@ -73,6 +73,17 @@ Alles Eigene liegt im Ordner `data/`, der nicht ins Repository gelangt. Ein ande
 
   Der äußere Name ist die `id` der Quelle aus `config.json`.
 
+### Quellen in der Oberfläche
+
+Mit dem Zusatz `?edit=sources` – etwa `http://localhost:8090/?edit=sources`, oder über „Quellen“ im Layout-Editor – lassen sich die Quellen einrichten, ohne den Kern neu zu starten: Die Seite zeigt jede Quelle mit ihrem Zustand (läuft, gestört und warum), ihre Einstellungen als Formular und ihre Zugangsdaten. „Speichern und neu starten“ schreibt `config.json` und `secrets.json` (jeweils mit Sicherung daneben) und startet nur diese eine Quelle neu; alle anderen laufen weiter. Neue Quellen kommen über „Quelle hinzufügen“ dazu.
+
+- **Zugangsdaten** werden nur geschrieben. Der Kern gibt Kennwörter und Tokens nie wieder heraus; die Seite zeigt nur „hinterlegt“ oder „nicht hinterlegt“.
+- **„läuft“** heißt, dass die Quelle gestartet ist. Ob sie ihr Gerät erreicht, zeigen die **Meldungen der Quelle** auf derselben Seite und die Zahl ihrer Datenpunkte – etwa „Zentrale 192.168.178.9 nicht erreichbar: Verbindung abgelehnt“. Lehnt ein Plugin die Einstellungen ab, wird nichts gespeichert; scheitert der Start, steht die Ursache bei der Quelle.
+- **„So wird diese Quelle eingerichtet“** erklärt je Plugin, was einzutragen ist und woher man es bekommt – wo in openHAB oder Home Assistant ein Token erzeugt wird, was an der Homematic-Zentrale oder der FRITZ!Box freizugeben ist.
+- Was ein Formular nicht zeigen kann – etwa Feeds aus dem Katalog, die nur mit ihrer Kennung dastehen –, bleibt erhalten und lässt sich unter „Erweitert“ als JSON ändern.
+- Ist ein Zugriffsschutz eingerichtet, braucht die Seite einen Zugang der Stufe `admin`.
+- Werden die Quellen in `config.json` von Hand geändert, wirkt das wie bisher nach einem Neustart; bis dahin lehnt die Seite Änderungen ab, damit nichts überschrieben wird.
+
 ### Layout
 
 Die Anzeige ist ein Raster. Jedes Widget steht mit `at: [Spalte, Zeile, Breite, Höhe]` darin, gezählt ab 0.
@@ -545,6 +556,9 @@ Die Oberfläche benutzt dieselbe Schnittstelle wie jedes andere Programm. Alle P
 | `POST /layouts` | Layout anlegen (Stufe `admin`), Rumpf `{ "id": "flur" }` für ein leeres; dazu `"copy": "main"`, `"template": "kueche"` oder `"layout": { … }` |
 | `POST /layouts/{id}/rename`, `DELETE /layouts/{id}` | Umbenennen (Rumpf `{ "id": "neu" }`) und löschen (Stufe `admin`); das letzte Layout bleibt |
 | `GET /templates` | Mitgelieferte Vorlagen für neue Layouts |
+| `GET /sources`, `GET /plugins` | Eingerichtete Quellen mit Einstellungen und Zustand – von den Zugangsdaten nur die Namen der hinterlegten; installierte Plugins mit der Beschreibung ihrer Einstellungen (Stufe `admin`) |
+| `POST /sources`, `PUT /sources/{id}` | Quelle anlegen (`{ "id", "plugin", "config", "secrets" }`) oder ändern (`{ "config", "secrets" }`); sie startet damit neu. In `secrets` setzt ein Text die Angabe, `null` nimmt sie heraus, was fehlt, bleibt (Stufe `admin`) |
+| `POST /sources/{id}/restart`, `DELETE /sources/{id}` | Eine Quelle neu starten; anhalten und samt Zugangsdaten entfernen (Stufe `admin`) |
 | `GET /access` | Name und Stufe des vorgelegten Zugangs |
 | `GET /embed?url=` | Ob eine Seite aus einer Kachel `web` das Einbetten erlaubt |
 | WebSocket `/stream` | Änderungen in Echtzeit; abonnieren mit `{ "op": "sub", "topics": ["dp/*"] }`. `layout/{id}` meldet, dass ein Layout geändert wurde |

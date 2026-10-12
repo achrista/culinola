@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, watch, writeFileSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve } from 'node:path';
-import { definePlugin, InvalidInput } from '@culinola/sdk';
+import { definePlugin, InvalidInput, explain } from '@culinola/sdk';
 import { ImportRefused, importInput, statusOf } from './importer.ts';
 import { amountText, ingredientsOf, toShoppingItems, yieldOf } from './ingredients.ts';
 import { inside, parseRecipe, recipeId, type RecipeInfo } from './library.ts';
@@ -37,6 +37,18 @@ const COOKING_MS = 6 * 3_600_000;
 
 export default definePlugin<Config>({
   id: 'recipes',
+  name: { de: 'Rezepte', en: 'Recipes' },
+  text: { de: 'Rezepte aus einem Ordner mit Markdown-Dateien; neue lassen sich aus Text, Foto oder Webseite hinzufügen.', en: 'Recipes from a folder of Markdown files; new ones can be added from text, photo or web page.' },
+  help: { de: 'Der Schlüssel der Claude-API wird nur für das Hinzufügen neuer Rezepte gebraucht. Er wird unter https://platform.claude.com bei den API-Schlüsseln erzeugt und beginnt mit „sk-ant-“. Jede Umwandlung kostet einen kleinen Betrag nach Verbrauch.', en: 'The Claude API key is only needed for adding new recipes. It is created at https://platform.claude.com under API keys and starts with “sk-ant-”. Every conversion costs a small amount by usage.' },
+  settings: [
+    { key: 'folder', type: 'text', label: { de: 'Ordner', en: 'Folder' }, hint: { de: 'Leer gilt der Ordner der Quelle im Datenordner.', en: 'Empty means the folder of the source inside the data folder.' } },
+    { key: 'shoppingList', type: 'text', label: { de: 'Einkaufsliste', en: 'Shopping list' }, hint: { de: 'Name der Liste, auf die Zutaten gesetzt werden; leer die erste, die gezeigt wird.', en: 'Name of the list ingredients go on; empty means the first one shown.' } },
+    { key: 'importLanguage', type: 'select', label: { de: 'Sprache neuer Rezepte', en: 'Language of new recipes' }, options: ['', 'de', 'en', 'fr'] },
+    { key: 'importModel', type: 'text', label: { de: 'Sprachmodell für neue Rezepte', en: 'Language model for new recipes' } },
+  ],
+  secrets: [
+    { key: 'anthropicApiKey', label: { de: 'Schlüssel der Claude-API', en: 'Claude API key' }, hint: { de: 'Nur für das Hinzufügen neuer Rezepte.', en: 'Only for adding new recipes.' } },
+  ],
 
   parseConfig(raw) {
     const config = raw as { folder?: unknown; importLanguage?: unknown; importModel?: unknown; shoppingList?: unknown };
@@ -73,7 +85,7 @@ export default definePlugin<Config>({
       try {
         writeFileSync(cookingFile, JSON.stringify(next ?? {}));
       } catch (error) {
-        log.warn(`Vermerk zum Kochen nicht speicherbar: ${error instanceof Error ? error.message : String(error)}`);
+        log.warn(`Vermerk zum Kochen nicht speicherbar: ${explain(error)}`);
       }
     };
     try {
@@ -114,7 +126,7 @@ export default definePlugin<Config>({
           const folderName = way.split(/[\\/]/).length > 1 ? way.split(/[\\/]/)[0]! : undefined;
           next.set(id, { id, file, ...info, ...(info.category || !folderName ? {} : { category: folderName }) });
         } catch (error) {
-          if (!reported.has(way)) log.warn(`Rezept "${way}" nicht lesbar: ${error instanceof Error ? error.message : String(error)}`);
+          if (!reported.has(way)) log.warn(`Rezept "${way}" nicht lesbar: ${explain(error)}`);
           reported.add(way);
           // Die Datei ist noch da, nur gerade nicht lesbar – etwa weil ein anderes Programm sie festhält.
           // Dann bleibt das Rezept mit seinem letzten Stand in der Liste, statt zu verschwinden.

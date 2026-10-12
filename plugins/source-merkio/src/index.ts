@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { definePlugin, InvalidInput } from '@culinola/sdk';
+import { definePlugin, InvalidInput, explain } from '@culinola/sdk';
 import { LoginFailed, MerkioClient } from './client.ts';
 import { applyEvent, chooseLists, EventParser, keyed, splitEntry, toEntries, type ListInfo, type MerkioItem, type Wanted } from './merkio.ts';
 
@@ -29,6 +29,18 @@ const RECONNECT_MS = [2_000, 5_000, 15_000, 60_000];
  */
 export default definePlugin<Config>({
   id: 'source-merkio',
+  name: { de: 'Merkio', en: 'Merkio' },
+  text: { de: 'Einkaufs- und Aufgabenlisten aus Merkio, zum Abhaken und Ergänzen.', en: 'Shopping and to-do lists from Merkio, to tick off and add to.' },
+  help: { de: 'Adresse der API: https://api.merkio.de ist eingetragen und bleibt so, solange Merkio nicht selbst betrieben wird.\nE-Mail-Adresse und Kennwort eines Merkio-Kontos. Am besten bekommt die Anzeige ein eigenes Konto, das Mitglied der Familiengruppe ist.\nListen: leer lassen zeigt alle Einkaufslisten des Kontos.', en: 'Address of the API: https://api.merkio.de is filled in and stays that way unless you run Merkio yourself.\nE-mail address and password of a Merkio account. Preferably the display gets its own account that is a member of the family group.\nLists: leaving it empty shows all shopping lists of the account.' },
+  settings: [
+    { key: 'url', type: 'text', label: { de: 'Adresse der API', en: 'Address of the API' }, hint: { de: 'Die Adresse von Merkio; nur für eine eigene Merkio-Installation zu ändern.', en: 'The address of Merkio; only to be changed for your own Merkio installation.' }, initial: 'https://api.merkio.de' },
+    { key: 'lists', type: 'tags', label: { de: 'Listen', en: 'Lists' }, hint: { de: 'Namen der Listen; leer zeigt alle Einkaufslisten des Kontos.', en: 'Names of the lists; empty shows all shopping lists of the account.' } },
+    { key: 'refreshMinutes', type: 'number', label: { de: 'Abruf alle … Minuten', en: 'Fetch every … minutes' }, min: 1, max: 1440, placeholder: 5 },
+  ],
+  secrets: [
+    { key: 'email', label: { de: 'E-Mail-Adresse', en: 'E-mail address' } },
+    { key: 'password', label: { de: 'Kennwort', en: 'Password' } },
+  ],
 
   parseConfig(raw) {
     const config = raw as { url?: unknown; lists?: unknown; refreshMinutes?: unknown };
@@ -118,7 +130,7 @@ export default definePlugin<Config>({
           }
         } catch (error) {
           if (signal.aborted) return;
-          if (attempt === 0) log.warn(`Echtzeitkanal der Liste "${list.info.name}" unterbrochen: ${error instanceof Error ? error.message : String(error)}`);
+          if (attempt === 0) log.warn(`Echtzeitkanal der Liste "${list.info.name}" unterbrochen: ${explain(error)}`);
         }
         await new Promise<void>((resume) => {
           const timer = setTimeout(resume, RECONNECT_MS[Math.min(attempt, RECONNECT_MS.length - 1)]);
@@ -181,7 +193,7 @@ export default definePlugin<Config>({
         if (!member) wait = Math.min(wait, RETRY_MS);
       } catch (error) {
         if (context.signal.aborted) return;
-        const message = error instanceof Error ? error.message : String(error);
+        const message = explain(error);
         if (error instanceof LoginFailed) {
           if (state !== 'login') log.warn(`${message} Zugangsdaten in secrets.json unter "${context.instanceId}" prüfen.`);
           setState('login');

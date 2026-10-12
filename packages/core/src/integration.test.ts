@@ -9,10 +9,12 @@ import { ActionRegistry } from './actions.ts';
 import { registerBuiltinActions } from './builtin.ts';
 import type { AppConfig } from './config.ts';
 import { EventHub, parseEvents } from './events.ts';
+import { JsonFile } from './jsonfile.ts';
 import { LayoutStore } from './layouts.ts';
 import { PluginHost } from './plugins.ts';
 import { DatapointRegistry } from './registry.ts';
 import { buildServer } from './server.ts';
+import { SourceStore } from './sources.ts';
 import { parseTemplate } from './templates.ts';
 
 /**
@@ -53,19 +55,21 @@ async function core(access: readonly AccessToken[]): Promise<FastifyInstance> {
   const registry = new DatapointRegistry();
   const actions = new ActionRegistry();
   // Jeder Kern bekommt eigene Layouts und eine eigene Datei: Was der eine speichert, sieht der andere nicht
-  const own = { ...config, layouts: structuredClone(config.layouts) };
-  const file = join(dataDir, `kern-${servers.length}`, 'config.json');
+  const own = { ...config, layouts: structuredClone(config.layouts), sources: structuredClone(config.sources) };
+  const file = new JsonFile(join(dataDir, `kern-${servers.length}`, 'config.json'));
   const layouts = new LayoutStore(own.layouts, file, own, quiet);
-  const plugins = new PluginHost(registry, actions, {}, quiet, dataDir, own.layouts);
+  const secrets: Record<string, Record<string, string>> = {};
+  const plugins = new PluginHost(registry, actions, secrets, quiet, dataDir, own.layouts);
+  const sources = new SourceStore({ sources: own.sources, secrets, plugins, configFile: file, secretsFile: new JsonFile(join(dataDir, `kern-${servers.length}`, 'secrets.json')), initial: own, log: quiet });
   registerBuiltinActions(actions, registry, plugins);
   const events = new EventHub(config.events ?? {}, quiet);
   registry.on('change', (datapoint) => events.observe(datapoint));
   hosts.push(plugins);
-  await plugins.startAll(config.sources);
+  await plugins.startAll(own.sources);
   // Zwei Adressen wie von einem Plugin angemeldet: eine, die nur liest, obwohl sie POST benutzt, und eine gewöhnliche
   plugins.routes.push({ method: 'POST', instance: 'probe', path: '/lesen', role: 'read', handler: () => Response.json({ ok: true }) });
   plugins.routes.push({ method: 'POST', instance: 'probe', path: '/schalten', handler: () => Response.json({ ok: true }) });
-  const server = await buildServer({ config: own, registry, plugins, actions, events, layouts, templates: [parseTemplate('klein', { name: { de: 'Klein' }, layout: { grid: { columns: 4, rows: 2 }, widgets: [{ type: 'clock', at: [0, 0, 4, 2] }] } })], log: quiet, access });
+  const server = await buildServer({ config: own, registry, plugins, actions, events, layouts, sources, templates: [parseTemplate('klein', { name: { de: 'Klein' }, layout: { grid: { columns: 4, rows: 2 }, widgets: [{ type: 'clock', at: [0, 0, 4, 2] }] } })], log: quiet, access });
   servers.push(server);
   return server;
 }
@@ -172,6 +176,74 @@ describe('Kern mit Plugins, API offen', () => {
     const last = await app.inject({ method: 'DELETE', url: '/api/v1/layouts/main' });
     expect([last.statusCode, last.json<{ error: string }>().error]).toEqual([409, 'Das letzte Layout lässt sich nicht löschen.']);
     expect(Object.keys(JSON.parse(readFileSync(join(dataDir, 'kern-0', 'config.json'), 'utf8')).layouts)).toEqual(['main']);
+  });
+
+  it('richtet Quellen im Betrieb ein: anlegen, ändern, neu starten, entfernen', async () => {
+    const call = (method: 'POST' | 'PUT' | 'DELETE', url: string, payload?: object) => app.inject({ method, url, ...(payload ? { payload } : {}) });
+    const ids = async (prefix: string) => (await app.inject('/api/v1/datapoints')).json<Datapoint[]>().filter((datapoint) => datapoint.id.startsWith(prefix)).length;
+    const onDisk = (name: string) => JSON.parse(readFileSync(join(dataDir, 'kern-0', name), 'utf8'));
+
+    const listed = (await app.inject('/api/v1/sources')).json<{ id: string; state: string; secrets: string[]; config: unknown }[]>();
+    expect(listed.map((source) => [source.id, source.state])).toEqual([['demo', 'running'], ['timer', 'running'], ['recipes', 'running'], ['voice', 'running'], ['gibtesnicht', 'failed']]);
+    const installed = (await app.inject('/api/v1/plugins')).json<{ id: string }[]>().map((plugin) => plugin.id);
+    expect(installed).toEqual(expect.arrayContaining(['connector-demo', 'media-radio', 'timer']));
+
+    // Eine zweite Quelle mit Beispielwerten kommt dazu – ohne Neustart sind ihre Datenpunkte da
+    const created = await call('POST', '/api/v1/sources', { id: 'zwei', plugin: 'connector-demo', secrets: { token: 'streng-geheimer-wert' } });
+    expect([created.statusCode, created.json()]).toMatchObject([200, { id: 'zwei', plugin: 'connector-demo', state: 'running', config: {}, secrets: ['token'] }]);
+    // Was die Quelle beim Start meldet und wie viele Werte sie liefert, steht bei ihr – so zeigt sich, ob sie ihr Gerät erreicht
+    const told = created.json<{ datapoints: number; notes: { level: string; text: string }[] }>();
+    expect(told.datapoints).toBeGreaterThan(5);
+    expect(told.notes).toEqual([expect.objectContaining({ level: 'info', text: expect.stringMatching(/Beispielwerte laufen/) })]);
+    expect(await ids('zwei:')).toBeGreaterThan(5);
+    expect(onDisk('config.json').sources.at(-1)).toEqual({ id: 'zwei', plugin: 'connector-demo' });
+    expect(onDisk('secrets.json')).toEqual({ zwei: { token: 'streng-geheimer-wert' } });
+    // Zugangsdaten nimmt der Kern nur entgegen: Er sagt, welche hinterlegt sind, und gibt sie nie heraus
+    expect((await app.inject('/api/v1/sources')).body).not.toContain('streng-geheimer-wert');
+
+    // Zugangsdaten ändern: was genannt ist, wird gesetzt oder herausgenommen, der Rest bleibt
+    const changed = await call('PUT', '/api/v1/sources/zwei', { secrets: { password: 'noch-ein-wert', token: null } });
+    expect(changed.json()).toMatchObject({ state: 'running', secrets: ['password'] });
+    expect(onDisk('secrets.json')).toEqual({ zwei: { password: 'noch-ein-wert' } });
+    expect((await call('POST', '/api/v1/sources/zwei/restart')).json()).toMatchObject({ id: 'zwei', state: 'running' });
+    expect(await ids('zwei:')).toBeGreaterThan(5);
+
+    // Entfernen nimmt Datenpunkte, Eintrag und Zugangsdaten mit
+    expect((await call('DELETE', '/api/v1/sources/zwei')).statusCode).toBe(200);
+    expect(await ids('zwei:')).toBe(0);
+    expect((await app.inject('/api/v1/status')).json<{ sources: { id: string }[] }>().sources.some((source) => source.id === 'zwei')).toBe(false);
+    expect(onDisk('config.json').sources.some((source: { id: string }) => source.id === 'zwei')).toBe(false);
+    expect(onDisk('secrets.json')).toEqual({});
+  });
+
+  it('lässt eine Quelle, die nicht startet, nichts halb Angemeldetes zurück und weist Unpassendes ab', async () => {
+    const post = (payload: object) => app.inject({ method: 'POST', url: '/api/v1/sources', payload });
+    // Eine zweite Eieruhr will dieselben Aktionen anmelden: Sie startet nicht – die erste läuft unberührt weiter
+    const second = (await post({ id: 'kurzzeit', plugin: 'timer' })).json<{ state: string; error: string }>();
+    expect([second.state, second.error]).toEqual(['failed', expect.stringMatching(/schon angemeldet/)]);
+    expect((second as unknown as { datapoints: number; notes: { level: string }[] }).datapoints).toBe(0);
+    expect((second as unknown as { notes: { level: string }[] }).notes.at(-1)).toMatchObject({ level: 'error' });
+    expect((await app.inject('/api/v1/datapoints')).json<Datapoint[]>().some((datapoint) => datapoint.id.startsWith('kurzzeit:'))).toBe(false);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/actions/timer.stop', payload: {} })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'DELETE', url: '/api/v1/sources/kurzzeit' })).statusCode).toBe(200);
+
+    for (const [payload, status] of [
+      [{ id: 'demo', plugin: 'connector-demo' }, 409],
+      [{ id: 'Neu', plugin: 'connector-demo' }, 400],
+      [{ id: 'api', plugin: 'connector-demo' }, 400],
+      [{ id: 'neu' }, 400],
+      [{ id: 'neu', plugin: 'gibt-es-nicht' }, 400],
+      [{ id: 'neu', plugin: '../../../boese' }, 400],
+      [{ id: 'neu', plugin: 'connector-demo', config: 'kein Objekt' }, 400],
+      [{ id: 'neu', plugin: 'connector-demo', secrets: { token: 7 } }, 400],
+      [{ id: 'neu', plugin: 'connector-openhab', config: {} }, 400],
+    ] as const) {
+      expect((await post(payload)).statusCode, JSON.stringify(payload)).toBe(status);
+    }
+    expect((await app.inject({ method: 'PUT', url: '/api/v1/sources/fehlt', payload: {} })).statusCode).toBe(404);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/sources/fehlt/restart' })).statusCode).toBe(404);
+    expect((await app.inject({ method: 'DELETE', url: '/api/v1/sources/fehlt' })).statusCode).toBe(404);
+    expect((await app.inject('/api/v1/sources')).json<unknown[]>()).toHaveLength(5);
   });
 
   it('stellt die Eieruhr über eine Aktion und zeigt den neuen Zustand', async () => {
@@ -352,6 +424,11 @@ describe('Kern mit Zugriffsschutz', () => {
     for (const call of [{ method: 'POST', url: '/api/v1/layouts', payload: { id: 'neu' } }, { method: 'POST', url: '/api/v1/layouts/main/rename', payload: { id: 'neu' } }, { method: 'DELETE', url: '/api/v1/layouts/main' }] as const) {
       expect((await app.inject({ ...call, headers: as('token-der-kueche-0123456789') })).statusCode, call.url).toBe(403);
     }
+    // Quellen: schon das Lesen der Einstellungen braucht die Stufe zum Einrichten
+    for (const call of [{ method: 'GET', url: '/api/v1/sources' }, { method: 'GET', url: '/api/v1/plugins' }, { method: 'POST', url: '/api/v1/sources/demo/restart' }, { method: 'DELETE', url: '/api/v1/sources/demo' }] as const) {
+      expect((await app.inject({ ...call, headers: as('token-der-kueche-0123456789') })).statusCode, call.url).toBe(403);
+    }
+    expect((await app.inject({ url: '/api/v1/sources', headers: as('token-vom-buero-0123456789') })).statusCode).toBe(200);
     // Die Oberfläche fragt vorab, was ihr Zugang darf
     expect((await app.inject({ url: '/api/v1/access', headers: as('token-der-kueche-0123456789') })).json()).toEqual({ name: 'kueche', role: 'control' });
     expect((await app.inject({ url: '/api/v1/access', headers: as('token-vom-buero-0123456789') })).json()).toEqual({ name: 'buero', role: 'admin' });

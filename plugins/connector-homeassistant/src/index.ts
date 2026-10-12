@@ -22,6 +22,17 @@ const PING_MS = 30_000;
  */
 export default definePlugin<Config>({
   id: 'connector-homeassistant',
+  name: { de: 'Home Assistant', en: 'Home Assistant' },
+  text: { de: 'Geräte und Werte aus Home Assistant, mit Schalten und Verlauf.', en: 'Devices and values from Home Assistant, with switching and history.' },
+  help: { de: 'Adresse: die von Home Assistant mit Port, etwa http://homeassistant.local:8123.\nZugangstoken: in Home Assistant unten links auf den eigenen Benutzer klicken, im Profil den Reiter „Sicherheit“ öffnen und ganz unten unter „Langlebige Zugangstoken“ ein Token erstellen. Es wird nur einmal angezeigt – gleich hier eintragen. Culinola darf damit, was dieser Benutzer darf; ein eigener Benutzer für die Anzeige ist deshalb sinnvoll.', en: 'Address: that of Home Assistant with port, such as http://homeassistant.local:8123.\nAccess token: in Home Assistant click your user at the bottom left, open the “Security” tab of the profile and create a token under “Long-lived access tokens” at the very bottom. It is shown only once – enter it here right away. Culinola may do what this user may do, so a separate user for the display makes sense.' },
+  settings: [
+    { key: 'url', type: 'text', label: { de: 'Adresse', en: 'Address' }, placeholder: 'http://homeassistant.local:8123' },
+    { key: 'entities', type: 'tags', label: { de: 'Nur diese Geräte', en: 'Only these entities' }, hint: { de: 'Kennungen wie light.kueche; leer übernimmt alle, die Culinola versteht.', en: 'Ids such as light.kitchen; empty takes all that Culinola understands.' } },
+    { key: 'domains', type: 'tags', label: { de: 'Nur diese Arten', en: 'Only these domains' }, hint: { de: 'Etwa sensor, light, switch.', en: 'Such as sensor, light, switch.' } },
+  ],
+  secrets: [
+    { key: 'token', label: { de: 'Zugangstoken', en: 'Access token' }, hint: { de: 'Ein langlebiges Zugangstoken aus dem Profil in Home Assistant.', en: 'A long-lived access token from the profile in Home Assistant.' } },
+  ],
 
   parseConfig(raw) {
     const config = (raw ?? {}) as { url?: unknown; entities?: unknown; domains?: unknown };

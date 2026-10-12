@@ -29,6 +29,14 @@ export class DatapointRegistry extends EventEmitter<{ change: [Datapoint] }> {
     return [...this.points.values()];
   }
 
+  /**
+   * Vergisst den Stand aller Datenpunkte einer Quelle – wenn sie anhält oder entfernt wird. Der kurze Verlauf
+   * bleibt: Startet die Quelle neu, setzen die Verlaufslinien dort fort.
+   */
+  removeSource(source: string): void {
+    for (const id of this.points.keys()) if (id.startsWith(`${source}:`)) this.points.delete(id);
+  }
+
   recent(id: string, from: number, to: number): SeriesPoint[] {
     return (this.buffers.get(id) ?? []).filter(([time]) => time >= from && time <= to);
   }

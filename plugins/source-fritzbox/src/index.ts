@@ -1,5 +1,5 @@
 import { connect } from 'node:net';
-import { definePlugin } from '@culinola/sdk';
+import { definePlugin, explain } from '@culinola/sdk';
 import { type Call, loginResponse, parseCalls, parseMonitorLine, parseSession } from './fritz.ts';
 import { placeOf } from './place.ts';
 
@@ -27,6 +27,21 @@ const RETRY_MS = 30_000;
  */
 export default definePlugin<Config>({
   id: 'source-fritzbox',
+  name: { de: 'FRITZ!Box', en: 'FRITZ!Box' },
+  text: { de: 'Anrufliste, Anrufbeantworter und Klingeln von der FRITZ!Box.', en: 'Call list, answering machine and ringing from the FRITZ!Box.' },
+  help: { de: 'Benutzername und Kennwort: Am besten in der FRITZ!Box unter System → FRITZ!Box-Benutzer einen eigenen Benutzer anlegen, der nur „Sprachnachrichten, Faxnachrichten, FRITZ!App Fon und Anrufliste“ darf, und ihn hier eintragen.\nAnrufmonitor: Damit die Anzeige sofort zeigt, wenn es klingelt, wird er einmalig an einem angeschlossenen Telefon mit #96*5* eingeschaltet.', en: 'User name and password: preferably create a separate user in the FRITZ!Box under System → FRITZ!Box Users who may only use “Voice messages, fax messages, FRITZ!App Fon and call list”, and enter it here.\nCall monitor: for the display to show ringing at once, switch it on once by dialling #96*5* on a connected telephone.' },
+  settings: [
+    { key: 'host', type: 'text', label: { de: 'Adresse', en: 'Address' }, placeholder: 'fritz.box' },
+    { key: 'max', type: 'number', label: { de: 'Einträge der Anrufliste', en: 'Entries of the call list' }, min: 1, max: 400, placeholder: 60 },
+    { key: 'refreshSeconds', type: 'number', label: { de: 'Abruf alle … Sekunden', en: 'Fetch every … seconds' }, min: 15, max: 3600, placeholder: 120 },
+    { key: 'monitor', type: 'boolean', label: { de: 'Anrufmonitor mithören (zeigt sofort, wenn es klingelt)', en: 'Listen to the call monitor (shows ringing at once)' }, fallback: true },
+    { key: 'country', type: 'text', label: { de: 'Eigenes Land', en: 'Own country' }, hint: { de: 'Kürzel wie DE; danach werden Nummern ohne Ländervorwahl gelesen.', en: 'Code such as DE; numbers without country code are read accordingly.' }, placeholder: 'DE' },
+    { key: 'language', type: 'text', label: { de: 'Sprache der Orts- und Ländernamen', en: 'Language of place and country names' }, placeholder: 'de' },
+  ],
+  secrets: [
+    { key: 'user', label: { de: 'Benutzername', en: 'User name' } },
+    { key: 'password', label: { de: 'Kennwort', en: 'Password' } },
+  ],
 
   parseConfig(raw) {
     const config = raw as Partial<Config>;
@@ -92,7 +107,7 @@ export default definePlugin<Config>({
         trouble = '';
       } catch (error) {
         if (context.signal.aborted) return;
-        const message = error instanceof Error ? error.message : String(error);
+        const message = explain(error);
         // Die zuletzt geholte Liste bleibt stehen; gemeldet wird eine Störung einmal.
         if (message !== trouble) log.warn(message);
         trouble = message;
@@ -118,7 +133,7 @@ export default definePlugin<Config>({
         });
         return new Response(upstream.body, { headers: { 'Content-Type': upstream.headers.get('content-type') ?? 'audio/wav', 'Cache-Control': 'private, max-age=3600' } });
       } catch (error) {
-        log.warn(`Aufnahme nicht abrufbar: ${error instanceof Error ? error.message : String(error)}`);
+        log.warn(`Aufnahme nicht abrufbar: ${explain(error)}`);
         return Response.json({ error: 'Die Aufnahme ließ sich nicht von der FRITZ!Box holen.' }, { status: 502 });
       }
     });

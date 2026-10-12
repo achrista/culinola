@@ -21,6 +21,13 @@ const START_TIMEOUT_MS = 10_000;
 
 export default definePlugin<Config>({
   id: 'media-video',
+  name: { de: 'Kameras und Fernsehbild', en: 'Cameras and TV picture' },
+  text: { de: 'Live-Bilder von Kameras und Fernsehsendern über go2rtc.', en: 'Live pictures from cameras and TV stations via go2rtc.' },
+  help: { de: 'Braucht das Programm go2rtc, das nicht mitgeliefert wird; mit „Pfad zum Programm“ startet Culinola es selbst.\nAdressen ohne Kennwort stehen bei der Videoquelle. Enthält die Adresse einer Kamera Benutzer und Kennwort (rtsp://name:kennwort@…), gehört sie zu den Zugangsdaten: unter „Weitere Zugangsangabe“ als Name die Kennung der Videoquelle und als Wert die ganze Adresse eintragen.', en: 'Needs the program go2rtc, which is not included; with “Path to the program” Culinola starts it itself.\nAddresses without a password go with the video stream. If the address of a camera contains user and password (rtsp://name:password@…), it belongs with the credentials: under “Further credential” enter the id of the stream as name and the whole address as value.' },
+  settings: [
+    { key: 'streams', type: 'list', label: { de: 'Videoquellen', en: 'Video streams' }, fields: [{ key: 'id', type: 'text', label: { de: 'Kennung', en: 'Id' }, hint: { de: 'Kleinbuchstaben, Ziffern, Bindestriche.', en: 'Lower-case letters, digits, hyphens.' } }, { key: 'name', type: 'text', label: { de: 'Name', en: 'Name' } }, { key: 'url', type: 'text', label: { de: 'Adresse', en: 'Address' }, hint: { de: 'Enthält sie ein Kennwort, gehört sie zu den Zugangsdaten – unter der Kennung der Videoquelle.', en: 'If it contains a password it belongs with the credentials – under the id of the stream.' } }, { key: 'mode', type: 'select', label: { de: 'Weg', en: 'Transport' }, options: ['', 'webrtc', 'hls', 'mjpeg'] }] },
+    { key: 'go2rtc', type: 'group', label: { de: 'go2rtc', en: 'go2rtc' }, fields: [{ key: 'binary', type: 'text', label: { de: 'Pfad zum Programm', en: 'Path to the program' }, hint: { de: 'Ist er gesetzt, startet Culinola go2rtc selbst; sonst muss es schon laufen.', en: 'If set, Culinola starts go2rtc itself; otherwise it must already be running.' } }, { key: 'ffmpeg', type: 'text', label: { de: 'Pfad zu ffmpeg', en: 'Path to ffmpeg' } }, { key: 'apiPort', type: 'number', label: { de: 'Port der API', en: 'API port' }, min: 1, max: 65535, placeholder: 1984 }, { key: 'rtspPort', type: 'number', label: { de: 'Port für RTSP', en: 'RTSP port' }, min: 1, max: 65535, placeholder: 8554 }, { key: 'webrtcPort', type: 'number', label: { de: 'Port für WebRTC', en: 'WebRTC port' }, min: 1, max: 65535, placeholder: 8555 }] },
+  ],
 
   parseConfig(raw) {
     const config = raw as Partial<Config>;

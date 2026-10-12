@@ -130,6 +130,8 @@ function publishCalls(context: {
 
 export default definePlugin({
   id: 'connector-demo',
+  name: { de: 'Beispielwerte', en: 'Demo values' },
+  text: { de: 'Erfundene Messwerte, Schalter, Termine, Anrufe und E-Mails zum Ausprobieren.', en: 'Made-up readings, switches, appointments, calls and e-mails to try things out.' },
 
   start(context) {
     const switches = new Map<string, boolean>([

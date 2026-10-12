@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { definePlugin } from '@culinola/sdk';
+import { definePlugin, explain } from '@culinola/sdk';
 import { dayOf, estimateUrl, merge, parseEstimate, powerAt, slice, type Forecast, type Plant } from './forecast.ts';
 
 interface Config extends Plant {
@@ -21,6 +21,21 @@ const TIMEOUT_MS = 20_000;
  */
 export default definePlugin<Config>({
   id: 'source-solar-forecast',
+  name: { de: 'Solarprognose', en: 'Solar forecast' },
+  text: { de: 'Ertragsprognose einer Solaranlage von forecast.solar.', en: 'Yield forecast of a solar plant from forecast.solar.' },
+  help: { de: 'Der freie Zugang von forecast.solar braucht keinen Schlüssel. Neigung und Ausrichtung der Module und die Leistung der Anlage stehen in den Unterlagen der Solaranlage.', en: 'The free access of forecast.solar needs no key. Tilt and orientation of the modules and the power of the plant are found in the documents of the solar plant.' },
+  settings: [
+    { key: 'latitude', type: 'number', label: { de: 'Breitengrad', en: 'Latitude' }, min: -90, max: 90 },
+    { key: 'longitude', type: 'number', label: { de: 'Längengrad', en: 'Longitude' }, min: -180, max: 180 },
+    { key: 'declination', type: 'number', label: { de: 'Neigung der Module (Grad)', en: 'Tilt of the modules (degrees)' }, hint: { de: '0 liegt flach, 90 steht senkrecht.', en: '0 is flat, 90 is vertical.' }, min: 0, max: 90 },
+    { key: 'azimuth', type: 'number', label: { de: 'Ausrichtung (Grad)', en: 'Orientation (degrees)' }, hint: { de: '0 ist Süden, -90 Osten, 90 Westen.', en: '0 is south, -90 east, 90 west.' }, min: -180, max: 180 },
+    { key: 'kwp', type: 'number', label: { de: 'Leistung (kWp)', en: 'Power (kWp)' }, min: 0.1, max: 1000 },
+    { key: 'refreshMinutes', type: 'number', label: { de: 'Abruf alle … Minuten', en: 'Fetch every … minutes' }, min: 15, max: 1440, placeholder: 180 },
+    { key: 'url', type: 'text', label: { de: 'Adresse des Dienstes', en: 'Address of the service' }, placeholder: 'https://api.forecast.solar' },
+  ],
+  secrets: [
+    { key: 'apiKey', label: { de: 'Schlüssel', en: 'API key' }, hint: { de: 'Nur für einen eigenen Zugang; der freie kommt ohne aus.', en: 'Only for a paid account; the free one needs none.' } },
+  ],
 
   parseConfig(raw) {
     const config = raw as Record<string, unknown>;
@@ -85,7 +100,7 @@ export default definePlugin<Config>({
         return true;
       } catch (error) {
         if (context.signal.aborted) return false;
-        const message = error instanceof Error ? error.message : String(error);
+        const message = explain(error);
         if (message !== trouble) log.warn(`Solar-Prognose nicht abrufbar: ${message}`);
         trouble = message;
         return false;

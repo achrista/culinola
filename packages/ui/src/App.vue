@@ -15,8 +15,11 @@ const denied = ref(false);
 const name = wantedLayout();
 // Bearbeiten öffnet sich nur über die Adresse (…&edit) – an der Anzeige selbst soll niemand versehentlich etwas verstellen.
 // Der Editor wird erst dann geladen; eine Anzeige trägt ihn nicht mit.
-const editing = new URLSearchParams(location.search).has('edit');
+const edit = new URLSearchParams(location.search).get('edit');
+const editing = edit !== null;
 const LayoutEditor = defineAsyncComponent(() => import('./editor/LayoutEditor.vue'));
+// …&edit=sources führt zu den Quellen statt zum Layout
+const SourcesEditor = defineAsyncComponent(() => import('./editor/SourcesEditor.vue'));
 const ready = ref(false);
 
 /** Holt das Layout vom Kern und abonniert, was es braucht. Ist es noch dasselbe, bleibt alles, wie es ist. */
@@ -64,6 +67,7 @@ watch(
 <template>
   <p v-if="denied" class="notice">{{ t('app.notUnlocked', { error }) }}</p>
   <p v-else-if="error" class="notice">{{ t('app.layoutFailed', { error }) }}</p>
+  <SourcesEditor v-else-if="editing && ready && edit === 'sources'" />
   <LayoutEditor v-else-if="editing && ready" :name="name" />
   <LayoutGrid v-else-if="layout" :layout="layout" />
   <div v-if="layout && !connected" class="offline" role="status">{{ t('app.offline') }}</div>

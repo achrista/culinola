@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { definePlugin } from '@culinola/sdk';
+import { definePlugin, explain } from '@culinola/sdk';
 import { embeddable, type NewsItem, parseFeed } from './parse.ts';
 
 interface Feed {
@@ -25,6 +25,13 @@ const USER_AGENT = 'Mozilla/5.0 (compatible; Culinola)';
 
 export default definePlugin<Config>({
   id: 'source-rss',
+  name: { de: 'Nachrichten', en: 'News' },
+  text: { de: 'Meldungen aus RSS-Feeds.', en: 'Stories from RSS feeds.' },
+  settings: [
+    { key: 'feeds', type: 'list', label: { de: 'Feeds', en: 'Feeds' }, hint: { de: 'Feeds aus dem mitgelieferten Katalog stehen nur mit ihrer Kennung da und lassen sich unter „Erweitert“ ändern.', en: 'Feeds from the built-in catalogue appear by id only and can be changed under “Advanced”.' }, fields: [{ key: 'id', type: 'text', label: { de: 'Kennung', en: 'Id' }, hint: { de: 'Kleinbuchstaben, Ziffern, Bindestriche.', en: 'Lower-case letters, digits, hyphens.' } }, { key: 'name', type: 'text', label: { de: 'Name', en: 'Name' } }, { key: 'url', type: 'text', label: { de: 'Adresse des Feeds', en: 'Address of the feed' }, placeholder: 'https://…' }] },
+    { key: 'refreshMinutes', type: 'number', label: { de: 'Abruf alle … Minuten', en: 'Fetch every … minutes' }, min: 2, max: 1440, placeholder: 10 },
+    { key: 'maxItems', type: 'number', label: { de: 'Meldungen je Feed', en: 'Stories per feed' }, min: 1, max: 50, placeholder: 10 },
+  ],
 
   parseConfig(raw) {
     const config = raw as { feeds?: unknown; refreshMinutes?: number; maxItems?: number };
@@ -88,7 +95,7 @@ export default definePlugin<Config>({
       } catch (error) {
         if (context.signal.aborted) return;
         // Bei einer Störung bleiben die zuletzt geholten Meldungen stehen; gemeldet wird sie einmal.
-        if (!failing.has(feed.id)) log.warn(`Feed "${feed.name}" nicht abrufbar: ${error instanceof Error ? error.message : String(error)}`);
+        if (!failing.has(feed.id)) log.warn(`Feed "${feed.name}" nicht abrufbar: ${explain(error)}`);
         failing.add(feed.id);
       }
     };

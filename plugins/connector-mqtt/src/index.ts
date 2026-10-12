@@ -21,6 +21,17 @@ const CONNECT_TIMEOUT_MS = 10_000;
  */
 export default definePlugin<Config>({
   id: 'connector-mqtt',
+  name: { de: 'MQTT', en: 'MQTT' },
+  text: { de: 'Geräte an einem MQTT-Broker – selbst angemeldete (Tasmota, Zigbee2MQTT …) und von Hand eingerichtete.', en: 'Devices on an MQTT broker – self-announcing ones (Tasmota, Zigbee2MQTT …) and manually configured ones.' },
+  help: { de: 'Adresse des Brokers: mqtt://<Rechner>:1883, gesichert mqtts://…\nBenutzername und Kennwort: die des Brokers (bei Mosquitto in dessen Kennwortdatei angelegt); leer lassen, wenn der Broker keine Anmeldung verlangt.\nGeräte, die sich selbst anmelden (Tasmota, Zigbee2MQTT …), erscheinen von selbst als Datenpunkte. Unter „Meldungen der Quelle“ steht, wie viele angemeldet wurden.', en: 'Address of the broker: mqtt://<host>:1883, secured mqtts://…\nUser name and password: those of the broker (with Mosquitto created in its password file); leave empty if the broker requires no login.\nDevices that announce themselves (Tasmota, Zigbee2MQTT …) appear as datapoints by themselves. “Messages of the source” tells how many were registered.' },
+  settings: [
+    { key: 'url', type: 'text', label: { de: 'Adresse des Brokers', en: 'Address of the broker' }, placeholder: 'mqtt://192.168.178.10:1883' },
+    { key: 'datapoints', type: 'list', label: { de: 'Datenpunkte von Hand', en: 'Manual datapoints' }, fields: [{ key: 'id', type: 'text', label: { de: 'Kennung', en: 'Id' } }, { key: 'topic', type: 'text', label: { de: 'Thema', en: 'Topic' } }, { key: 'label', type: 'text', label: { de: 'Bezeichnung', en: 'Label' } }, { key: 'unit', type: 'text', label: { de: 'Einheit', en: 'Unit' } }, { key: 'command', type: 'text', label: { de: 'Thema zum Schalten', en: 'Command topic' }, hint: { de: 'Ohne Angabe ist der Datenpunkt nur lesbar.', en: 'Without it the datapoint is read-only.' } }, { key: 'type', type: 'select', label: { de: 'Art des Werts', en: 'Kind of value' }, options: ['', 'number', 'switch', 'text'] }] },
+  ],
+  secrets: [
+    { key: 'username', label: { de: 'Benutzername', en: 'User name' } },
+    { key: 'password', label: { de: 'Kennwort', en: 'Password' } },
+  ],
 
   parseConfig(raw) {
     const config = (raw ?? {}) as { url?: unknown; datapoints?: unknown; discovery?: unknown };

@@ -9,7 +9,7 @@ nach fester Liste geprüft wird, und was sich nur mit eigenen Geräten prüfen l
 |---|---|---|---|
 | Typprüfung | Kern, Plugins, Oberfläche einschließlich `.vue`-Dateien | `npm run typecheck` | bei jedem Push (GitHub) |
 | Einzeltests | Logik je Paket: Feeds lesen, Rezepte lesen, Eieruhr, Zugriffsregeln, Verlaufsdaten … | `npm test` | bei jedem Push |
-| Zusammenspiel | Kern mit echten Plugins über die API: Quellen, Aktionen, Zugriffsschutz, Plugin-Adressen, Layouts speichern | `npm test` (`packages/core/src/integration.test.ts`) | bei jedem Push |
+| Zusammenspiel | Kern mit echten Plugins über die API: Quellen, Aktionen, Zugriffsschutz, Plugin-Adressen, Layouts speichern, Quellen im Betrieb einrichten | `npm test` (`packages/core/src/integration.test.ts`) | bei jedem Push |
 | Lizenzen | Alle ausgelieferten Abhängigkeiten sind permissiv lizenziert | `npm run licenses` | bei jedem Push |
 | Abbild | Docker-Abbild baut, startet, antwortet und beendet sich sauber | Auftrag `docker` in `.github/workflows/ci.yml` | bei jedem Push |
 | Oberfläche | Jede Kachel nach der Liste unten | Testinstanz und Browser, von Hand | vor jeder Lieferung, die die Oberfläche berührt |
@@ -78,6 +78,18 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] In zwei Fenstern bearbeiten: Das erste speichert, das zweite hat einen eigenen Entwurf – dort erscheint die Rückfrage mit „Neu laden“ und „Meinen Stand speichern“; beides tut, was es sagt.
 - [ ] `config.json` der Testinstanz von Hand ändern (eine Kachel versetzen): Nach wenigen Sekunden zeigen Anzeige und Editor den neuen Stand. Eine kaputte Datei ergibt eine Warnung im Protokoll, die Anzeigen bleiben, wie sie sind.
 - [ ] Schmal und mit `&theme=nacht`: Die Bedienleiste bricht um, die Seitenleiste wandert unter das Layout.
+
+**Quellen einrichten** (<http://localhost:8191/?edit=sources>)
+- [ ] Die Liste zeigt alle Quellen der Testinstanz mit grünem Punkt und „läuft“. „Layouts“ führt zum Layout-Editor, dort „Quellen“ wieder zurück.
+- [ ] `timer` wählen, „Weiterzählen nach Ablauf“ auf 45 stellen, „Speichern und neu starten“: Die Meldung „Gespeichert …“ erscheint, im Protokoll des Kerns steht „Quelle "timer" geändert, sie startet neu“, und die Eieruhr auf einer Anzeige lässt sich danach stellen. In `config.json` der Testinstanz steht der neue Wert, daneben eine Sicherung.
+- [ ] `merkio`: Die Zugangsdaten stehen als „hinterlegt“ da, die Felder sind leer. Ohne Eingabe speichern ändert sie nicht; „Hinterlegtes entfernen“ beim Kennwort und speichern: Die Quelle steht als gestört mit der Ursache da. Kennwort aus `secrets.json` der Testinstanz wieder eintragen: Sie läuft wieder.
+- [ ] `news`: Die Feeds aus dem Katalog lassen sich nicht im Formular ändern (Hinweis), aber unter „Erweitert“ als JSON.
+- [ ] `radio`: Sender aufklappen, einen Namen ändern, speichern – die Radioleiste einer Anzeige zeigt ihn nach dem Neuladen.
+- [ ] „Quelle hinzufügen“: Plugin „Sonne und Mond“, Kennung `astro-test`, „Weiter“ – die Quelle steht als „neu“ in der Liste und ist noch nicht angelegt. Ohne Breitengrad wird „Anlegen und starten“ mit der Meldung des Plugins abgelehnt; mit 48 und 11 läuft sie, und ihre Datenpunkte (`astro-test:…`) stehen in der Auswahl im Layout-Editor.
+- [ ] „Quelle hinzufügen“ mit „openHAB“ und der Adresse `http://localhost:9`: Die Erläuterung zum Einrichten steht aufgeklappt da; nach dem Anlegen ist die Quelle gestört, und die Meldung nennt den Grund in Worten („Verbindung abgelehnt …“), nicht nur „fetch failed“. Leere Felder zeigen ihr Beispiel als „z. B. …“.
+- [ ] „Homematic“ mit der Adresse `localhost` als neue Quelle: Sie läuft, liefert aber nur ihren Zustand; unter „Meldungen der Quelle“ steht nach einigen Sekunden, dass die Zentrale nicht erreichbar ist. Die vorhandene Quelle `homematic` der Testinstanz zeigt dort, wie viele Kanäle und Datenpunkte eingelesen wurden.
+- [ ] Eine zweite „Eieruhr“ (`kurzzeit`) startet nicht – die Ursache steht bei der Quelle, die erste Eieruhr läuft weiter. „Quelle entfernen“ fragt nach und nimmt sie heraus.
+- [ ] Eine ungültige Einstellung (etwa `"overrunSeconds": "viel"` unter „Erweitert“) wird beim Speichern mit der Meldung des Plugins abgelehnt; gespeichert ist dann nichts.
 
 **Uhr und Eieruhr**
 - [ ] Uhrzeit mit Sekunden und Datum stimmen.
@@ -213,6 +225,7 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 Das Folgende lässt sich nicht nachstellen und wird an der eigenen Installation geprüft – bewusst und einzeln, nie nebenbei:
 
 - Schalten gegen das echte openHAB (ein Licht, dessen Zustand man sieht)
+- Quellen im Betrieb neu starten, die mehr halten als einen Zeitgeber: Kameras (go2rtc wird beendet und neu gestartet – sind die Ports sofort wieder frei?), FRITZ!Box (Anrufmonitor), MQTT, Homematic, Merkio. Nach dem Neustart darf nichts doppelt laufen und nichts hängen bleiben
 - Kameras: Bild füllt die Kachel ohne schwarze Ränder, Vollbild beim Antippen zeigt das ganze Bild, Verhalten bei abgezogener Kamera
 - Home Assistant an einer echten Installation (ein Wegwerf-Container genügt): Anmeldung mit Token, einlesen, Licht, Schalter, Rollladen und Zahl setzen, Verlauf
 - Homematic an einer echten Zentrale: einlesen, einen Schalter schalten und zurückstellen – nur lesende Aufrufe und `setValue`; der Konnektor darf sich nie für Meldungen anmelden (`init`), das kann die Zentrale lahmlegen

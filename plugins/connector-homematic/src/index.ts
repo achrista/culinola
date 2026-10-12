@@ -1,4 +1,4 @@
-import { definePlugin, type DatapointValue, InvalidInput } from '@culinola/sdk';
+import { definePlugin, type DatapointValue, InvalidInput, explain } from '@culinola/sdk';
 import { type Channel, channelsFrom, descriptionKey, fromText, NAMES_SCRIPT, type Param, paramsFrom, parseNames, parseValues, type Point, pointId, pointsOf, toRpc, toValue, VALUES_SCRIPT } from './model.ts';
 import { decodeBytes, decodeResponse, encodeCall, type RpcDouble, RpcFault, type RpcValue } from './xmlrpc.ts';
 
@@ -44,6 +44,19 @@ const PARALLEL = 2;
  */
 export default definePlugin<Config>({
   id: 'connector-homematic',
+  name: { de: 'Homematic', en: 'Homematic' },
+  text: { de: 'Geräte einer Zentrale CCU2, CCU3 oder RaspberryMatic.', en: 'Devices of a CCU2, CCU3 or RaspberryMatic.' },
+  help: { de: 'Adresse der Zentrale: nur Name oder IP-Adresse, ohne http:// – etwa 192.168.178.9.\nGerätefamilien und Ports: leer lassen. Dann liest Culinola klassische Geräte (rf) und Homematic IP (ip) über die üblichen Ports.\nIn der Zentrale müssen die Zugriffe erlaubt sein: Einstellungen → Systemsteuerung → Firewall, dort „XML-RPC API“ und „Remote HomeMatic-Script API“ auf Vollzugriff oder eingeschränkt mit der Adresse dieses Rechners.\nBenutzername und Kennwort: nur eintragen, wenn in der Zentrale unter Sicherheit die Authentifizierung eingeschaltet ist.\nNach dem Speichern dauert das Einlesen einige Sekunden. Unter „Meldungen der Quelle“ steht dann, wie viele Kanäle und Datenpunkte gefunden wurden – oder warum die Zentrale nicht erreichbar ist.', en: 'Address of the CCU: just name or IP address, without http:// – such as 192.168.178.9.\nDevice families and ports: leave empty. Culinola then reads classic devices (rf) and Homematic IP (ip) via the usual ports.\nThe CCU must allow the access: Settings → Control panel → Firewall, set “XML-RPC API” and “Remote HomeMatic-Script API” to full access or restricted with the address of this computer.\nUser name and password: only enter them if authentication is switched on in the security settings of the CCU.\nAfter saving, reading takes a few seconds. “Messages of the source” then tells how many channels and datapoints were found – or why the CCU cannot be reached.' },
+  settings: [
+    { key: 'host', type: 'text', label: { de: 'Adresse der Zentrale', en: 'Address of the CCU' }, placeholder: '192.168.178.9' },
+    { key: 'interfaces', type: 'tags', label: { de: 'Gerätefamilien', en: 'Device families' }, hint: { de: 'rf (klassisch), ip (Homematic IP), wired; leer gilt rf und ip.', en: 'rf (classic), ip (Homematic IP), wired; empty means rf and ip.' } },
+    { key: 'pollSeconds', type: 'number', label: { de: 'Abfrage alle … Sekunden', en: 'Poll every … seconds' }, min: 1, max: 3600, placeholder: 5 },
+    { key: 'regaPort', type: 'number', label: { de: 'Port der Logikschicht', en: 'Port of the logic layer' }, hint: { de: 'Sie kennt die Namen und nennt alle Werte in einem Zug; 0 verzichtet darauf.', en: 'It knows the names and delivers all values at once; 0 does without it.' }, min: 0, max: 65535, placeholder: 8181 },
+  ],
+  secrets: [
+    { key: 'username', label: { de: 'Benutzername', en: 'User name' }, hint: { de: 'Nur wenn die Zentrale eine Anmeldung verlangt.', en: 'Only if the CCU requires a login.' } },
+    { key: 'password', label: { de: 'Kennwort', en: 'Password' } },
+  ],
 
   parseConfig(raw) {
     const config = (raw ?? {}) as { host?: unknown; interfaces?: unknown; pollSeconds?: unknown; regaPort?: unknown };
@@ -154,7 +167,7 @@ export default definePlugin<Config>({
         return parseNames(await script(NAMES_SCRIPT));
       } catch (error) {
         if (error instanceof LoginRefused) throw error;
-        if (!namesWarned) log.warn(`Die Namen der Kanäle ließen sich nicht lesen (${error instanceof Error ? error.message : String(error)}) – die Datenpunkte heißen nach ihrer Adresse.`);
+        if (!namesWarned) log.warn(`Die Namen der Kanäle ließen sich nicht lesen (${explain(error)}) – die Datenpunkte heißen nach ihrer Adresse.`);
         namesWarned = true;
         return new Map();
       }
@@ -235,7 +248,7 @@ export default definePlugin<Config>({
           } catch (error) {
             if (error instanceof LoginRefused || context.signal.aborted) throw error;
             // Die Geräteschnittstellen selbst antworten vielleicht noch – dann geht es langsamer weiter
-            regaTrouble = error instanceof Error ? error.message : String(error);
+            regaTrouble = explain(error);
             atOnce = false;
           }
         }
@@ -256,7 +269,7 @@ export default definePlugin<Config>({
         if (context.signal.aborted) return;
         const refused = error instanceof LoginRefused;
         const next = refused ? 'login' : 'offline';
-        if (state !== next || !announced) log.warn(refused ? `Die Zentrale verlangt eine Anmeldung. In secrets.json unter "${context.instanceId}" "username" und "password" eintragen.` : `Zentrale ${config.host} nicht erreichbar: ${error instanceof Error ? error.message : String(error)}`);
+        if (state !== next || !announced) log.warn(refused ? `Die Zentrale verlangt eine Anmeldung. In secrets.json unter "${context.instanceId}" "username" und "password" eintragen.` : `Zentrale ${config.host} nicht erreichbar: ${explain(error)}`);
         announced ||= ' ';
         setState(next);
         wait = Math.min(RETRY_MS, 10 * wait);

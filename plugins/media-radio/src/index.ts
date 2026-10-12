@@ -1,4 +1,4 @@
-import { definePlugin, InvalidInput } from '@culinola/sdk';
+import { definePlugin, InvalidInput, explain } from '@culinola/sdk';
 import { icyFilter } from './icy.ts';
 import { LogoStore } from './logos.ts';
 
@@ -28,6 +28,12 @@ const STATION_ID = /^[a-z0-9][a-z0-9-]*$/;
 
 export default definePlugin<Config>({
   id: 'media-radio',
+  name: { de: 'Radio und Fernsehen', en: 'Radio and television' },
+  text: { de: 'Radiosender zum Anhören und Fernsehsender für das Medienfenster.', en: 'Radio stations to listen to and TV stations for the media window.' },
+  settings: [
+    { key: 'volume', type: 'number', label: { de: 'Lautstärke beim Start (%)', en: 'Volume at start (%)' }, min: 0, max: 200, placeholder: 50 },
+    { key: 'stations', type: 'list', label: { de: 'Sender', en: 'Stations' }, fields: [{ key: 'id', type: 'text', label: { de: 'Kennung', en: 'Id' }, hint: { de: 'Kleinbuchstaben, Ziffern, Bindestriche.', en: 'Lower-case letters, digits, hyphens.' } }, { key: 'name', type: 'text', label: { de: 'Name', en: 'Name' } }, { key: 'kind', type: 'select', label: { de: 'Art', en: 'Kind' }, options: ['audio', 'video'], explicit: true }, { key: 'url', type: 'text', label: { de: 'Adresse des Tonstroms', en: 'Address of the audio stream' }, hint: { de: 'Fernsehsender brauchen keine – ihr Bild kommt über die Videoquelle.', en: 'TV stations need none – their picture comes from the video source.' } }, { key: 'image', type: 'text', label: { de: 'Logo', en: 'Logo' }, hint: { de: 'Eine Webadresse oder eine Datei im Ordner logos.', en: 'A web address or a file in the folder logos.' } }] },
+  ],
 
   parseConfig(raw) {
     const config = raw as Partial<Config>;
@@ -140,7 +146,7 @@ export default definePlugin<Config>({
       try {
         upstream = await fetch(station.url, { headers: { 'Icy-MetaData': '1', 'User-Agent': 'Culinola' }, signal: request.signal });
       } catch (error) {
-        log.warn(`Sender "${station.name}" ist nicht erreichbar: ${error instanceof Error ? error.message : String(error)}`);
+        log.warn(`Sender "${station.name}" ist nicht erreichbar: ${explain(error)}`);
         return Response.json({ error: `Sender "${station.name}" ist nicht erreichbar.` }, { status: 502 });
       }
       if (!upstream.ok || !upstream.body) {

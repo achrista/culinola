@@ -21,6 +21,13 @@ const DAY_MS = 86_400_000;
  */
 export default definePlugin<Config>({
   id: 'source-astro',
+  name: { de: 'Sonne und Mond', en: 'Sun and moon' },
+  text: { de: 'Sonnenstand, Auf- und Untergang und Mondphase für einen Ort – berechnet, ohne Internet.', en: 'Position of the sun, rise and set and phase of the moon for a place – calculated, without internet.' },
+  settings: [
+    { key: 'latitude', type: 'number', label: { de: 'Breitengrad', en: 'Latitude' }, min: -90, max: 90, placeholder: 48.37 },
+    { key: 'longitude', type: 'number', label: { de: 'Längengrad', en: 'Longitude' }, min: -180, max: 180, placeholder: 10.9 },
+    { key: 'nightOffsetMinutes', type: 'number', label: { de: 'Nacht beginnt … Minuten nach Sonnenuntergang', en: 'Night begins … minutes after sunset' }, hint: { de: 'Daran hängt der Wechsel auf das Nachtschema; ebenso viele Minuten vor Sonnenaufgang endet die Nacht.', en: 'This drives the switch to the night theme; the night ends as many minutes before sunrise.' }, min: -180, max: 180, placeholder: 30 },
+  ],
 
   parseConfig(raw) {
     const config = raw as { latitude?: unknown; longitude?: unknown; nightOffsetMinutes?: unknown };

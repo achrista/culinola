@@ -13,6 +13,7 @@ import { InvalidLayout, LayoutConflict, type LayoutStore, UnknownLayout } from '
 import type { PluginHost } from './plugins.ts';
 import type { DatapointRegistry } from './registry.ts';
 import { type Aggregation, downsample, parseDuration, parseTime } from './series.ts';
+import { InvalidSource, SourceConflict, type SourceStore, UnknownSource } from './sources.ts';
 import type { Template } from './templates.ts';
 
 const AGGREGATIONS: readonly Aggregation[] = ['avg', 'min', 'max', 'last'];
@@ -27,6 +28,8 @@ export interface ServerDeps {
   events: EventHub;
   /** Die Layouts – ein Speicher für alle Server, damit jede Anzeige von jeder Änderung erfährt. */
   layouts: LayoutStore;
+  /** Die Quellen zum Einrichten; ohne sie gibt es die Aufrufe unter `/sources` nicht. */
+  sources?: SourceStore;
   /** Mitgelieferte Vorlagen für neue Layouts. */
   templates?: readonly Template[];
   log: Logger;
@@ -38,7 +41,7 @@ export interface ServerDeps {
   tls?: { cert: Buffer; key: Buffer };
 }
 
-export async function buildServer({ config, registry, plugins, actions, events, layouts, templates = [], log, access, uiDir, tls }: ServerDeps): Promise<FastifyInstance> {
+export async function buildServer({ config, registry, plugins, actions, events, layouts, sources, templates = [], log, access, uiDir, tls }: ServerDeps): Promise<FastifyInstance> {
   // Mit und ohne Zertifikat ist es derselbe Server; nur die Art der Verbindung unterscheidet sich
   const app = (tls ? Fastify({ logger: false, https: tls }) : Fastify({ logger: false })) as unknown as FastifyInstance;
   await app.register(fastifyWebsocket);
@@ -46,9 +49,10 @@ export async function buildServer({ config, registry, plugins, actions, events, 
   // Eingabefehler als 400 mit lesbarer Meldung statt als 500
   class BadRequest extends Error {}
   app.setErrorHandler((error: Error, _request, reply) => {
-    if (error instanceof BadRequest || error instanceof InvalidParams || error instanceof InvalidLayout) return reply.code(400).send({ error: error.message });
-    if (error instanceof UnknownAction || error instanceof UnknownEvent || error instanceof UnknownLayout) return reply.code(404).send({ error: error.message });
+    if (error instanceof BadRequest || error instanceof InvalidParams || error instanceof InvalidLayout || error instanceof InvalidSource) return reply.code(400).send({ error: error.message });
+    if (error instanceof UnknownAction || error instanceof UnknownEvent || error instanceof UnknownLayout || error instanceof UnknownSource) return reply.code(404).send({ error: error.message });
     // Jemand anderes war schneller: Der Aufrufer bekommt den Stand, der jetzt gilt, und entscheidet
+    if (error instanceof SourceConflict) return reply.code(409).send({ error: error.message });
     if (error instanceof LayoutConflict) return reply.code(409).send({ error: error.message, ...(error.rev ? { rev: error.rev } : {}) });
     // Was der Server selbst am Aufruf beanstandet – zu groß, nicht lesbar –, ist ebenfalls ein Fehler des Aufrufers
     const status = (error as { statusCode?: number }).statusCode;
@@ -68,6 +72,15 @@ export async function buildServer({ config, registry, plugins, actions, events, 
   // Zugriffsschutz für alles unter /api. Nur der Echtzeitkanal nimmt das Token als
   // Adresszusatz an, weil Browser dort keine eigene Kopfzeile mitschicken können;
   // überall sonst bleibt es aus der Adresse heraus, damit es in keinem Protokoll landet.
+  // Adressen der Plugins werden bei jedem Aufruf nachgeschlagen: Quellen kommen und gehen im Betrieb
+  const PLUGIN_PREFIX = '/api/v1/p/';
+  const pluginRoute = (method: string, url: string) => {
+    if (!url.startsWith(PLUGIN_PREFIX)) return undefined;
+    const path = url.slice(PLUGIN_PREFIX.length).split('?')[0]!;
+    const slash = path.indexOf('/');
+    return slash < 1 ? undefined : plugins.route(method, path.slice(0, slash), path.slice(slash));
+  };
+
   const granted = new WeakMap<object, { name: string; role: Role }>();
   app.addHook('onRequest', async (request, reply) => {
     if (!request.url.startsWith('/api/')) return;
@@ -77,7 +90,7 @@ export async function buildServer({ config, registry, plugins, actions, events, 
     const fromAddress = mayUseAddress ? (request.query as { token?: string } | undefined)?.token : undefined;
     const presented = bearerToken(request.headers.authorization) ?? fromAddress;
     // Eine Adresse kann ihre Stufe selbst nennen – etwa ein POST, der nur liest, oder das Einrichten
-    const declared = (request.routeOptions?.config as { role?: Role } | undefined)?.role;
+    const declared = (request.routeOptions?.config as { role?: Role } | undefined)?.role ?? pluginRoute(request.method, request.url)?.route.role;
     const result = authorize(access, presented, declared ?? requiredRole(request.method));
     if (!result.ok) return reply.code(result.status).send({ error: result.error });
     granted.set(request.raw, { name: result.name, role: result.role });
@@ -141,25 +154,40 @@ export async function buildServer({ config, registry, plugins, actions, events, 
 
   // Adressen der Plugins. Antworten dürfen fortlaufende Datenströme sein; beendet die
   // Anzeige die Verbindung, erfährt es das Plugin über das Signal und kann die Quelle schließen.
-  for (const route of plugins.routes) {
-    app.route({
-      method: route.method,
-      url: `/api/v1/p/${route.instance}${route.path}`,
-      ...(route.method === 'POST' ? { bodyLimit: PLUGIN_BODY_LIMIT } : {}),
-      ...(route.role ? { config: { role: route.role } } : {}),
-      handler: async (request, reply) => {
-        const gone = new AbortController();
-        reply.raw.on('close', () => gone.abort());
-        const response = await route.handler({
-          params: request.params as Record<string, string>,
-          query: request.query as Record<string, string>,
-          body: request.body,
-          signal: gone.signal,
-        });
-        reply.code(response.status);
-        response.headers.forEach((value, name) => reply.header(name, value));
-        return reply.send(response.body ? Readable.fromWeb(response.body as import('node:stream/web').ReadableStream) : null);
-      },
+  app.route({
+    method: ['GET', 'POST'],
+    url: `${PLUGIN_PREFIX}*`,
+    bodyLimit: PLUGIN_BODY_LIMIT,
+    handler: async (request, reply) => {
+      const found = pluginRoute(request.method, request.url);
+      if (!found) return reply.code(404).send({ error: 'Diese Adresse gibt es nicht.' });
+      const gone = new AbortController();
+      reply.raw.on('close', () => gone.abort());
+      const response = await found.route.handler({
+        params: found.params,
+        query: request.query as Record<string, string>,
+        body: request.body,
+        signal: gone.signal,
+      });
+      reply.code(response.status);
+      response.headers.forEach((value, name) => reply.header(name, value));
+      return reply.send(response.body ? Readable.fromWeb(response.body as import('node:stream/web').ReadableStream) : null);
+    },
+  });
+
+  // Quellen einrichten: Einstellungen und Zugangsdaten ändern, einzeln neu starten. Auch das Lesen braucht die
+  // Stufe zum Einrichten – in den Einstellungen stehen Adressen und Namen aus dem Haus. Zugangsdaten kommen nie zurück.
+  if (sources) {
+    const admin = { config: { role: 'admin' as const } };
+    type Body = { id?: unknown; plugin?: unknown; config?: unknown; secrets?: unknown } | null;
+    app.get('/api/v1/sources', admin, () => sources.list());
+    app.get('/api/v1/plugins', admin, () => sources.plugins());
+    app.post<{ Body: Body }>('/api/v1/sources', admin, (request) => sources.create(request.body ?? {}));
+    app.put<{ Params: { id: string }; Body: Body }>('/api/v1/sources/:id', admin, (request) => sources.update(request.params.id, request.body ?? {}));
+    app.post<{ Params: { id: string } }>('/api/v1/sources/:id/restart', admin, (request) => sources.restart(request.params.id));
+    app.delete<{ Params: { id: string } }>('/api/v1/sources/:id', admin, async (request) => {
+      await sources.remove(request.params.id);
+      return { ok: true };
     });
   }
 
