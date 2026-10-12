@@ -2,13 +2,14 @@
 
 **The home dashboard for the screen in your kitchen.** Culinola brings your house, your media and your family's day together on one touch display: readings and switches, charts, cameras, radio and TV, news, calendar, shopping list and recipes – arranged the way you want, without writing a line of configuration.
 
-![Culinola dashboard with energy gauges, presence, sun and moon and clock](docs/images/dashboard-night.png)
+![Culinola on a kitchen display: camera, clock, weather, readings, charts, calls, e-mail, switches, radio, news, calendar and shopping list](docs/images/dashboard-night.png)
 
 ## Why Culinola
 
 - **One screen, everything at a glance.** No scrolling, no menus: a grid of tiles that fills the display and scales with it.
 - **Works with what you have.** openHAB, Home Assistant, Homematic, MQTT (Tasmota, Zigbee2MQTT …), FRITZ!Box, IMAP mail, Google Calendar, RSS, go2rtc cameras – each is a plugin, and a tile does not care which system a value comes from.
 - **Set up in the browser.** Drag tiles into place, pick datapoints from a searchable list, add sources and credentials, create access tokens – from your desk or your phone, while the kitchen display keeps running and picks up every change without a restart.
+- **More than a smart-home panel.** Internet radio and live TV, your cameras, the newest e-mails, calls from the FRITZ!Box and an egg timer on the clock are built in – no extra apps, no extra screens.
 - **Made for touch and for the whole family.** Tap the clock for an egg timer, tap a recipe to cook from it, put its ingredients on the shopping list, ask by voice how warm it is outside.
 - **Yours.** Runs on your own hardware, in your own network. The source is open to read and change, and free for private and other noncommercial use.
 
@@ -16,10 +17,10 @@
 
 | | |
 |---|---|
-| ![Dashboard in the light theme](docs/images/dashboard.png) **Themes** – six colour themes, with an automatic switch at sunset. | ![Layout editor with tiles and the list of tile types](docs/images/layout-editor.png) **Layout editor** – move, resize, add and configure tiles on a true-to-scale preview. |
+| ![The same kitchen display in a light theme](docs/images/dashboard.png) **Themes** – six colour themes, with an automatic switch at sunset. | ![Layout editor with tiles and the list of tile types](docs/images/layout-editor.png) **Layout editor** – move, resize, add and configure tiles on a true-to-scale preview. |
 | ![List of sources with their state](docs/images/sources.png) **Sources** – add and configure connections; each one restarts on its own and tells you what it found. | ![Settings for display, messages and access](docs/images/settings.png) **Settings** – language, themes, on-screen messages and access tokens. |
 
-The screenshots show the built-in test instance with made-up values.
+The kitchen display shows a real installation; calls, e-mails, appointments and reminders in it are made up. The setup pages show the built-in test instance.
 
 ## What is in the box
 
