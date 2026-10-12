@@ -51,6 +51,19 @@ docker run -d -p 8090:8090 -v ./data:/data culinola
 
 Everything of yours – configuration, credentials, recipes – lives in the `data` folder and never in the repository.
 
+### What you need in addition
+
+Culinola itself needs nothing but Node.js. A few features rely on things that are not shipped with it:
+
+| For | You need | Notes |
+|---|---|---|
+| Cameras and live TV | [go2rtc](https://github.com/AlexxIT/go2rtc) | A separate program. Download it and enter its path in the video source; Culinola then starts it itself. |
+| TV stations and other streams that have to be converted | [ffmpeg](https://ffmpeg.org) | Used by go2rtc. Only needed for sources the browser cannot play directly. |
+| Wake word ("Computer, …") | a [Vosk](https://alphacephei.com/vosk/models) speech model | About 45 MB per language, runs in the browser of the display. Without it you start voice input with a tap. |
+| Voice commands and adding recipes from photos, text or web pages | a Claude API key | Entered as a credential of the source. Each request costs a small amount. |
+
+The Docker image already contains go2rtc and ffmpeg. How to set each of these up is described in the handbook.
+
 > **Before you expose it:** out of the box the API is open to everyone on your network. Create an access token under *Settings → Access* and put HTTPS in front before reaching it from outside your home network.
 
 ## Status

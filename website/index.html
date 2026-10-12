@@ -94,6 +94,7 @@ npm install
 npm run build
 npm start</pre>
         <p>Open <code>http://localhost:8090</code>. Without a configuration of your own, Culinola starts with made-up demo values. Add <code>?layout=main&amp;edit</code> to the address to open the layout editor.</p>
+        <p>Culinola itself needs nothing but Node.js. Cameras and live TV additionally need the separate programs <a href="https://github.com/AlexxIT/go2rtc">go2rtc</a> and, for streams that have to be converted, <a href="https://ffmpeg.org">ffmpeg</a>; the wake word needs a <a href="https://alphacephei.com/vosk/models">Vosk</a> speech model; voice commands and adding recipes from photos need a Claude API key. The Docker image already contains go2rtc and ffmpeg.</p>
         <p>Culinola is young: expect rough edges, and please report them on <a href="https://github.com/achrista/culinola/issues">GitHub</a>. The interface is available in German and English.</p>
       </section>
 
