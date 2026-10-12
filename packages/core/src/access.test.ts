@@ -8,7 +8,7 @@ const tokens: AccessToken[] = [
 
 describe('authorize', () => {
   it('lässt ohne eingerichtete Tokens alles zu', () => {
-    expect(authorize([], undefined, 'control')).toEqual({ ok: true, name: 'offen' });
+    expect(authorize([], undefined, 'control')).toEqual({ ok: true, name: 'offen', role: 'admin' });
   });
 
   it('verlangt ein Token, sobald welche eingerichtet sind', () => {
@@ -21,12 +21,12 @@ describe('authorize', () => {
   });
 
   it('lässt ein Bedien-Token lesen und bedienen', () => {
-    expect(authorize(tokens, 'kuechen-geheimnis', 'read')).toEqual({ ok: true, name: 'kueche' });
-    expect(authorize(tokens, 'kuechen-geheimnis', 'control')).toEqual({ ok: true, name: 'kueche' });
+    expect(authorize(tokens, 'kuechen-geheimnis', 'read')).toEqual({ ok: true, name: 'kueche', role: 'control' });
+    expect(authorize(tokens, 'kuechen-geheimnis', 'control')).toEqual({ ok: true, name: 'kueche', role: 'control' });
   });
 
   it('lässt ein Lese-Token nicht bedienen', () => {
-    expect(authorize(tokens, 'flur-geheimnis', 'read')).toEqual({ ok: true, name: 'anzeige-flur' });
+    expect(authorize(tokens, 'flur-geheimnis', 'read')).toEqual({ ok: true, name: 'anzeige-flur', role: 'read' });
     expect(authorize(tokens, 'flur-geheimnis', 'control')).toMatchObject({ ok: false, status: 403 });
   });
 

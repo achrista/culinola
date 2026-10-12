@@ -5,6 +5,315 @@
     "offline": "No connection to the core – retrying",
     "unknownWidget": "Unknown widget “{type}”"
   },
+  "editor": {
+    "layout": "Layout",
+    "grid": "Grid {columns} × {rows}",
+    "undo": "Undo",
+    "redo": "Redo",
+    "discard": "Discard",
+    "save": "Save",
+    "close": "Close",
+    "saved": "Saved. The displays pick up the layout by themselves.",
+    "unsaved": "There are unsaved changes. The draft stays in this browser until it is saved or discarded.",
+    "saveFailed": "Saving failed: {error}",
+    "stale": "This layout has been changed from elsewhere in the meantime.",
+    "takeTheirs": "Reload – discard my changes",
+    "keepMine": "Save my version – overwrite the other",
+    "needsAdmin": "Editing needs access of level “admin”. Open the address once with “#token=” and the token of that access at the end.",
+    "hint": "Tap a tile to select it. Drag to move it, use the handles at corners and edges to resize. Arrow keys move, with Shift they resize.",
+    "occupied": "No room there: tiles must not overlap.",
+    "remove": "Remove tile",
+    "at": {
+      "x": "Column",
+      "y": "Row",
+      "w": "Width",
+      "h": "Height"
+    },
+    "add": "Add a tile",
+    "copy": "Copy",
+    "noRoom": "There is no free room for “{name}”. Shrink, move or remove a tile first.",
+    "needs": "needs the source “{plugin}”",
+    "unknownType": "The editor does not know this kind of tile; its place can still be changed.",
+    "advanced": "Advanced: settings as JSON",
+    "apply": "Apply",
+    "badJson": "This is not a valid JSON object: {error}",
+    "group": {
+      "house": "House",
+      "media": "Media",
+      "family": "Family",
+      "other": "Other"
+    },
+    "format": "Grid and format",
+    "columns": "Columns",
+    "rows": "Rows",
+    "rescale": "Convert tiles",
+    "rescaleHint": "With conversion the tiles keep their share of the screen. Without it they stay where they are – this adds free room at the edge.",
+    "screen": "Screen",
+    "screenWidth": "Width",
+    "screenHeight": "Height",
+    "screenHint": "Size of the screen the layout is meant for, in pixels – or just the ratio, such as 16 and 9. This view follows it; the display itself always fills its screen.",
+    "gridRange": "Columns and rows are whole numbers from 1 to {max}.",
+    "screenRange": "Width and height of the screen are numbers greater than zero.",
+    "gridCollides": "In the grid {columns} × {rows} tiles would overlap or lie outside. Enlarge, move or remove tiles first.",
+    "gridRounded": "Not all tiles fit the new grid exactly – their edges were moved to the nearest line. Please check; ↶ takes it back.",
+    "settings": "Settings",
+    "place": "Place",
+    "manage": "Layouts",
+    "newLayout": "New layout",
+    "newName": "Name",
+    "nameHint": "Lower-case letters, digits and hyphens – the name is part of the display's address (?layout=name).",
+    "startFrom": "Starts as",
+    "startEmpty": "empty layout",
+    "startCopy": "copy of “{name}” as shown here",
+    "startTemplate": "Template: {name}",
+    "create": "Create",
+    "thisLayout": "This layout",
+    "rename": "Rename",
+    "delete": "Delete",
+    "deleteSure": "Really delete “{name}”?",
+    "deleteYes": "Yes, delete",
+    "cancel": "Cancel",
+    "saveFirst": "Save or discard first – then the layout can be renamed.",
+    "lastLayout": "The last layout cannot be deleted.",
+    "renameWarn": "Displays that carry “?layout={name}” in their address will no longer find the layout."
+  },
+  "catalog": {
+    "value-tile": {
+      "name": "Value",
+      "text": "A reading with status dot and trend line – or as a ring that fills with it."
+    },
+    "switches": {
+      "name": "Switches",
+      "text": "A panel of switches; awnings, shutters and blinds can be moved too."
+    },
+    "chart": {
+      "name": "Chart",
+      "text": "The course of values for today, the week or the month."
+    },
+    "presence": {
+      "name": "Presence",
+      "text": "Who is at home and who is not."
+    },
+    "weather": {
+      "name": "Weather",
+      "text": "Conditions, wind, UV index and the forecast for the coming days."
+    },
+    "sun-moon": {
+      "name": "Sun and moon",
+      "text": "Rise and set, length of day and phase of the moon."
+    },
+    "video": {
+      "name": "Camera",
+      "text": "The live picture of a camera; tapping fills the screen."
+    },
+    "radio": {
+      "name": "Radio",
+      "text": "Station buttons, volume and the current title."
+    },
+    "media-window": {
+      "name": "Media window",
+      "text": "The picture of a TV station, the logo of a radio station."
+    },
+    "news": {
+      "name": "News",
+      "text": "One story with picture, in turn from all feeds."
+    },
+    "image": {
+      "name": "Image",
+      "text": "An image from a web address that renews itself – a webcam, for example."
+    },
+    "web": {
+      "name": "Web page",
+      "text": "A web page inside the tile, such as the rain radar."
+    },
+    "calendar": {
+      "name": "Calendar",
+      "text": "The next appointments, grouped by day."
+    },
+    "reminders": {
+      "name": "Reminders",
+      "text": "Birthdays and other recurring days."
+    },
+    "calls": {
+      "name": "Calls",
+      "text": "Calls and answering machine messages."
+    },
+    "mail": {
+      "name": "E-mail",
+      "text": "The e-mails of all mailboxes, newest first."
+    },
+    "checklist": {
+      "name": "List",
+      "text": "A shopping or to-do list to tick off."
+    },
+    "recipes": {
+      "name": "Recipes",
+      "text": "A recipe with picture in rotation; tapping opens it."
+    },
+    "clock": {
+      "name": "Clock",
+      "text": "Time and date; tapping sets the egg timer."
+    },
+    "voice": {
+      "name": "Speak",
+      "text": "Tap and say a sentence instead of typing."
+    },
+    "note": {
+      "name": "Note",
+      "text": "Keeps a place free and labels it."
+    }
+  },
+  "fields": {
+    "common": {
+      "title": "Heading",
+      "label": "Label",
+      "datapoint": "Datapoint",
+      "source": "Source",
+      "unit": "Unit",
+      "seconds": "Change after seconds",
+      "items": "Entries",
+      "fit": "Fit",
+      "url": "Web address"
+    },
+    "value-tile": {
+      "datapoint": "Reading",
+      "secondary": "Secondary value",
+      "secondaryHint": "A second value, small beside or below – humidity with temperature, for example.",
+      "unitHint": "Only needed if the datapoint gives no unit or an unsuitable one.",
+      "decimals": "Decimal places",
+      "factor": "Factor",
+      "factorHint": "Converts the value for display, such as 100 for a share of 0.58.",
+      "gauge": "Ring",
+      "gaugeHint": "With a largest value the number stands in a ring that fills with it, if the tile is tall enough.",
+      "min": "Smallest value",
+      "max": "Largest value",
+      "warn": "Warning limits",
+      "lowAlarm": "Alarm below",
+      "lowWarn": "Caution below",
+      "highWarn": "Caution above",
+      "highAlarm": "Alarm above",
+      "fresh": "Switch “data is current”",
+      "freshHint": "While this switch is off, the tile is greyed out."
+    },
+    "switches": {
+      "items": "Switches",
+      "type": "Kind",
+      "up": "Button “up”",
+      "down": "Button “down”",
+      "upHint": "Only for covers: a caption instead of the arrow, such as “in”."
+    },
+    "chart": {
+      "series": "Lines",
+      "area": "Fill the area under the line",
+      "forecast": "Forecast (dashed, may reach into the future)"
+    },
+    "presence": {
+      "items": "People",
+      "label": "Name",
+      "home": "Texts for “home”",
+      "homeHint": "Only needed if the source delivers text instead of a switch, such as home. Separate with commas."
+    },
+    "weather": {
+      "temperature": "Temperature",
+      "condition": "Conditions (text)",
+      "code": "Weather code",
+      "codeHint": "Code or icon id from OpenWeatherMap; more precise than the text.",
+      "wind": "Wind",
+      "direction": "Direction in degrees",
+      "speed": "Speed",
+      "unit": "Unit of speed",
+      "uv": "UV index",
+      "sunrise": "Sunrise",
+      "sunset": "Sunset",
+      "days": "Forecast",
+      "daysHint": "The first entry is today.",
+      "max": "High",
+      "min": "Low"
+    },
+    "video": {
+      "source": "Video source",
+      "stream": "Camera",
+      "streamHint": "Id of the stream as set up in the video source.",
+      "tv": "Television from the radio",
+      "tvHint": "While a TV station plays there, the tile shows its picture instead of the camera."
+    },
+    "media-window": {
+      "source": "Radio",
+      "video": "Video source",
+      "idle": "Picture when idle",
+      "idleHint": "Id of a stream of the video source, such as another camera."
+    },
+    "news": {
+      "feeds": "Only these feeds",
+      "feedsHint": "Ids of the feeds, separated by commas; empty shows all.",
+      "closeAfter": "Close article after seconds",
+      "closeAfterHint": "0 leaves it open."
+    },
+    "image": {
+      "refreshSeconds": "Renew after seconds"
+    },
+    "web": {
+      "zoom": "Scale",
+      "zoomHint": "0.5 shows twice as much of the page.",
+      "refreshMinutes": "Reload after minutes",
+      "interactive": "Usable inside the tile"
+    },
+    "calls": {
+      "sound": "Sound when it rings"
+    },
+    "checklist": {
+      "list": "List",
+      "listHint": "Id or name; empty shows the first list of the source.",
+      "recentHours": "Show ticked entries (hours)"
+    },
+    "clock": {
+      "timer": "Egg timer",
+      "timerHint": "Without an egg timer the clock only shows the time.",
+      "ringVolume": "Ring volume (%)",
+      "reminderVolume": "Reminder volume (%)",
+      "reminderVolumeHint": "0 mutes it."
+    },
+    "voice": {
+      "speak": "Read the answer aloud",
+      "wakeWord": "Wake word",
+      "wakeWordHint": "Such as “computer”: the display then listens all the time and carries out what is said after the word."
+    },
+    "note": {
+      "text": "Text"
+    },
+    "options": {
+      "fit": {
+        "cover": "fill (crop at the edge)",
+        "fill": "stretch",
+        "contain": "show all"
+      },
+      "type": {
+        "switch": "Switch",
+        "cover": "Cover (awning, shutter, blind)"
+      }
+    }
+  },
+  "form": {
+    "entry": "Entry {number}",
+    "add": "+ Add",
+    "up": "Move up",
+    "down": "Move down",
+    "remove": "Remove",
+    "usual": "Default",
+    "tags": "Separate several with commas.",
+    "none": "This tile has no settings."
+  },
+  "picker": {
+    "none": "no datapoint",
+    "choose": "Choose",
+    "close": "Close",
+    "search": "Search in id and label",
+    "source": "Source",
+    "allSources": "all sources",
+    "writable": "switchable only",
+    "nothing": "Nothing found.",
+    "more": "The first {shown} of {count} – search to narrow down."
+  },
   "state": {
     "on": "on",
     "off": "off"

@@ -27,14 +27,14 @@ export function bearerToken(header: string | undefined): string | undefined {
   return match?.[1]?.trim();
 }
 
-export type AccessResult = { ok: true; name: string } | { ok: false; status: 401 | 403; error: string };
+export type AccessResult = { ok: true; name: string; role: Role } | { ok: false; status: 401 | 403; error: string };
 
 /**
  * Prüft ein vorgelegtes Token. Ohne eingerichtete Tokens ist die API offen –
  * gedacht für den ersten Start, nicht für den Dauerbetrieb.
  */
 export function authorize(tokens: readonly AccessToken[], presented: string | undefined, needed: Role): AccessResult {
-  if (tokens.length === 0) return { ok: true, name: 'offen' };
+  if (tokens.length === 0) return { ok: true, name: 'offen', role: 'admin' };
   if (!presented) return { ok: false, status: 401, error: 'Zugangstoken fehlt.' };
 
   const match = tokens.find((entry) => sameSecret(entry.token, presented));
@@ -42,7 +42,7 @@ export function authorize(tokens: readonly AccessToken[], presented: string | un
   if (RANK[match.role] < RANK[needed]) {
     return { ok: false, status: 403, error: `Das Token "${match.name}" darf nur ${match.role === 'read' ? 'lesen' : 'bedienen'}.` };
   }
-  return { ok: true, name: match.name };
+  return { ok: true, name: match.name, role: match.role };
 }
 
 /** Vergleich in gleichbleibender Zeit, damit die Antwortdauer nichts über das Token verrät. */

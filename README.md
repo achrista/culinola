@@ -79,6 +79,12 @@ Die Anzeige ist ein Raster. Jedes Widget steht mit `at: [Spalte, Zeile, Breite, 
 
 Unter `layouts` dürfen mehrere Layouts stehen. Eine Anzeige zeigt `main`, mit dem Adresszusatz `?layout=name` ein anderes – so bekommt der Flur ein eigenes Bild, oder ein neuer Entwurf lässt sich neben dem bisherigen ansehen.
 
+**Bearbeiten in der Oberfläche:** Mit dem Zusatz `&edit` – etwa `http://localhost:8090/?layout=main&edit` – öffnet sich das Layout zum Bearbeiten: Kacheln mit Maus oder Finger verschieben, an den Griffen in der Größe ziehen, mit den Pfeiltasten rücken (mit Umschalttaste: Größe), Schritte zurücknehmen. Kacheln dürfen nicht übereinander liegen. Das Layout steht dabei maßstäblich da, wie auf dem Bildschirm, für den es gedacht ist; dessen Größe nennt die freiwillige Angabe `"screen": [1920, 1080]` am Layout (ohne sie gilt 16:9). Raster und Bildschirmgröße lassen sich über die Taste „Raster … ▾“ in der Bedienleiste ändern; die Kacheln werden dabei auf Wunsch in das neue Raster umgerechnet. Geschrieben wird erst mit „Speichern“; bis dahin liegt der Entwurf im Browser. Die Anzeigen übernehmen das gespeicherte Layout ohne Neustart. Die Seitenleiste führt alle Kachelarten zum Hinzufügen – eine neue Kachel landet in ihrer üblichen Größe auf der ersten freien Stelle –, kopiert die gewählte Kachel samt Einstellungen und entfernt sie. Kacheln, deren Quelle nicht eingerichtet ist, stehen ausgegraut da. Die Einstellungen der gewählten Kachel stehen als Formular in der Seitenleiste; Datenpunkte wählt man aus einer Liste, die in Kennung und Bezeichnung sucht, den jetzigen Wert zeigt und sich nach Quelle eingrenzen lässt. Jede Änderung wirkt sofort auf die Kachel. Was kein Formularfeld hat (etwa `map` am Messwert), lässt sich unter „Erweitert“ als JSON ändern. Ist ein Zugriffsschutz eingerichtet, braucht das Bearbeiten einen Zugang der Stufe `admin`.
+
+Über „Layouts ▾“ lassen sich Layouts anlegen – leer, als Kopie des gezeigten oder aus einer mitgelieferten Vorlage (`templates/`: Küche, Flur, nur Haus) –, umbenennen und löschen. Vorlagen bringen die Aufteilung mit, keine Datenpunkte; die trägt man danach in den Kacheln ein. Der Name eines Layouts steht in der Adresse der Anzeige und besteht deshalb aus Kleinbuchstaben, Ziffern und Bindestrichen.
+
+Beim Speichern schreibt der Kern `config.json` neu und legt vorher eine Sicherung daneben (`config.vor-<Zeitstempel>.json`; die letzten zehn bleiben, anders benannte Sicherungen rührt er nicht an). Die Datei von Hand zu ändern bleibt möglich: Geänderte Layouts liest der Kern nach wenigen Sekunden von selbst ein; alles andere wirkt wie bisher nach einem Neustart.
+
 | Typ | Zeigt | Wichtigste Angaben |
 |---|---|---|
 | `clock` | Uhrzeit mit Sekunden und Datum; Antippen stellt die Eieruhr | `timer` (Eieruhr-Instanz), `ringVolume`, `reminderVolume` |
@@ -534,9 +540,14 @@ Die Oberfläche benutzt dieselbe Schnittstelle wie jedes andere Programm. Alle P
 | `GET /series?ids=&from=&to=&step=&agg=` | Verlauf, auf Wunsch verdichtet |
 | `GET /actions` | Verzeichnis der Aktionen |
 | `POST /actions/{name}` | Aktion auslösen, Parameter im Rumpf – z. B. `switch.set` mit `{ "datapoint": "…", "on": true }` |
-| `GET /layouts/{id}` | Layout |
+| `GET /layouts`, `GET /layouts/{id}` | Liste der Layouts; ein Layout mit seinem Stand `rev` |
+| `PUT /layouts/{id}` | Layout speichern (Stufe `admin`), Rumpf `{ "layout": { … }, "rev": "…" }`. `rev` ist der Stand, auf dem die Änderung aufbaut; hat inzwischen jemand anderes gespeichert, antwortet der Kern mit 409. `"force": true` statt `rev` überschreibt |
+| `POST /layouts` | Layout anlegen (Stufe `admin`), Rumpf `{ "id": "flur" }` für ein leeres; dazu `"copy": "main"`, `"template": "kueche"` oder `"layout": { … }` |
+| `POST /layouts/{id}/rename`, `DELETE /layouts/{id}` | Umbenennen (Rumpf `{ "id": "neu" }`) und löschen (Stufe `admin`); das letzte Layout bleibt |
+| `GET /templates` | Mitgelieferte Vorlagen für neue Layouts |
+| `GET /access` | Name und Stufe des vorgelegten Zugangs |
 | `GET /embed?url=` | Ob eine Seite aus einer Kachel `web` das Einbetten erlaubt |
-| WebSocket `/stream` | Änderungen in Echtzeit; abonnieren mit `{ "op": "sub", "topics": ["dp/*"] }` |
+| WebSocket `/stream` | Änderungen in Echtzeit; abonnieren mit `{ "op": "sub", "topics": ["dp/*"] }`. `layout/{id}` meldet, dass ein Layout geändert wurde |
 
 ### Zugriffsschutz
 

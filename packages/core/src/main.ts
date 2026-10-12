@@ -5,9 +5,11 @@ import { ActionRegistry } from './actions.ts';
 import { registerBuiltinActions } from './builtin.ts';
 import { loadAccess, loadConfig, loadSecrets } from './config.ts';
 import { EventHub } from './events.ts';
+import { LayoutStore } from './layouts.ts';
 import { PluginHost } from './plugins.ts';
 import { DatapointRegistry } from './registry.ts';
 import { buildServer } from './server.ts';
+import { loadTemplates } from './templates.ts';
 
 const stamp = () => new Date().toLocaleTimeString('de-DE');
 const log: Logger = {
@@ -37,6 +39,9 @@ const registry = new DatapointRegistry();
 const actions = new ActionRegistry();
 const plugins = new PluginHost(registry, actions, secrets, log, dataDir, config.layouts);
 const events = new EventHub(config.events ?? {}, log);
+// Layouts lassen sich im Betrieb ändern – über die API oder von Hand in der Datei
+const layouts = new LayoutStore(config.layouts, join(dataDir, 'config.json'), config, log);
+const stopWatching = layouts.watch();
 // Meldungen, die an einem Datenpunkt hängen, feuern, sobald er ihre Bedingung neu erfüllt
 registry.on('change', (datapoint) => events.observe(datapoint));
 
@@ -45,7 +50,8 @@ registerBuiltinActions(actions, registry, plugins);
 await plugins.startAll(config.sources);
 
 const uiDir = resolve(import.meta.dirname, '../../ui/dist');
-const servers = [await buildServer({ config, registry, plugins, actions, events, log, access, uiDir })];
+const templates = loadTemplates(resolve(import.meta.dirname, '../../../templates'), log);
+const servers = [await buildServer({ config, registry, plugins, actions, events, layouts, templates, log, access, uiDir })];
 await servers[0]!.listen({ port: config.port, host: '0.0.0.0' });
 log.info(`Culinola läuft auf http://localhost:${config.port}`);
 
@@ -53,7 +59,7 @@ log.info(`Culinola läuft auf http://localhost:${config.port}`);
 if (config.https) {
   try {
     const tls = { cert: readFileSync(join(dataDir, config.https.cert)), key: readFileSync(join(dataDir, config.https.key)) };
-    const secure = await buildServer({ config, registry, plugins, actions, events, log, access, uiDir, tls });
+    const secure = await buildServer({ config, registry, plugins, actions, events, layouts, templates, log, access, uiDir, tls });
     await secure.listen({ port: config.https.port, host: '0.0.0.0' });
     servers.push(secure);
     log.info(`Gesichert erreichbar auf https://localhost:${config.https.port}`);
@@ -64,6 +70,7 @@ if (config.https) {
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, () => {
+    stopWatching();
     plugins.stopAll();
     void Promise.all(servers.map((server) => server.close())).then(() => process.exit(0));
   });

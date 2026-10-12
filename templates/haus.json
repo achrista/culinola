@@ -1,0 +1,220 @@
+{
+  "name": {
+    "de": "Nur Haus",
+    "en": "House only"
+  },
+  "text": {
+    "de": "Haustechnik ohne Medien: Messwerte, zwei Diagramme, Schalter, Anwesenheit, Sonne und Mond.",
+    "en": "Building services without media: readings, two charts, switches, presence, sun and moon."
+  },
+  "layout": {
+    "grid": {
+      "columns": 24,
+      "rows": 12
+    },
+    "screen": [
+      1920,
+      1080
+    ],
+    "widgets": [
+      {
+        "type": "clock",
+        "at": [
+          0,
+          0,
+          6,
+          2
+        ]
+      },
+      {
+        "type": "sun-moon",
+        "at": [
+          18,
+          0,
+          6,
+          4
+        ]
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          6,
+          0,
+          3,
+          2
+        ],
+        "config": {
+          "datapoint": "",
+          "label": "Wohnen"
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          9,
+          0,
+          3,
+          2
+        ],
+        "config": {
+          "datapoint": "",
+          "label": "Bad"
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          12,
+          0,
+          3,
+          2
+        ],
+        "config": {
+          "datapoint": "",
+          "label": "Außen"
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          15,
+          0,
+          3,
+          2
+        ],
+        "config": {
+          "datapoint": "",
+          "label": "Strom"
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          0,
+          2,
+          3,
+          2
+        ],
+        "config": {
+          "datapoint": "",
+          "label": "Solar"
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          3,
+          2,
+          3,
+          2
+        ],
+        "config": {
+          "datapoint": "",
+          "label": "Batterie"
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          6,
+          2,
+          3,
+          2
+        ],
+        "config": {
+          "datapoint": "",
+          "label": "Verbrauch"
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          9,
+          2,
+          3,
+          2
+        ],
+        "config": {
+          "datapoint": "",
+          "label": "Heizung"
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          12,
+          2,
+          3,
+          2
+        ],
+        "config": {
+          "datapoint": "",
+          "label": "Wasser"
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          15,
+          2,
+          3,
+          2
+        ],
+        "config": {
+          "datapoint": "",
+          "label": "Luft"
+        }
+      },
+      {
+        "type": "chart",
+        "at": [
+          0,
+          4,
+          12,
+          5
+        ],
+        "config": {
+          "title": "Strom",
+          "series": []
+        }
+      },
+      {
+        "type": "chart",
+        "at": [
+          12,
+          4,
+          12,
+          5
+        ],
+        "config": {
+          "title": "Temperatur",
+          "series": []
+        }
+      },
+      {
+        "type": "switches",
+        "at": [
+          0,
+          9,
+          16,
+          3
+        ],
+        "config": {
+          "items": []
+        }
+      },
+      {
+        "type": "presence",
+        "at": [
+          16,
+          9,
+          8,
+          3
+        ],
+        "config": {
+          "items": []
+        }
+      }
+    ]
+  }
+}

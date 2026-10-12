@@ -1,0 +1,405 @@
+{
+  "name": {
+    "de": "Küche",
+    "en": "Kitchen"
+  },
+  "text": {
+    "de": "Der ganze Küchenbildschirm: Kameras, Uhr, Wetter, Messwerte, Diagramme, Anrufe, E-Mail, Schalter, Radio, Nachrichten, Termine und Einkaufsliste.",
+    "en": "The whole kitchen screen: cameras, clock, weather, readings, charts, calls, e-mail, switches, radio, news, calendar and shopping list."
+  },
+  "layout": {
+    "grid": {
+      "columns": 48,
+      "rows": 24
+    },
+    "screen": [
+      1920,
+      1080
+    ],
+    "widgets": [
+      {
+        "type": "video",
+        "at": [
+          0,
+          0,
+          10,
+          6
+        ],
+        "config": {
+          "label": "Haustür",
+          "stream": ""
+        }
+      },
+      {
+        "type": "video",
+        "at": [
+          0,
+          6,
+          10,
+          6
+        ],
+        "config": {
+          "label": "Garten / Süd",
+          "stream": ""
+        }
+      },
+      {
+        "type": "sun-moon",
+        "at": [
+          0,
+          12,
+          10,
+          5
+        ]
+      },
+      {
+        "type": "recipes",
+        "at": [
+          0,
+          17,
+          10,
+          7
+        ]
+      },
+      {
+        "type": "clock",
+        "at": [
+          10,
+          0,
+          8,
+          3
+        ]
+      },
+      {
+        "type": "weather",
+        "at": [
+          18,
+          0,
+          13,
+          3
+        ]
+      },
+      {
+        "type": "voice",
+        "at": [
+          31,
+          0,
+          3,
+          3
+        ]
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          10,
+          3,
+          6,
+          1
+        ],
+        "config": {
+          "label": "Schlafen",
+          "datapoint": ""
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          16,
+          3,
+          6,
+          1
+        ],
+        "config": {
+          "label": "Wohnen",
+          "datapoint": ""
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          22,
+          3,
+          6,
+          1
+        ],
+        "config": {
+          "label": "Außen",
+          "datapoint": ""
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          28,
+          3,
+          6,
+          1
+        ],
+        "config": {
+          "label": "Garage",
+          "datapoint": ""
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          10,
+          4,
+          6,
+          1
+        ],
+        "config": {
+          "label": "CO₂ Wohnen",
+          "datapoint": ""
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          16,
+          4,
+          6,
+          1
+        ],
+        "config": {
+          "label": "Feinstaub",
+          "datapoint": ""
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          22,
+          4,
+          6,
+          1
+        ],
+        "config": {
+          "label": "Luftgüte",
+          "datapoint": ""
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          28,
+          4,
+          6,
+          1
+        ],
+        "config": {
+          "label": "Regen",
+          "datapoint": ""
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          10,
+          5,
+          6,
+          1
+        ],
+        "config": {
+          "label": "Verbrauch",
+          "datapoint": ""
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          16,
+          5,
+          6,
+          1
+        ],
+        "config": {
+          "label": "Solar",
+          "datapoint": ""
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          22,
+          5,
+          6,
+          1
+        ],
+        "config": {
+          "label": "Batterie",
+          "datapoint": ""
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          28,
+          5,
+          6,
+          1
+        ],
+        "config": {
+          "label": "Wallbox",
+          "datapoint": ""
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          10,
+          6,
+          6,
+          1
+        ],
+        "config": {
+          "label": "Waschen",
+          "datapoint": ""
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          16,
+          6,
+          6,
+          1
+        ],
+        "config": {
+          "label": "Spülen",
+          "datapoint": ""
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          22,
+          6,
+          6,
+          1
+        ],
+        "config": {
+          "label": "Mäher",
+          "datapoint": ""
+        }
+      },
+      {
+        "type": "value-tile",
+        "at": [
+          28,
+          6,
+          6,
+          1
+        ],
+        "config": {
+          "label": "PV heute",
+          "datapoint": ""
+        }
+      },
+      {
+        "type": "chart",
+        "at": [
+          10,
+          7,
+          13,
+          6
+        ],
+        "config": {
+          "title": "Strom",
+          "series": []
+        }
+      },
+      {
+        "type": "chart",
+        "at": [
+          23,
+          7,
+          11,
+          6
+        ],
+        "config": {
+          "title": "Temperatur",
+          "series": []
+        }
+      },
+      {
+        "type": "calls",
+        "at": [
+          10,
+          13,
+          12,
+          6
+        ]
+      },
+      {
+        "type": "mail",
+        "at": [
+          22,
+          13,
+          12,
+          6
+        ]
+      },
+      {
+        "type": "switches",
+        "at": [
+          10,
+          19,
+          24,
+          2
+        ],
+        "config": {
+          "items": []
+        }
+      },
+      {
+        "type": "radio",
+        "at": [
+          10,
+          21,
+          24,
+          3
+        ]
+      },
+      {
+        "type": "news",
+        "at": [
+          34,
+          0,
+          14,
+          9
+        ]
+      },
+      {
+        "type": "calendar",
+        "at": [
+          34,
+          9,
+          14,
+          5
+        ]
+      },
+      {
+        "type": "reminders",
+        "at": [
+          34,
+          14,
+          14,
+          4
+        ]
+      },
+      {
+        "type": "checklist",
+        "at": [
+          34,
+          18,
+          14,
+          6
+        ],
+        "config": {
+          "title": "Einkaufsliste"
+        }
+      }
+    ]
+  }
+}

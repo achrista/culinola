@@ -4,14 +4,16 @@ import fastifyStatic from '@fastify/static';
 import fastifyWebsocket from '@fastify/websocket';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Datapoint, DatapointValue, Logger } from '@culinola/sdk';
-import { type AccessToken, authorize, bearerToken, requiredRole } from './access.ts';
+import { type AccessToken, type Role, authorize, bearerToken, requiredRole } from './access.ts';
 import { type ActionRegistry, InvalidParams, UnknownAction } from './actions.ts';
 import type { AppConfig } from './config.ts';
 import { EmbedCheck } from './embed.ts';
 import { type EventHub, type Raised, UnknownEvent } from './events.ts';
+import { InvalidLayout, LayoutConflict, type LayoutStore, UnknownLayout } from './layouts.ts';
 import type { PluginHost } from './plugins.ts';
 import type { DatapointRegistry } from './registry.ts';
 import { type Aggregation, downsample, parseDuration, parseTime } from './series.ts';
+import type { Template } from './templates.ts';
 
 const AGGREGATIONS: readonly Aggregation[] = ['avg', 'min', 'max', 'last'];
 /** So groß darf sein, was ein Plugin entgegennimmt – genug für ein Dokument oder ein Foto. */
@@ -23,6 +25,10 @@ export interface ServerDeps {
   plugins: PluginHost;
   actions: ActionRegistry;
   events: EventHub;
+  /** Die Layouts – ein Speicher für alle Server, damit jede Anzeige von jeder Änderung erfährt. */
+  layouts: LayoutStore;
+  /** Mitgelieferte Vorlagen für neue Layouts. */
+  templates?: readonly Template[];
   log: Logger;
   /** Zugelassene Zugänge; leer = API offen. */
   access: readonly AccessToken[];
@@ -32,7 +38,7 @@ export interface ServerDeps {
   tls?: { cert: Buffer; key: Buffer };
 }
 
-export async function buildServer({ config, registry, plugins, actions, events, log, access, uiDir, tls }: ServerDeps): Promise<FastifyInstance> {
+export async function buildServer({ config, registry, plugins, actions, events, layouts, templates = [], log, access, uiDir, tls }: ServerDeps): Promise<FastifyInstance> {
   // Mit und ohne Zertifikat ist es derselbe Server; nur die Art der Verbindung unterscheidet sich
   const app = (tls ? Fastify({ logger: false, https: tls }) : Fastify({ logger: false })) as unknown as FastifyInstance;
   await app.register(fastifyWebsocket);
@@ -40,8 +46,10 @@ export async function buildServer({ config, registry, plugins, actions, events, 
   // Eingabefehler als 400 mit lesbarer Meldung statt als 500
   class BadRequest extends Error {}
   app.setErrorHandler((error: Error, _request, reply) => {
-    if (error instanceof BadRequest || error instanceof InvalidParams) return reply.code(400).send({ error: error.message });
-    if (error instanceof UnknownAction || error instanceof UnknownEvent) return reply.code(404).send({ error: error.message });
+    if (error instanceof BadRequest || error instanceof InvalidParams || error instanceof InvalidLayout) return reply.code(400).send({ error: error.message });
+    if (error instanceof UnknownAction || error instanceof UnknownEvent || error instanceof UnknownLayout) return reply.code(404).send({ error: error.message });
+    // Jemand anderes war schneller: Der Aufrufer bekommt den Stand, der jetzt gilt, und entscheidet
+    if (error instanceof LayoutConflict) return reply.code(409).send({ error: error.message, ...(error.rev ? { rev: error.rev } : {}) });
     // Was der Server selbst am Aufruf beanstandet – zu groß, nicht lesbar –, ist ebenfalls ein Fehler des Aufrufers
     const status = (error as { statusCode?: number }).statusCode;
     if (status === 413) return reply.code(413).send({ error: 'Die Datei ist zu groß.' });
@@ -60,6 +68,7 @@ export async function buildServer({ config, registry, plugins, actions, events, 
   // Zugriffsschutz für alles unter /api. Nur der Echtzeitkanal nimmt das Token als
   // Adresszusatz an, weil Browser dort keine eigene Kopfzeile mitschicken können;
   // überall sonst bleibt es aus der Adresse heraus, damit es in keinem Protokoll landet.
+  const granted = new WeakMap<object, { name: string; role: Role }>();
   app.addHook('onRequest', async (request, reply) => {
     if (!request.url.startsWith('/api/')) return;
     // Auch Ton- und Bildelemente des Browsers können keine Kopfzeile setzen – deshalb gilt
@@ -67,11 +76,15 @@ export async function buildServer({ config, registry, plugins, actions, events, 
     const mayUseAddress = request.url.startsWith('/api/v1/stream') || (request.method === 'GET' && request.url.startsWith('/api/v1/p/'));
     const fromAddress = mayUseAddress ? (request.query as { token?: string } | undefined)?.token : undefined;
     const presented = bearerToken(request.headers.authorization) ?? fromAddress;
-    // Eine Adresse kann ihre Stufe selbst nennen – etwa ein POST, der nur liest
-    const declared = (request.routeOptions?.config as { role?: 'read' } | undefined)?.role;
+    // Eine Adresse kann ihre Stufe selbst nennen – etwa ein POST, der nur liest, oder das Einrichten
+    const declared = (request.routeOptions?.config as { role?: Role } | undefined)?.role;
     const result = authorize(access, presented, declared ?? requiredRole(request.method));
     if (!result.ok) return reply.code(result.status).send({ error: result.error });
+    granted.set(request.raw, { name: result.name, role: result.role });
   });
+
+  // Was der vorgelegte Zugang darf – damit die Oberfläche nur anbietet, was der Kern auch annimmt
+  app.get('/api/v1/access', (request) => granted.get(request.raw));
 
   app.get('/api/v1/status', () => ({ sources: plugins.status, datapoints: registry.all().length, protected: access.length > 0 }));
 
@@ -183,14 +196,54 @@ export async function buildServer({ config, registry, plugins, actions, events, 
     return embeds.check(url, request.headers.host);
   });
 
+  app.get('/api/v1/layouts', () => layouts.ids().map((id) => ({ id, grid: layouts.get(id)?.grid, widgets: layouts.get(id)?.widgets?.length ?? 0, rev: layouts.rev(id) })));
+
+  // Mit dem Layout kommt sein Stand ("rev"); wer es ändert, schickt ihn beim Speichern wieder mit
   app.get<{ Params: { id: string } }>('/api/v1/layouts/:id', (request, reply) => {
-    const layout = config.layouts[request.params.id];
-    return layout ?? reply.code(404).send({ error: `Layout "${request.params.id}" ist unbekannt.` });
+    const layout = layouts.get(request.params.id);
+    return layout ? { ...layout, rev: layouts.rev(request.params.id) } : reply.code(404).send({ error: `Layout "${request.params.id}" ist unbekannt.` });
   });
+
+  // Einrichten: Der Kern prüft das Layout, sichert die bisherige Konfiguration und schreibt die neue
+  app.put<{ Params: { id: string }; Body: { layout?: unknown; rev?: unknown; force?: unknown } | null }>('/api/v1/layouts/:id', { config: { role: 'admin' } }, (request) => {
+    const { layout, rev, force } = request.body ?? {};
+    if (layout === undefined) throw new BadRequest('Im Rumpf fehlt "layout".');
+    if (force !== true && typeof rev !== 'string') throw new BadRequest('Im Rumpf fehlt "rev" – der Stand, auf dem die Änderung aufbaut.');
+    return { ok: true, rev: layouts.save(request.params.id, layout, typeof rev === 'string' ? rev : undefined, force === true) };
+  });
+
+  // Neues Layout: leer, als Kopie eines vorhandenen ("copy"), aus einer Vorlage ("template") oder mitgebracht ("layout")
+  app.post<{ Body: { id?: unknown; copy?: unknown; template?: unknown; layout?: unknown } | null }>('/api/v1/layouts', { config: { role: 'admin' } }, (request) => {
+    const { id, copy, template, layout } = request.body ?? {};
+    if (typeof id !== 'string') throw new BadRequest('Im Rumpf fehlt "id" – der Name des neuen Layouts.');
+    let start: unknown = layout ?? { grid: { columns: 48, rows: 24 }, widgets: [] };
+    if (typeof copy === 'string') {
+      start = layouts.get(copy);
+      if (!start) throw new UnknownLayout(`Layout "${copy}" ist unbekannt.`);
+    } else if (typeof template === 'string') {
+      start = templates.find((entry) => entry.id === template)?.layout;
+      if (!start) throw new UnknownLayout(`Vorlage "${template}" ist unbekannt.`);
+    }
+    return { ok: true, id, rev: layouts.create(id, structuredClone(start)) };
+  });
+
+  app.post<{ Params: { id: string }; Body: { id?: unknown } | null }>('/api/v1/layouts/:id/rename', { config: { role: 'admin' } }, (request) => {
+    const to = request.body?.id;
+    if (typeof to !== 'string') throw new BadRequest('Im Rumpf fehlt "id" – der neue Name.');
+    layouts.rename(request.params.id, to);
+    return { ok: true, id: to };
+  });
+
+  app.delete<{ Params: { id: string } }>('/api/v1/layouts/:id', { config: { role: 'admin' } }, (request) => {
+    layouts.remove(request.params.id);
+    return { ok: true };
+  });
+
+  app.get('/api/v1/templates', () => templates.map(({ id, name, text, layout }) => ({ id, name, text, grid: layout.grid, widgets: layout.widgets.length })));
 
   // Echtzeitkanal: Die Anzeige abonniert Themen ("dp/*", "dp/openhab:*", "dp/<Kennung>")
   // und bekommt zuerst den aktuellen Stand, danach jede Änderung. Mit "event/*" kommen die
-  // Meldungen dazu – nur neue, keine vergangenen.
+  // Meldungen dazu – nur neue, keine vergangenen. Mit "layout/<Name>" erfährt sie, dass ihr Layout geändert wurde.
   app.get('/api/v1/stream', { websocket: true }, (socket) => {
     let topics: string[] = [];
     const matches = (id: string) => topics.some((topic) => (topic.endsWith('*') ? `dp/${id}`.startsWith(topic.slice(0, -1)) : topic === `dp/${id}`));
@@ -203,9 +256,13 @@ export async function buildServer({ config, registry, plugins, actions, events, 
     const stopEvents = events.onRaised((raised: Raised) => {
       if (topics.includes('event/*') || topics.includes(`event/${raised.name}`)) socket.send(JSON.stringify({ t: `event/${raised.name}`, d: raised }));
     });
+    const stopLayouts = layouts.onChange((id, rev) => {
+      if (topics.includes('layout/*') || topics.includes(`layout/${id}`)) socket.send(JSON.stringify({ t: `layout/${id}`, d: { id, ...(rev ? { rev } : {}) } }));
+    });
     socket.on('close', () => {
       registry.off('change', onChange);
       stopEvents();
+      stopLayouts();
     });
     socket.on('message', (data: Buffer) => {
       let message: { op?: string; topics?: unknown };

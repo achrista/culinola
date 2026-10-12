@@ -5,6 +5,315 @@
     "offline": "Keine Verbindung zum Kern – neuer Versuch läuft",
     "unknownWidget": "Unbekanntes Widget „{type}“"
   },
+  "editor": {
+    "layout": "Layout",
+    "grid": "Raster {columns} × {rows}",
+    "undo": "Rückgängig",
+    "redo": "Wiederholen",
+    "discard": "Verwerfen",
+    "save": "Speichern",
+    "close": "Schließen",
+    "saved": "Gespeichert. Die Anzeigen übernehmen das Layout von selbst.",
+    "unsaved": "Es gibt ungespeicherte Änderungen. Der Entwurf bleibt in diesem Browser, bis er gespeichert oder verworfen wird.",
+    "saveFailed": "Speichern fehlgeschlagen: {error}",
+    "stale": "Dieses Layout wurde inzwischen von anderer Seite geändert.",
+    "takeTheirs": "Neu laden – meine Änderungen verwerfen",
+    "keepMine": "Meinen Stand speichern – das andere überschreiben",
+    "needsAdmin": "Zum Bearbeiten braucht es einen Zugang der Stufe „admin“. Öffnen Sie die Adresse einmal mit dem Zusatz „#token=“ und dem Token dieses Zugangs am Ende.",
+    "hint": "Kachel antippen, um sie zu wählen. Ziehen verschiebt sie, die Griffe an Ecken und Kanten ändern die Größe. Pfeiltasten verschieben, mit Umschalttaste ändern sie die Größe.",
+    "occupied": "Dort ist kein Platz: Kacheln dürfen nicht übereinander liegen.",
+    "remove": "Kachel entfernen",
+    "at": {
+      "x": "Spalte",
+      "y": "Zeile",
+      "w": "Breite",
+      "h": "Höhe"
+    },
+    "add": "Kachel hinzufügen",
+    "copy": "Kopieren",
+    "noRoom": "Für „{name}“ ist kein Platz frei. Erst eine Kachel verkleinern, verschieben oder entfernen.",
+    "needs": "braucht die Quelle „{plugin}“",
+    "unknownType": "Diese Kachelart kennt der Editor nicht; ihr Platz lässt sich trotzdem ändern.",
+    "advanced": "Erweitert: Einstellungen als JSON",
+    "apply": "Übernehmen",
+    "badJson": "Das ist kein gültiges JSON-Objekt: {error}",
+    "group": {
+      "house": "Haus",
+      "media": "Medien",
+      "family": "Familie",
+      "other": "Sonstiges"
+    },
+    "format": "Raster und Format",
+    "columns": "Spalten",
+    "rows": "Zeilen",
+    "rescale": "Kacheln umrechnen",
+    "rescaleHint": "Mit Umrechnen behalten die Kacheln ihren Anteil am Bildschirm. Ohne bleiben sie stehen, wo sie sind – so kommt am Rand freier Platz dazu.",
+    "screen": "Bildschirm",
+    "screenWidth": "Breite",
+    "screenHeight": "Höhe",
+    "screenHint": "Größe des Bildschirms, für den das Layout gedacht ist, in Bildpunkten – oder nur das Verhältnis, etwa 16 und 9. Danach richtet sich diese Ansicht; die Anzeige selbst füllt immer ihren Bildschirm.",
+    "gridRange": "Spalten und Zeilen sind ganze Zahlen von 1 bis {max}.",
+    "screenRange": "Breite und Höhe des Bildschirms sind Zahlen größer als null.",
+    "gridCollides": "Im Raster {columns} × {rows} lägen Kacheln übereinander oder außerhalb. Erst Kacheln vergrößern, verschieben oder entfernen.",
+    "gridRounded": "Nicht alle Kacheln gehen im neuen Raster auf – ihre Kanten wurden auf die nächste Linie gerückt. Bitte ansehen; ↶ nimmt es zurück.",
+    "settings": "Einstellungen",
+    "place": "Platz",
+    "manage": "Layouts",
+    "newLayout": "Neues Layout",
+    "newName": "Name",
+    "nameHint": "Kleinbuchstaben, Ziffern und Bindestriche, ohne Umlaute – der Name steht in der Adresse der Anzeige (?layout=name).",
+    "startFrom": "Beginnt als",
+    "startEmpty": "leeres Layout",
+    "startCopy": "Kopie von „{name}“, wie es hier steht",
+    "startTemplate": "Vorlage: {name}",
+    "create": "Anlegen",
+    "thisLayout": "Dieses Layout",
+    "rename": "Umbenennen",
+    "delete": "Löschen",
+    "deleteSure": "„{name}“ wirklich löschen?",
+    "deleteYes": "Ja, löschen",
+    "cancel": "Abbrechen",
+    "saveFirst": "Erst speichern oder verwerfen – dann lässt sich das Layout umbenennen.",
+    "lastLayout": "Das letzte Layout lässt sich nicht löschen.",
+    "renameWarn": "Anzeigen, die „?layout={name}“ in ihrer Adresse tragen, finden das Layout danach nicht mehr."
+  },
+  "catalog": {
+    "value-tile": {
+      "name": "Messwert",
+      "text": "Ein Wert mit Statuspunkt und Verlaufslinie – oder als Ring, der sich mit ihm füllt."
+    },
+    "switches": {
+      "name": "Schalter",
+      "text": "Ein Feld von Schaltern; auch Markise, Rollladen und Jalousie lassen sich fahren."
+    },
+    "chart": {
+      "name": "Diagramm",
+      "text": "Der Verlauf von Werten für heute, die Woche oder den Monat."
+    },
+    "presence": {
+      "name": "Anwesenheit",
+      "text": "Wer zu Hause ist und wer nicht."
+    },
+    "weather": {
+      "name": "Wetter",
+      "text": "Wetterlage, Wind, UV-Index und die Vorhersage der nächsten Tage."
+    },
+    "sun-moon": {
+      "name": "Sonne und Mond",
+      "text": "Auf- und Untergang, Tageslänge und Mondphase."
+    },
+    "video": {
+      "name": "Kamera",
+      "text": "Das Live-Bild einer Kamera; Antippen füllt den Bildschirm."
+    },
+    "radio": {
+      "name": "Radio",
+      "text": "Sendertasten, Lautstärke und der laufende Titel."
+    },
+    "media-window": {
+      "name": "Medienfenster",
+      "text": "Das Fernsehbild beim Fernsehsender, das Logo beim Radiosender."
+    },
+    "news": {
+      "name": "Nachrichten",
+      "text": "Eine Meldung mit Bild, reihum aus allen Feeds."
+    },
+    "image": {
+      "name": "Bild",
+      "text": "Ein Bild von einer Webadresse, das sich von selbst erneuert – etwa eine Webcam."
+    },
+    "web": {
+      "name": "Webseite",
+      "text": "Eine fremde Webseite in der Kachel, etwa das Regenradar."
+    },
+    "calendar": {
+      "name": "Termine",
+      "text": "Die nächsten Termine, nach Tagen gegliedert."
+    },
+    "reminders": {
+      "name": "Erinnerungen",
+      "text": "Geburtstage und andere wiederkehrende Tage."
+    },
+    "calls": {
+      "name": "Anrufe",
+      "text": "Anrufe und Nachrichten des Anrufbeantworters."
+    },
+    "mail": {
+      "name": "E-Mail",
+      "text": "Die E-Mails aller Postfächer, das Neueste zuerst."
+    },
+    "checklist": {
+      "name": "Liste",
+      "text": "Eine Einkaufs- oder Aufgabenliste zum Abhaken."
+    },
+    "recipes": {
+      "name": "Rezepte",
+      "text": "Ein Rezept mit Bild im Wechsel; Antippen öffnet es."
+    },
+    "clock": {
+      "name": "Uhr",
+      "text": "Uhrzeit und Datum; Antippen stellt die Eieruhr."
+    },
+    "voice": {
+      "name": "Sprechen",
+      "text": "Antippen und einen Satz sagen, statt zu tippen."
+    },
+    "note": {
+      "name": "Notiz",
+      "text": "Hält einen Platz frei und beschriftet ihn."
+    }
+  },
+  "fields": {
+    "common": {
+      "title": "Überschrift",
+      "label": "Bezeichnung",
+      "datapoint": "Datenpunkt",
+      "source": "Quelle",
+      "unit": "Einheit",
+      "seconds": "Wechsel nach Sekunden",
+      "items": "Einträge",
+      "fit": "Einpassen",
+      "url": "Webadresse"
+    },
+    "value-tile": {
+      "datapoint": "Messwert",
+      "secondary": "Nebenwert",
+      "secondaryHint": "Ein zweiter Wert, klein daneben oder darunter – etwa die Feuchte zur Temperatur.",
+      "unitHint": "Nur nötig, wenn der Datenpunkt keine oder eine unpassende Einheit nennt.",
+      "decimals": "Nachkommastellen",
+      "factor": "Faktor",
+      "factorHint": "Rechnet den Wert für die Anzeige um, etwa 100 für einen Anteil von 0,58.",
+      "gauge": "Ring",
+      "gaugeHint": "Mit einem größten Wert steht die Zahl in einer hohen Kachel in einem Ring, der sich mit ihr füllt.",
+      "min": "Kleinster Wert",
+      "max": "Größter Wert",
+      "warn": "Warngrenzen",
+      "lowAlarm": "Alarm unter",
+      "lowWarn": "Achtung unter",
+      "highWarn": "Achtung über",
+      "highAlarm": "Alarm über",
+      "fresh": "Schalter „Daten aktuell“",
+      "freshHint": "Ist dieser Schalter aus, steht die Kachel ausgegraut da."
+    },
+    "switches": {
+      "items": "Schalter",
+      "type": "Art",
+      "up": "Taste „hoch“",
+      "down": "Taste „herunter“",
+      "upHint": "Nur beim Fahren: Beschriftung statt des Pfeils, etwa „ein“."
+    },
+    "chart": {
+      "series": "Linien",
+      "area": "Fläche unter der Linie füllen",
+      "forecast": "Prognose (gestrichelt, darf in die Zukunft reichen)"
+    },
+    "presence": {
+      "items": "Personen",
+      "label": "Name",
+      "home": "Texte für „daheim“",
+      "homeHint": "Nur nötig, wenn die Quelle Text statt eines Schalters liefert, etwa home, daheim. Mit Komma trennen."
+    },
+    "weather": {
+      "temperature": "Temperatur",
+      "condition": "Wetterlage (Text)",
+      "code": "Wetterkennzahl",
+      "codeHint": "Kennzahl oder Symbolkennung von OpenWeatherMap; genauer als der Text.",
+      "wind": "Wind",
+      "direction": "Richtung in Grad",
+      "speed": "Geschwindigkeit",
+      "unit": "Einheit der Geschwindigkeit",
+      "uv": "UV-Index",
+      "sunrise": "Sonnenaufgang",
+      "sunset": "Sonnenuntergang",
+      "days": "Vorhersage",
+      "daysHint": "Der erste Eintrag ist heute.",
+      "max": "Höchstwert",
+      "min": "Tiefstwert"
+    },
+    "video": {
+      "source": "Videoquelle",
+      "stream": "Kamera",
+      "streamHint": "Kennung des Streams, wie sie in der Videoquelle eingerichtet ist.",
+      "tv": "Fernsehen aus dem Radio",
+      "tvHint": "Läuft dort ein Fernsehsender, zeigt die Kachel sein Bild statt der Kamera."
+    },
+    "media-window": {
+      "source": "Radio",
+      "video": "Videoquelle",
+      "idle": "Bild im Ruhezustand",
+      "idleHint": "Kennung eines Streams der Videoquelle, etwa eine weitere Kamera."
+    },
+    "news": {
+      "feeds": "Nur diese Feeds",
+      "feedsHint": "Kennungen der Feeds, mit Komma getrennt; leer zeigt alle.",
+      "closeAfter": "Artikel schließen nach Sekunden",
+      "closeAfterHint": "0 lässt ihn offen."
+    },
+    "image": {
+      "refreshSeconds": "Erneuern nach Sekunden"
+    },
+    "web": {
+      "zoom": "Maßstab",
+      "zoomHint": "0,5 zeigt doppelt so viel von der Seite.",
+      "refreshMinutes": "Neu laden nach Minuten",
+      "interactive": "Schon in der Kachel bedienbar"
+    },
+    "calls": {
+      "sound": "Ton, wenn es klingelt"
+    },
+    "checklist": {
+      "list": "Liste",
+      "listHint": "Kennung oder Name; leer zeigt die erste Liste der Quelle.",
+      "recentHours": "Abgehaktes zeigen (Stunden)"
+    },
+    "clock": {
+      "timer": "Eieruhr",
+      "timerHint": "Ohne Eieruhr zeigt die Uhr nur die Zeit.",
+      "ringVolume": "Lautstärke des Klingelns (%)",
+      "reminderVolume": "Lautstärke des Erinnerungstons (%)",
+      "reminderVolumeHint": "0 schaltet ihn stumm."
+    },
+    "voice": {
+      "speak": "Antwort vorlesen",
+      "wakeWord": "Aktivierungswort",
+      "wakeWordHint": "Etwa „computer“: Die Anzeige hört dann dauernd mit und führt aus, was nach dem Wort gesagt wird."
+    },
+    "note": {
+      "text": "Text"
+    },
+    "options": {
+      "fit": {
+        "cover": "füllen (am Rand beschneiden)",
+        "fill": "strecken",
+        "contain": "ganz zeigen"
+      },
+      "type": {
+        "switch": "Schalter",
+        "cover": "Fahren (Markise, Rollladen, Jalousie)"
+      }
+    }
+  },
+  "form": {
+    "entry": "Eintrag {number}",
+    "add": "+ Hinzufügen",
+    "up": "Nach oben",
+    "down": "Nach unten",
+    "remove": "Entfernen",
+    "usual": "Vorgabe",
+    "tags": "Mehrere mit Komma trennen.",
+    "none": "Diese Kachel hat keine Einstellungen."
+  },
+  "picker": {
+    "none": "kein Datenpunkt",
+    "choose": "Wählen",
+    "close": "Zu",
+    "search": "Suchen in Kennung und Bezeichnung",
+    "source": "Quelle",
+    "allSources": "alle Quellen",
+    "writable": "nur Schaltbares",
+    "nothing": "Nichts gefunden.",
+    "more": "Die ersten {shown} von {count} – die Suche grenzt ein."
+  },
   "state": {
     "on": "an",
     "off": "aus"

@@ -1,0 +1,67 @@
+{
+  "name": {
+    "de": "Flur",
+    "en": "Hallway"
+  },
+  "text": {
+    "de": "Für den Blick im Vorbeigehen: Uhr, Wetter, Termine, Erinnerungen und die Einkaufsliste.",
+    "en": "For a glance in passing: clock, weather, calendar, reminders and the shopping list."
+  },
+  "layout": {
+    "grid": {
+      "columns": 24,
+      "rows": 12
+    },
+    "screen": [
+      1920,
+      1080
+    ],
+    "widgets": [
+      {
+        "type": "clock",
+        "at": [
+          0,
+          0,
+          10,
+          4
+        ]
+      },
+      {
+        "type": "weather",
+        "at": [
+          10,
+          0,
+          14,
+          4
+        ]
+      },
+      {
+        "type": "calendar",
+        "at": [
+          0,
+          4,
+          12,
+          5
+        ]
+      },
+      {
+        "type": "reminders",
+        "at": [
+          0,
+          9,
+          12,
+          3
+        ]
+      },
+      {
+        "type": "checklist",
+        "at": [
+          12,
+          4,
+          12,
+          8
+        ]
+      }
+    ]
+  }
+}

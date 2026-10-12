@@ -34,11 +34,22 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
   return token ? { ...extra, Authorization: `Bearer ${token}` } : extra;
 }
 
+/** Der Kern hat den Aufruf abgelehnt; `status` und der Rumpf seiner Antwort sagen, warum. */
+export class ApiError extends Error {
+  readonly status: number;
+  readonly body: Record<string, unknown>;
+  constructor(message: string, status: number, body: Record<string, unknown>) {
+    super(message);
+    this.status = status;
+    this.body = body;
+  }
+}
+
 async function read<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string };
     const message = body.error ?? `${response.status} ${response.statusText}`;
-    throw response.status === 401 ? new AccessDenied(message) : new Error(message);
+    throw response.status === 401 ? new AccessDenied(message) : new ApiError(message, response.status, body);
   }
   return (await response.json()) as T;
 }
@@ -49,6 +60,14 @@ export async function getJson<T>(path: string): Promise<T> {
 
 export async function postJson<T>(path: string, body: unknown): Promise<T> {
   return read<T>(await fetch(BASE + path, { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) }));
+}
+
+export async function putJson<T>(path: string, body: unknown): Promise<T> {
+  return read<T>(await fetch(BASE + path, { method: 'PUT', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) }));
+}
+
+export async function deleteJson<T>(path: string): Promise<T> {
+  return read<T>(await fetch(BASE + path, { method: 'DELETE', headers: headers() }));
 }
 
 /** Schickt eine Datei als rohe Bytes – so nimmt sie der Kern für ein Plugin entgegen. */

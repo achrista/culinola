@@ -43,11 +43,11 @@ export class PluginHost {
 
   private readonly dataDir: string;
   /** Was auf den Anzeigen steht – so heißen die Werte im Haus. */
-  private readonly shown: ShownDatapoint[];
+  private readonly layouts: Record<string, LayoutConfig>;
 
   constructor(registry: DatapointRegistry, actions: ActionRegistry, secrets: Record<string, Record<string, string>>, log: Logger, dataDir: string, layouts: Record<string, LayoutConfig> = {}) {
     this.dataDir = dataDir;
-    this.shown = shownDatapoints(layouts);
+    this.layouts = layouts;
     this.registry = registry;
     this.actions = actions;
     this.secrets = secrets;
@@ -95,7 +95,8 @@ export class PluginHost {
           });
         },
         list: () => this.registry.all(),
-        shown: () => this.shown.map((entry) => ({ ...entry })),
+        // Jedes Mal neu gelesen: Layouts lassen sich im Betrieb ändern
+        shown: (): ShownDatapoint[] => shownDatapoints(this.layouts),
       },
       actions: {
         register: (definition, handler) => this.actions.register(definition, handler),

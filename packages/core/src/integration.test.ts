@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Datapoint, Logger } from '@culinola/sdk';
@@ -9,9 +9,11 @@ import { ActionRegistry } from './actions.ts';
 import { registerBuiltinActions } from './builtin.ts';
 import type { AppConfig } from './config.ts';
 import { EventHub, parseEvents } from './events.ts';
+import { LayoutStore } from './layouts.ts';
 import { PluginHost } from './plugins.ts';
 import { DatapointRegistry } from './registry.ts';
 import { buildServer } from './server.ts';
+import { parseTemplate } from './templates.ts';
 
 /**
  * Zusammenspiel von Kern und Plugins: ein vollständiger Kern mit echten Plugins in einem
@@ -50,7 +52,11 @@ const servers: FastifyInstance[] = [];
 async function core(access: readonly AccessToken[]): Promise<FastifyInstance> {
   const registry = new DatapointRegistry();
   const actions = new ActionRegistry();
-  const plugins = new PluginHost(registry, actions, {}, quiet, dataDir, config.layouts);
+  // Jeder Kern bekommt eigene Layouts und eine eigene Datei: Was der eine speichert, sieht der andere nicht
+  const own = { ...config, layouts: structuredClone(config.layouts) };
+  const file = join(dataDir, `kern-${servers.length}`, 'config.json');
+  const layouts = new LayoutStore(own.layouts, file, own, quiet);
+  const plugins = new PluginHost(registry, actions, {}, quiet, dataDir, own.layouts);
   registerBuiltinActions(actions, registry, plugins);
   const events = new EventHub(config.events ?? {}, quiet);
   registry.on('change', (datapoint) => events.observe(datapoint));
@@ -59,7 +65,7 @@ async function core(access: readonly AccessToken[]): Promise<FastifyInstance> {
   // Zwei Adressen wie von einem Plugin angemeldet: eine, die nur liest, obwohl sie POST benutzt, und eine gewöhnliche
   plugins.routes.push({ method: 'POST', instance: 'probe', path: '/lesen', role: 'read', handler: () => Response.json({ ok: true }) });
   plugins.routes.push({ method: 'POST', instance: 'probe', path: '/schalten', handler: () => Response.json({ ok: true }) });
-  const server = await buildServer({ config, registry, plugins, actions, events, log: quiet, access });
+  const server = await buildServer({ config: own, registry, plugins, actions, events, layouts, templates: [parseTemplate('klein', { name: { de: 'Klein' }, layout: { grid: { columns: 4, rows: 2 }, widgets: [{ type: 'clock', at: [0, 0, 4, 2] }] } })], log: quiet, access });
   servers.push(server);
   return server;
 }
@@ -102,6 +108,70 @@ describe('Kern mit Plugins, API offen', () => {
     expect((await app.inject('/api/v1/layouts/main')).json()).toMatchObject({ grid: { columns: 2, rows: 1 } });
     expect((await app.inject('/api/v1/layouts/fehlt')).statusCode).toBe(404);
     expect((await app.inject('/api/v1/site')).json()).toEqual({ language: 'de', region: 'de-DE' });
+  });
+
+  it('speichert ein Layout über die API, schreibt es in die Datei und sagt es den Anzeigen', async () => {
+    const loaded = (await app.inject('/api/v1/layouts/main')).json<{ rev: string; grid: unknown; widgets: { type: string; at: number[]; config?: unknown }[] }>();
+    expect((await app.inject('/api/v1/layouts')).json()).toEqual([{ id: 'main', grid: { columns: 2, rows: 1 }, widgets: 2, rev: loaded.rev }]);
+    const socket = await app.injectWS('/api/v1/stream');
+    const seen: unknown[] = [];
+    socket.on('message', (data: Buffer) => seen.push(JSON.parse(data.toString())));
+    socket.send(JSON.stringify({ op: 'sub', topics: ['layout/main'] }));
+    await new Promise((resume) => setTimeout(resume, 50));
+
+    // Die beiden Kacheln tauschen die Plätze; die Seite der zweiten wird eine andere
+    const { rev, ...layout } = loaded;
+    layout.widgets = [{ ...layout.widgets[0]!, at: [1, 0, 1, 1] }, { ...layout.widgets[1]!, at: [0, 0, 1, 1], config: { url: 'https://andere.example/' } }];
+    const put = (payload: object) => app.inject({ method: 'PUT', url: '/api/v1/layouts/main', payload });
+    const saved = await put({ layout, rev });
+    expect(saved.statusCode).toBe(200);
+    const next = saved.json<{ rev: string }>().rev;
+    await new Promise((resume) => setTimeout(resume, 50));
+    socket.terminate();
+
+    expect((await app.inject('/api/v1/layouts/main')).json()).toEqual({ ...layout, rev: next });
+    expect(seen).toEqual([{ t: 'layout/main', d: { id: 'main', rev: next } }]);
+    expect(JSON.parse(readFileSync(join(dataDir, 'kern-0', 'config.json'), 'utf8')).layouts.main).toEqual(layout);
+    // Was der Kern sonst aus den Layouts liest, folgt: Die neue Seite darf geprüft werden, die alte nicht mehr
+    expect((await app.inject('/api/v1/embed?url=https%3A%2F%2Fseite.example%2F')).statusCode).toBe(400);
+
+    // Auf dem alten Stand speichern: abgelehnt mit dem Stand, der jetzt gilt
+    const late = await put({ layout, rev });
+    expect([late.statusCode, late.json<{ rev: string }>().rev]).toEqual([409, next]);
+    const overlapping = await put({ layout: { ...layout, widgets: [layout.widgets[0], layout.widgets[0]] }, rev: next });
+    expect([overlapping.statusCode, overlapping.json<{ error: string }>().error]).toEqual([400, 'Kachel 2 ("clock") liegt über Kachel 1 ("clock").']);
+    expect((await put({ layout })).statusCode).toBe(400);
+    expect((await put({ rev: next })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'PUT', url: '/api/v1/layouts/fehlt', payload: { layout, rev: next } })).statusCode).toBe(404);
+  });
+
+  it('legt Layouts an, benennt sie um und löscht sie – nur das letzte nicht', async () => {
+    const post = (url: string, payload: object) => app.inject({ method: 'POST', url, payload });
+    const names = async () => (await app.inject('/api/v1/layouts')).json<{ id: string }[]>().map((entry) => entry.id);
+    expect((await app.inject('/api/v1/templates')).json()).toEqual([{ id: 'klein', name: { de: 'Klein' }, text: {}, grid: { columns: 4, rows: 2 }, widgets: 1 }]);
+
+    expect((await post('/api/v1/layouts', { id: 'leer' })).statusCode).toBe(200);
+    expect((await post('/api/v1/layouts', { id: 'kopie', copy: 'main' })).statusCode).toBe(200);
+    expect((await post('/api/v1/layouts', { id: 'vorlage', template: 'klein' })).statusCode).toBe(200);
+    expect(await names()).toEqual(['main', 'leer', 'kopie', 'vorlage']);
+    expect((await app.inject('/api/v1/layouts/leer')).json()).toMatchObject({ grid: { columns: 48, rows: 24 }, widgets: [] });
+    expect((await app.inject('/api/v1/layouts/kopie')).json<{ rev: string }>().rev).toBe((await app.inject('/api/v1/layouts/main')).json<{ rev: string }>().rev);
+    expect((await app.inject('/api/v1/layouts/vorlage')).json()).toMatchObject({ widgets: [{ type: 'clock' }] });
+
+    for (const [payload, status] of [[{ id: 'leer' }, 409], [{ id: 'Küche' }, 400], [{ id: '../x' }, 400], [{}, 400], [{ id: 'x', copy: 'fehlt' }, 404], [{ id: 'x', template: 'fehlt' }, 404], [{ id: 'x', layout: { grid: {} } }, 400]] as const) {
+      expect((await post('/api/v1/layouts', payload)).statusCode, JSON.stringify(payload)).toBe(status);
+    }
+
+    expect((await post('/api/v1/layouts/leer/rename', { id: 'flur' })).statusCode).toBe(200);
+    expect((await post('/api/v1/layouts/flur/rename', { id: 'main' })).statusCode).toBe(409);
+    expect((await post('/api/v1/layouts/fehlt/rename', { id: 'x' })).statusCode).toBe(404);
+    expect(await names()).toEqual(['main', 'flur', 'kopie', 'vorlage']);
+
+    for (const id of ['flur', 'kopie', 'vorlage']) expect((await app.inject({ method: 'DELETE', url: `/api/v1/layouts/${id}` })).statusCode, id).toBe(200);
+    expect((await app.inject({ method: 'DELETE', url: '/api/v1/layouts/flur' })).statusCode).toBe(404);
+    const last = await app.inject({ method: 'DELETE', url: '/api/v1/layouts/main' });
+    expect([last.statusCode, last.json<{ error: string }>().error]).toEqual([409, 'Das letzte Layout lässt sich nicht löschen.']);
+    expect(Object.keys(JSON.parse(readFileSync(join(dataDir, 'kern-0', 'config.json'), 'utf8')).layouts)).toEqual(['main']);
   });
 
   it('stellt die Eieruhr über eine Aktion und zeigt den neuen Zustand', async () => {
@@ -245,6 +315,7 @@ describe('Kern mit Zugriffsschutz', () => {
     app = await core([
       { name: 'kueche', role: 'control', token: 'token-der-kueche-0123456789' },
       { name: 'flur', role: 'read', token: 'token-vom-flur-0123456789' },
+      { name: 'buero', role: 'admin', token: 'token-vom-buero-0123456789' },
     ]);
   });
 
@@ -267,6 +338,23 @@ describe('Kern mit Zugriffsschutz', () => {
     expect((await post('schalten', 'token-der-kueche-0123456789')).statusCode).toBe(200);
     // Ohne Token bleibt auch Lesen verschlossen
     expect((await post('lesen')).statusCode).toBe(401);
+  });
+
+  it('lässt Layouts nur mit der Stufe zum Einrichten speichern', async () => {
+    const layout = (await app.inject({ url: '/api/v1/layouts/main', headers: as('token-vom-flur-0123456789') })).json<{ rev: string }>();
+    const put = (token?: string) => app.inject({ method: 'PUT', url: '/api/v1/layouts/main', payload: { layout: { grid: { columns: 2, rows: 1 }, widgets: [] }, rev: layout.rev }, ...(token ? { headers: as(token) } : {}) });
+    expect((await put()).statusCode).toBe(401);
+    expect((await put('token-vom-flur-0123456789')).statusCode).toBe(403);
+    const refused = await put('token-der-kueche-0123456789');
+    expect([refused.statusCode, refused.json<{ error: string }>().error]).toEqual([403, 'Das Token "kueche" darf nur bedienen.']);
+    expect((await put('token-vom-buero-0123456789')).statusCode).toBe(200);
+    // Anlegen, Umbenennen und Löschen sind ebenfalls Einrichten
+    for (const call of [{ method: 'POST', url: '/api/v1/layouts', payload: { id: 'neu' } }, { method: 'POST', url: '/api/v1/layouts/main/rename', payload: { id: 'neu' } }, { method: 'DELETE', url: '/api/v1/layouts/main' }] as const) {
+      expect((await app.inject({ ...call, headers: as('token-der-kueche-0123456789') })).statusCode, call.url).toBe(403);
+    }
+    // Die Oberfläche fragt vorab, was ihr Zugang darf
+    expect((await app.inject({ url: '/api/v1/access', headers: as('token-der-kueche-0123456789') })).json()).toEqual({ name: 'kueche', role: 'control' });
+    expect((await app.inject({ url: '/api/v1/access', headers: as('token-vom-buero-0123456789') })).json()).toEqual({ name: 'buero', role: 'admin' });
   });
 
   it('lässt Meldungen nur mit der Stufe zum Schalten auslösen', async () => {

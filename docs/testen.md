@@ -9,7 +9,7 @@ nach fester Liste geprüft wird, und was sich nur mit eigenen Geräten prüfen l
 |---|---|---|---|
 | Typprüfung | Kern, Plugins, Oberfläche einschließlich `.vue`-Dateien | `npm run typecheck` | bei jedem Push (GitHub) |
 | Einzeltests | Logik je Paket: Feeds lesen, Rezepte lesen, Eieruhr, Zugriffsregeln, Verlaufsdaten … | `npm test` | bei jedem Push |
-| Zusammenspiel | Kern mit echten Plugins über die API: Quellen, Aktionen, Zugriffsschutz, Plugin-Adressen | `npm test` (`packages/core/src/integration.test.ts`) | bei jedem Push |
+| Zusammenspiel | Kern mit echten Plugins über die API: Quellen, Aktionen, Zugriffsschutz, Plugin-Adressen, Layouts speichern | `npm test` (`packages/core/src/integration.test.ts`) | bei jedem Push |
 | Lizenzen | Alle ausgelieferten Abhängigkeiten sind permissiv lizenziert | `npm run licenses` | bei jedem Push |
 | Abbild | Docker-Abbild baut, startet, antwortet und beendet sich sauber | Auftrag `docker` in `.github/workflows/ci.yml` | bei jedem Push |
 | Oberfläche | Jede Kachel nach der Liste unten | Testinstanz und Browser, von Hand | vor jeder Lieferung, die die Oberfläche berührt |
@@ -51,6 +51,33 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] An der Stelle des unbekannten Widgets steht ein Hinweis mit dessen Namen.
 - [ ] `?layout=zweites` an der Adresse zeigt das zweite Layout (Uhr und ein Messwert), `?layout=fehlt` eine Meldung, dass es dieses Layout nicht gibt.
 - [ ] Kern beenden: Die Meldung „Keine Verbindung zum Kern“ erscheint. Kern starten: Sie verschwindet ohne Neuladen.
+
+**Layout bearbeiten** (<http://localhost:8191/?layout=haus&edit>, daneben in einem zweiten Fenster <http://localhost:8191/?layout=haus>)
+- [ ] Das Layout steht maßstäblich mit echten Werten und Raster da; die Kacheln lassen sich hier nicht bedienen. Antippen wählt eine Kachel: Rahmen, acht Griffe, rechts Art und Platz.
+- [ ] Ziehen verschiebt die Kachel im Raster, auch mit dem Finger; am Rand bleibt sie stehen. Über einer anderen Kachel färbt sich das Ziel rot, und beim Loslassen springt sie zurück.
+- [ ] Jeder Griff ändert die Größe, die gegenüberliegende Kante bleibt stehen; der Inhalt der Kachel passt sich schon beim Ziehen an.
+- [ ] Pfeiltasten verschieben, mit Umschalttaste ändern sie die Größe, Entf entfernt; die Zahlenfelder rechts setzen den Platz, ein belegter wird nicht übernommen. ↶ und ↷ (Strg+Z, Strg+Y) nehmen jeden Schritt zurück und wiederholen ihn, auch „Verwerfen“.
+- [ ] Seite neu laden: Der Entwurf steht noch da, „Speichern“ ist wählbar.
+- [ ] Die Seitenleiste führt die Kachelarten nach Haus, Medien, Familie, Sonstiges mit Zeichen, Namen und einem Satz. „Notiz“ antippen: Sie erscheint auf der ersten freien Stelle und ist gewählt. In der Testinstanz stehen „Anrufe“, „E-Mail“, „Termine“, „Erinnerungen“ und „Kamera“ ausgegraut da und nennen die Quelle, die ihnen fehlt.
+- [ ] „Kopieren“ verdoppelt die gewählte Kachel samt Einstellungen in derselben Größe. Ist dafür kein Platz (etwa unter `?layout=kueche&edit`), sagt der Editor das, statt etwas zu verschieben.
+- [ ] Eine Kachel lässt sich nicht kleiner ziehen als ihre kleinste sinnvolle Größe (ein Diagramm im Raster 48 × 24: 8 × 4).
+- [ ] Die neue Notiz wählen: Überschrift und Text eintragen – nach dem Verlassen des Felds zeigt die Kachel es. Feld leeren: Die Angabe verschwindet wieder.
+- [ ] Einen Messwert wählen, „Wählen“ am Messwert: Die Suche nach „batt“ findet „Batterie“ mit Wert und Einheit; die Auswahl nach Quelle und „nur Schaltbares“ grenzen ein. Antippen trägt den Datenpunkt ein, die Kachel zeigt ihn sofort. Die Kennung lässt sich auch von Hand eintragen.
+- [ ] „Ring“ und „Warngrenzen“ klappen auf; ein größter Wert macht aus der Zahl einen Ring, das Leeren aller Felder nimmt die Gruppe ganz heraus (unter „Erweitert“ nachsehen).
+- [ ] Schalter (`?layout=zweites&edit`): Einträge aufklappen, mit ↑ ↓ umsortieren, mit ✕ entfernen, „+ Hinzufügen“ – beim neuen Eintrag zeigt die Auswahl zunächst nur Schaltbares. „Art: Fahren“ gibt dem Eintrag drei Tasten.
+- [ ] Kacheln mit Quelle (Radio, Uhr): Die Liste nennt die eingerichteten Instanzen; „Vorgabe“ nimmt die Angabe heraus.
+- [ ] „Erweitert“: Das JSON folgt dem Formular; `{ "title": "Probe" }` und „Übernehmen“ wirkt wie das Formular, ungültiges JSON wird mit einer Meldung abgelehnt. Eine Angabe, die das Formular nicht kennt, bleibt bei Änderungen im Formular erhalten.
+- [ ] Jede Änderung an den Einstellungen lässt sich mit ↶ zurücknehmen.
+- [ ] „Raster … ▾“ unter `?layout=haus&edit`: 12 × 6 auf 24 × 12 mit „Kacheln umrechnen“ – das Bild bleibt gleich, das Raster ist feiner. Zurück auf 12 × 6 geht auf. 12 × 6 auf 5 × 3 wird abgelehnt, weil Kacheln übereinander lägen. Ohne „Kacheln umrechnen“ auf 12 × 8: Die Kacheln bleiben oben stehen, unten sind zwei Zeilen frei.
+- [ ] Bildschirm 9 und 16: Die Ansicht steht hochkant; 1280 und 800: breiter, die Kacheln zeigen, was sie auf einem solchen Bildschirm zeigen. Jede Änderung lässt sich zurücknehmen.
+- [ ] „Layouts ▾“: „probe“ als Vorlage „Küche“ anlegen – der Editor zeigt das neue Layout mit der Aufteilung der Küche, die Messwerte ohne Wert. Als „Kopie“ angelegt, steht dort, was im Editor gerade stand, auch Ungespeichertes. Ein Name, den es gibt, und einer mit Großbuchstaben werden abgelehnt.
+- [ ] Umbenennen in „probe-zwei“: Der Editor zeigt es unter dem neuen Namen, in `config.json` steht es an derselben Stelle. Mit ungespeicherten Änderungen ist Umbenennen gesperrt.
+- [ ] „Löschen“ fragt nach; „Ja, löschen“ entfernt das Layout und zeigt ein anderes. Eine Anzeige, die das gelöschte Layout zeigte, behält ihr Bild bis zum Neuladen.
+- [ ] Die unbekannte Kachel (Hauptlayout) lässt sich wählen, verschieben und kopieren; ihre Einstellungen bleiben beim Speichern erhalten.
+- [ ] „Speichern“: Das zweite Fenster zeigt das neue Layout ohne Neuladen. Im Datenordner der Testinstanz liegt eine `config.vor-<Zeitstempel>.json` mit dem Stand davor, im Protokoll des Kerns steht „Layout "haus" gespeichert“.
+- [ ] In zwei Fenstern bearbeiten: Das erste speichert, das zweite hat einen eigenen Entwurf – dort erscheint die Rückfrage mit „Neu laden“ und „Meinen Stand speichern“; beides tut, was es sagt.
+- [ ] `config.json` der Testinstanz von Hand ändern (eine Kachel versetzen): Nach wenigen Sekunden zeigen Anzeige und Editor den neuen Stand. Eine kaputte Datei ergibt eine Warnung im Protokoll, die Anzeigen bleiben, wie sie sind.
+- [ ] Schmal und mit `&theme=nacht`: Die Bedienleiste bricht um, die Seitenleiste wandert unter das Layout.
 
 **Uhr und Eieruhr**
 - [ ] Uhrzeit mit Sekunden und Datum stimmen.
@@ -210,6 +237,6 @@ Das Folgende lässt sich nicht nachstellen und wird an der eigenen Installation 
 
 ## Bekannte Lücken
 
-- Die Oberfläche hat noch keine automatischen Tests; die Prüfliste oben ersetzt sie vorerst. Vorgesehen sind Browsertests gegen die Testinstanz mit Playwright (Apache-2.0).
+- Die Oberfläche hat noch keine automatischen Tests; die Prüfliste oben ersetzt sie vorerst. Das gilt auch für das Ziehen im Layout-Editor: Getestet ist seine Rechnung (Einrasten, Grenzen, Überschneidung, Rückgängig), nicht die Bedienung mit Maus und Finger. Vorgesehen sind Browsertests gegen die Testinstanz mit Playwright (Apache-2.0).
 - Die Abdeckung der Tests wird nicht gemessen.
 - Die Plugins für openHAB, MQTT, Homematic, Home Assistant, Radio und Video sind in ihrer Logik und – bei MQTT, Homematic und Home Assistant – gegen Platzhalter getestet, nicht automatisch gegen echte Gegenstellen.

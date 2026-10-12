@@ -48,22 +48,19 @@ export function framingRefusal(headers: Headers, host?: string): string | undefi
  * die ihm ein Aufrufer nennt. Das Ergebnis gilt einige Minuten.
  */
 export class EmbedCheck {
-  private readonly urls = new Set<string>();
+  /** Die Layouts des laufenden Kerns – ändert sich eines, gilt sofort, was jetzt darin steht. */
+  private readonly layouts: Record<string, LayoutConfig>;
   private readonly known = new Map<string, { at: number; result: Promise<EmbedResult> }>();
   private readonly load: typeof fetch;
 
   constructor(layouts: Record<string, LayoutConfig>, load: typeof fetch = fetch) {
     this.load = load;
-    for (const layout of Object.values(layouts)) {
-      for (const widget of layout?.widgets ?? []) {
-        const url = widget.type === 'web' ? (widget.config as { url?: unknown } | undefined)?.url : undefined;
-        if (typeof url === 'string' && /^https?:\/\//i.test(url)) this.urls.add(url);
-      }
-    }
+    this.layouts = layouts;
   }
 
   allows(url: string): boolean {
-    return this.urls.has(url);
+    if (!/^https?:\/\//i.test(url)) return false;
+    return Object.values(this.layouts).some((layout) => (layout?.widgets ?? []).some((widget) => widget.type === 'web' && (widget.config as { url?: unknown } | undefined)?.url === url));
   }
 
   check(url: string, host?: string, now = Date.now()): Promise<EmbedResult> {
