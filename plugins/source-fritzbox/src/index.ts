@@ -31,7 +31,7 @@ export default definePlugin<Config>({
   text: { de: 'Anrufliste, Anrufbeantworter und Klingeln von der FRITZ!Box.', en: 'Call list, answering machine and ringing from the FRITZ!Box.' },
   help: { de: 'Benutzername und Kennwort: Am besten in der FRITZ!Box unter System → FRITZ!Box-Benutzer einen eigenen Benutzer anlegen, der nur „Sprachnachrichten, Faxnachrichten, FRITZ!App Fon und Anrufliste“ darf, und ihn hier eintragen.\nAnrufmonitor: Damit die Anzeige sofort zeigt, wenn es klingelt, wird er einmalig an einem angeschlossenen Telefon mit #96*5* eingeschaltet.', en: 'User name and password: preferably create a separate user in the FRITZ!Box under System → FRITZ!Box Users who may only use “Voice messages, fax messages, FRITZ!App Fon and call list”, and enter it here.\nCall monitor: for the display to show ringing at once, switch it on once by dialling #96*5* on a connected telephone.' },
   settings: [
-    { key: 'host', type: 'text', label: { de: 'Adresse', en: 'Address' }, placeholder: 'fritz.box' },
+    { key: 'host', type: 'text', label: { de: 'Adresse', en: 'Address' }, hint: { de: 'Name oder IP-Adresse der FRITZ!Box, ohne http:// davor.', en: 'Name or IP address of the FRITZ!Box, without http:// in front.' }, initial: 'fritz.box' },
     { key: 'max', type: 'number', label: { de: 'Einträge der Anrufliste', en: 'Entries of the call list' }, min: 1, max: 400, placeholder: 60 },
     { key: 'refreshSeconds', type: 'number', label: { de: 'Abruf alle … Sekunden', en: 'Fetch every … seconds' }, min: 15, max: 3600, placeholder: 120 },
     { key: 'monitor', type: 'boolean', label: { de: 'Anrufmonitor mithören (zeigt sofort, wenn es klingelt)', en: 'Listen to the call monitor (shows ringing at once)' }, fallback: true },

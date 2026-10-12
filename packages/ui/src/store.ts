@@ -35,6 +35,14 @@ export function onLayoutChanged(listener: (id: string) => void): () => void {
   return () => void layoutListeners.delete(listener);
 }
 
+const siteListeners = new Set<(site: unknown) => void>();
+
+/** Meldet, wenn Sprache, Region oder Farbschema im Kern geändert wurden. */
+export function onSiteChanged(listener: (site: unknown) => void): () => void {
+  siteListeners.add(listener);
+  return () => void siteListeners.delete(listener);
+}
+
 const RECONNECT_MS = 3000;
 let socket: WebSocket | undefined;
 let topics: string[] = [];
@@ -67,6 +75,7 @@ export function connect(): void {
     const message = JSON.parse(event.data as string) as { t: string; d: unknown };
     if (message.t.startsWith('dp/')) datapoints.set((message.d as Datapoint).id, message.d as Datapoint);
     else if (message.t.startsWith('event/')) for (const listener of eventListeners) listener(message.d as Raised);
+    else if (message.t === 'site') for (const listener of siteListeners) listener(message.d);
     else if (message.t.startsWith('layout/')) for (const listener of layoutListeners) listener((message.d as { id: string }).id);
   });
   socket.addEventListener('close', () => {

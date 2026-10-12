@@ -233,6 +233,7 @@ function go(change: (query: URLSearchParams) => void): void {
       <strong>{{ t('sources.title') }}</strong>
       <span class="spacer" />
       <button type="button" @click="go((query) => query.set('edit', ''))">{{ t('sources.back') }}</button>
+      <button type="button" @click="go((query) => query.set('edit', 'settings'))">{{ t('system.title') }}</button>
       <button type="button" @click="go((query) => query.delete('edit'))">{{ t('editor.close') }}</button>
     </header>
 

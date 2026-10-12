@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { AccessDenied, adoptTokenFromAddress, getJson } from './api.ts';
 import { applySite, astroSource, nightTheme, setDaylight, type SiteSettings } from './i18n.ts';
 import { type LoadedLayout, datapointsOf, wantedLayout } from './layout.ts';
-import { connect, connected, onLayoutChanged, subscribe, datapoints } from './store.ts';
+import { connect, connected, onLayoutChanged, onSiteChanged, subscribe, datapoints } from './store.ts';
 import EventLayer from './EventLayer.vue';
 import LayoutGrid from './LayoutGrid.vue';
 
@@ -20,6 +20,7 @@ const editing = edit !== null;
 const LayoutEditor = defineAsyncComponent(() => import('./editor/LayoutEditor.vue'));
 // …&edit=sources führt zu den Quellen statt zum Layout
 const SourcesEditor = defineAsyncComponent(() => import('./editor/SourcesEditor.vue'));
+const SystemEditor = defineAsyncComponent(() => import('./editor/SystemEditor.vue'));
 const ready = ref(false);
 
 /** Holt das Layout vom Kern und abonniert, was es braucht. Ist es noch dasselbe, bleibt alles, wie es ist. */
@@ -42,6 +43,8 @@ onMounted(async () => {
   try {
     applySite(await getJson<SiteSettings>('/site'));
     ready.value = true;
+    // Sprache und Farbschema übernimmt jede offene Seite sofort – auch die zum Einrichten
+    onSiteChanged((site) => applySite(site as SiteSettings));
     if (editing) return;
     await loadLayout();
     connect();
@@ -68,6 +71,7 @@ watch(
   <p v-if="denied" class="notice">{{ t('app.notUnlocked', { error }) }}</p>
   <p v-else-if="error" class="notice">{{ t('app.layoutFailed', { error }) }}</p>
   <SourcesEditor v-else-if="editing && ready && edit === 'sources'" />
+  <SystemEditor v-else-if="editing && ready && edit === 'settings'" />
   <LayoutEditor v-else-if="editing && ready" :name="name" />
   <LayoutGrid v-else-if="layout" :layout="layout" />
   <div v-if="layout && !connected" class="offline" role="status">{{ t('app.offline') }}</div>

@@ -13,6 +13,7 @@ import { InvalidLayout, LayoutConflict, type LayoutStore, UnknownLayout } from '
 import type { PluginHost } from './plugins.ts';
 import type { DatapointRegistry } from './registry.ts';
 import { type Aggregation, downsample, parseDuration, parseTime } from './series.ts';
+import { InvalidSettings, SettingsConflict, type SettingsStore, UnknownAccess } from './settings.ts';
 import { InvalidSource, SourceConflict, type SourceStore, UnknownSource } from './sources.ts';
 import type { Template } from './templates.ts';
 
@@ -30,6 +31,8 @@ export interface ServerDeps {
   layouts: LayoutStore;
   /** Die Quellen zum Einrichten; ohne sie gibt es die Aufrufe unter `/sources` nicht. */
   sources?: SourceStore;
+  /** Anzeige, Meldungen und Zugänge zum Einrichten; ohne sie gibt es die Aufrufe unter `/settings` nicht. */
+  settings?: SettingsStore;
   /** Mitgelieferte Vorlagen für neue Layouts. */
   templates?: readonly Template[];
   log: Logger;
@@ -41,7 +44,7 @@ export interface ServerDeps {
   tls?: { cert: Buffer; key: Buffer };
 }
 
-export async function buildServer({ config, registry, plugins, actions, events, layouts, sources, templates = [], log, access, uiDir, tls }: ServerDeps): Promise<FastifyInstance> {
+export async function buildServer({ config, registry, plugins, actions, events, layouts, sources, settings, templates = [], log, access, uiDir, tls }: ServerDeps): Promise<FastifyInstance> {
   // Mit und ohne Zertifikat ist es derselbe Server; nur die Art der Verbindung unterscheidet sich
   const app = (tls ? Fastify({ logger: false, https: tls }) : Fastify({ logger: false })) as unknown as FastifyInstance;
   await app.register(fastifyWebsocket);
@@ -49,10 +52,10 @@ export async function buildServer({ config, registry, plugins, actions, events, 
   // Eingabefehler als 400 mit lesbarer Meldung statt als 500
   class BadRequest extends Error {}
   app.setErrorHandler((error: Error, _request, reply) => {
-    if (error instanceof BadRequest || error instanceof InvalidParams || error instanceof InvalidLayout || error instanceof InvalidSource) return reply.code(400).send({ error: error.message });
-    if (error instanceof UnknownAction || error instanceof UnknownEvent || error instanceof UnknownLayout || error instanceof UnknownSource) return reply.code(404).send({ error: error.message });
+    if (error instanceof BadRequest || error instanceof InvalidParams || error instanceof InvalidLayout || error instanceof InvalidSource || error instanceof InvalidSettings) return reply.code(400).send({ error: error.message });
+    if (error instanceof UnknownAction || error instanceof UnknownEvent || error instanceof UnknownLayout || error instanceof UnknownSource || error instanceof UnknownAccess) return reply.code(404).send({ error: error.message });
     // Jemand anderes war schneller: Der Aufrufer bekommt den Stand, der jetzt gilt, und entscheidet
-    if (error instanceof SourceConflict) return reply.code(409).send({ error: error.message });
+    if (error instanceof SourceConflict || error instanceof SettingsConflict) return reply.code(409).send({ error: error.message });
     if (error instanceof LayoutConflict) return reply.code(409).send({ error: error.message, ...(error.rev ? { rev: error.rev } : {}) });
     // Was der Server selbst am Aufruf beanstandet – zu groß, nicht lesbar –, ist ebenfalls ein Fehler des Aufrufers
     const status = (error as { statusCode?: number }).statusCode;
@@ -240,6 +243,20 @@ export async function buildServer({ config, registry, plugins, actions, events, 
     return { ok: true, rev: layouts.save(request.params.id, layout, typeof rev === 'string' ? rev : undefined, force === true) };
   });
 
+  // Anzeige, Meldungen und Zugänge einrichten. Das Token eines neuen Zugangs kommt genau einmal zurück – beim Anlegen.
+  if (settings) {
+    const admin = { config: { role: 'admin' as const } };
+    app.get('/api/v1/settings', admin, () => settings.read());
+    app.put<{ Body: unknown }>('/api/v1/settings/site', admin, (request) => settings.setSite(request.body));
+    app.put<{ Body: unknown }>('/api/v1/settings/events', admin, (request) => settings.setEvents(request.body));
+    app.post<{ Body: { name?: unknown; role?: unknown } | null }>('/api/v1/settings/access', admin, (request) => settings.addAccess(request.body ?? {}));
+    app.put<{ Params: { name: string }; Body: { role?: unknown } | null }>('/api/v1/settings/access/:name', admin, (request) => settings.setRole(request.params.name, request.body?.role));
+    app.delete<{ Params: { name: string } }>('/api/v1/settings/access/:name', admin, (request) => {
+      settings.removeAccess(request.params.name);
+      return { ok: true };
+    });
+  }
+
   // Neues Layout: leer, als Kopie eines vorhandenen ("copy"), aus einer Vorlage ("template") oder mitgebracht ("layout")
   app.post<{ Body: { id?: unknown; copy?: unknown; template?: unknown; layout?: unknown } | null }>('/api/v1/layouts', { config: { role: 'admin' } }, (request) => {
     const { id, copy, template, layout } = request.body ?? {};
@@ -287,10 +304,13 @@ export async function buildServer({ config, registry, plugins, actions, events, 
     const stopLayouts = layouts.onChange((id, rev) => {
       if (topics.includes('layout/*') || topics.includes(`layout/${id}`)) socket.send(JSON.stringify({ t: `layout/${id}`, d: { id, ...(rev ? { rev } : {}) } }));
     });
+    // Sprache und Farbschema gehen an jede Anzeige, gleich was sie abonniert hat
+    const stopSite = settings?.onSite((site) => socket.send(JSON.stringify({ t: 'site', d: site })));
     socket.on('close', () => {
       registry.off('change', onChange);
       stopEvents();
       stopLayouts();
+      stopSite?.();
     });
     socket.on('message', (data: Buffer) => {
       let message: { op?: string; topics?: unknown };

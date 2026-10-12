@@ -28,7 +28,7 @@ function hint(field: Field): string {
   const key = field.key;
   return te(`fields.${props.type}.${key}Hint`) ? t(`fields.${props.type}.${key}Hint`) : te(`fields.common.${key}Hint`) ? t(`fields.common.${key}Hint`) : '';
 }
-const option = (key: string, value: string) => (value === '' ? t('form.usual') : te(`fields.options.${key}.${value}`) ? t(`fields.options.${key}.${value}`) : value);
+const option = (key: string, value: string) => (value === '' ? (te(`fields.options.${key}._`) ? t(`fields.options.${key}._`) : t('form.usual')) : te(`fields.options.${key}.${value}`) ? t(`fields.options.${key}.${value}`) : value);
 /** Die Vorgabe einer Auswahl steht nicht in der Konfiguration – es sei denn, das Plugin verlangt die Angabe immer. */
 const chosen = (field: Extract<Field, { type: 'select' }>, value: string) => (value === '' || (value === field.options[0] && !field.explicit) ? undefined : value);
 

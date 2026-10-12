@@ -291,7 +291,70 @@
       "type": {
         "switch": "Schalter",
         "cover": "Fahren (Markise, Rollladen, Jalousie)"
+      },
+      "language": {
+        "de": "Deutsch",
+        "en": "English"
+      },
+      "theme": {
+        "_": "Klar (Vorgabe)",
+        "glut": "Glut",
+        "schiefer": "Schiefer",
+        "signal": "Signal",
+        "nacht": "Nacht",
+        "spiegel": "Spiegel"
+      },
+      "nightTheme": {
+        "_": "keines",
+        "glut": "Glut",
+        "schiefer": "Schiefer",
+        "signal": "Signal",
+        "nacht": "Nacht",
+        "spiegel": "Spiegel"
+      },
+      "sound": {
+        "chime": "Gong (Vorgabe)",
+        "bell": "Türglocke",
+        "beep": "Piep",
+        "none": "kein Ton"
+      },
+      "test": {
+        "equals": "genau",
+        "above": "über",
+        "below": "unter"
       }
+    },
+    "site": {
+      "language": "Sprache",
+      "languageHint": "Ohne Angabe entscheidet der Browser der Anzeige.",
+      "region": "Region für Zahlen und Datum",
+      "regionHint": "Etwa de-DE oder en-GB – von der Sprache getrennt: englische Texte mit deutschem Datum sind eine gültige Wahl.",
+      "theme": "Farbschema",
+      "nightTheme": "Farbschema für die Nacht",
+      "nightThemeHint": "Nach Sonnenuntergang wechselt die Anzeige dorthin und am Morgen zurück. Braucht eine Quelle „Sonne und Mond“.",
+      "astro": "Quelle für Tag und Nacht"
+    },
+    "events": {
+      "events": "Meldungen",
+      "name": "Name",
+      "nameHint": "Kleinbuchstaben, Ziffern, Bindestriche – unter diesem Namen wird die Meldung ausgelöst: POST /api/v1/events/<Name>.",
+      "text": "Text auf der Anzeige",
+      "sound": "Ton",
+      "speak": "Text vorlesen",
+      "seconds": "Bleibt stehen (Sekunden)",
+      "secondsHint": "Ohne Angabe 10 Sekunden, mit Kamera 90.",
+      "video": "Kamera dazu zeigen",
+      "videoHint": "Kennung eines Videostroms, der hinter der Tafel die Anzeige füllt.",
+      "videoSource": "Videoquelle",
+      "signal": "Nur Signal: Die Anzeigen zeigen nichts",
+      "signalHint": "Für Programme, die am Echtzeitkanal mithören – etwa die Monitorsteuerung.",
+      "when": "Von selbst auslösen",
+      "whenHint": "Die Meldung erscheint, sobald der Datenpunkt die Bedingung neu erfüllt.",
+      "datapoint": "Datenpunkt",
+      "test": "Bedingung",
+      "value": "Wert",
+      "valueHint": "Für „genau“ auch true, false oder ein Text wie done.",
+      "speakHint": "Die Stimme kommt vom Browser der Anzeige – mit der Sprachsteuerung hat das nichts zu tun. Ton und Stimme gibt es erst, nachdem die Anzeige einmal angetippt wurde."
     }
   },
   "form": {
@@ -366,6 +429,48 @@
     "notes": "Meldungen der Quelle",
     "noNotes": "Seit dem Start hat die Quelle nichts gemeldet.",
     "help": "So wird diese Quelle eingerichtet"
+  },
+  "system": {
+    "title": "Einstellungen",
+    "needsAdmin": "Für die Einstellungen braucht es einen Zugang der Stufe „admin“. Öffnen Sie die Adresse einmal mit dem Zusatz „#token=“ und dem Token dieses Zugangs am Ende.",
+    "site": "Anzeige",
+    "siteHint": "Sprache und Farbschema gelten für alle Anzeigen; offene Anzeigen übernehmen eine Änderung sofort. An einer einzelnen Anzeige gehen die Adresszusätze ?theme=… und ?night=… vor.",
+    "siteSaved": "Gespeichert – die Anzeigen haben es übernommen.",
+    "events": "Meldungen",
+    "eventsHint": "„Jemand klingelt“, „Die Waschmaschine ist fertig“: Was eine Meldung auf den Anzeigen tut. Ausgelöst wird sie von außen über die API oder von selbst durch einen Datenpunkt.",
+    "eventsSaved": "Gespeichert – die Meldungen gelten sofort.",
+    "eventNoName": "Eine Meldung hat keinen Namen.",
+    "eventTwice": "Der Name „{name}“ ist doppelt vergeben.",
+    "try": "Zur Probe auslösen:",
+    "raised": "„{name}“ ausgelöst – die Meldung erscheint hier und auf jeder offenen Anzeige. Ton und Stimme gibt eine Anzeige erst, nachdem sie einmal angetippt wurde: Vorher lässt der Browser keinen Ton zu.",
+    "access": "Zugänge",
+    "accessOpen": "Die API ist ohne Zugriffsschutz: Jeder im Netz kann lesen, schalten und einrichten. Mit dem ersten Zugang ist sie geschützt.",
+    "accessHint": "Jeder Zugang hat ein Token. Eine Anzeige oder ein Programm darf damit, was die Stufe erlaubt. Die Tokens stehen in secrets.json; der Kern gibt sie nicht wieder heraus.",
+    "name": "Name des Zugangs",
+    "role": "Stufe",
+    "roles": {
+      "read": "lesen",
+      "control": "lesen und bedienen",
+      "admin": "lesen, bedienen und einrichten"
+    },
+    "add": "Zugang anlegen",
+    "remove": "Entfernen",
+    "removeSure": "„{name}“ entfernen? Anzeigen mit diesem Token sind danach ausgesperrt.",
+    "firstAdmin": "Der erste Zugang muss die Stufe „einrichten“ haben. Diese Seite merkt sich sein Token, damit sie nicht selbst ausgesperrt ist; alle anderen Anzeigen müssen danach freigeschaltet werden.",
+    "roleSaved": "Stufe von „{name}“ geändert – sie gilt sofort.",
+    "accessRemoved": "„{name}“ entfernt.",
+    "freshTitle": "Zugang „{name}“ angelegt",
+    "freshOnce": "Das Token steht nur jetzt hier. Wer es verliert, entfernt den Zugang und legt ihn neu an.",
+    "token": "Token (für Programme: Kopfzeile „Authorization: Bearer …“)",
+    "unlock": "Adresse zum Freischalten einer Anzeige",
+    "unlockHint": "Diese Adresse einmal im Browser der Anzeige öffnen – sie merkt sich den Zugang und entfernt das Token wieder aus der Adresszeile.",
+    "adopted": "Dieser Browser hat sich das Token gemerkt und bleibt freigeschaltet.",
+    "freshDone": "Notiert – ausblenden",
+    "nightOffset": "Nacht beginnt … Minuten nach Sonnenuntergang",
+    "nightOffsetHint": "Dann wechselt die Anzeige auf das Farbschema für die Nacht – und ebenso viele Minuten vor Sonnenaufgang zurück. Negative Werte ziehen den Wechsel in den Tag hinein. Die Angabe gehört zur Quelle „{source}“; sie startet beim Speichern neu.",
+    "nightOffsetMissing": "Wann die Nacht beginnt, lässt sich einstellen, sobald eine Quelle „Sonne und Mond“ eingerichtet ist.",
+    "accessHelp": "Wie Zugänge funktionieren",
+    "accessHelpText": "Ein Zugang ist ein geheimes Token mit einer Stufe: Wer das Token vorlegt, darf lesen, bedienen oder einrichten. Das Token ist an kein Gerät gebunden – der Browser einer Anzeige merkt es sich, nachdem die Adresse zum Freischalten dort einmal geöffnet wurde, und schickt es danach bei jedem Aufruf mit. Wer das Token kennt, hat den Zugang, gleich von welchem Gerät.\nDer Name ist nur ein Etikett, damit Sie die Zugänge unterscheiden können: etwa „kueche“ für den Küchenbildschirm, „flur“ für das Tablet im Flur, „openhab“ für Regeln der Haussteuerung, „buero“ für Ihren PC. Er steht im Protokoll und in Fehlermeldungen („Das Token „flur“ darf nur lesen“). Sinnvoll ist ein Zugang je Gerät oder Programm: Geht ein Tablet verloren, entfernen Sie nur dessen Zugang, alle anderen bleiben.\nDie Stufen: „lesen“ für eine Anzeige, an der niemand schalten soll; „lesen und bedienen“ für gewöhnliche Anzeigen und für Programme, die Meldungen auslösen; „einrichten“ zusätzlich für diese Seiten – Layouts, Quellen, Einstellungen.\nOhne Zugänge ist die API offen: Im Heimnetz darf dann jeder alles. Der erste Zugang schließt sie – und muss deshalb „einrichten“ dürfen, sonst könnte danach niemand mehr etwas ändern, auch Sie nicht. Aus demselben Grund bleibt immer mindestens ein Zugang mit „einrichten“ bestehen. Weitere Zugänge dürfen jede Stufe haben."
   },
   "state": {
     "on": "an",

@@ -21,6 +21,16 @@ export function adoptTokenFromAddress(): boolean {
   return true;
 }
 
+/** Merkt sich ein Token für diese Anzeige – etwa das eines eben angelegten Zugangs. Sagt, ob es gelang. */
+export function rememberToken(token: string): boolean {
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function accessToken(): string | undefined {
   try {
     return localStorage.getItem(TOKEN_KEY) ?? undefined;

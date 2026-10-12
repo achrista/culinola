@@ -550,6 +550,7 @@ function go(change: (query: URLSearchParams) => void): void {
       <button type="button" class="plain" :disabled="!dirty" @click="discard">{{ t('editor.discard') }}</button>
       <button type="button" class="primary" :disabled="!dirty || saving || stale" @click="save()">{{ t('editor.save') }}</button>
       <button type="button" class="plain" @click="go((query) => query.set('edit', 'sources'))">{{ t('editor.sources') }}</button>
+      <button type="button" class="plain" @click="go((query) => query.set('edit', 'settings'))">{{ t('system.title') }}</button>
       <button type="button" class="plain" @click="go((query) => query.delete('edit'))">{{ t('editor.close') }}</button>
     </header>
 

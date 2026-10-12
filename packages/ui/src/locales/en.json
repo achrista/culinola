@@ -291,7 +291,70 @@
       "type": {
         "switch": "Switch",
         "cover": "Cover (awning, shutter, blind)"
+      },
+      "language": {
+        "de": "Deutsch",
+        "en": "English"
+      },
+      "theme": {
+        "_": "Clear (default)",
+        "glut": "Ember",
+        "schiefer": "Slate",
+        "signal": "Signal",
+        "nacht": "Night",
+        "spiegel": "Mirror"
+      },
+      "nightTheme": {
+        "_": "none",
+        "glut": "Ember",
+        "schiefer": "Slate",
+        "signal": "Signal",
+        "nacht": "Night",
+        "spiegel": "Mirror"
+      },
+      "sound": {
+        "chime": "Chime (default)",
+        "bell": "Doorbell",
+        "beep": "Beep",
+        "none": "no sound"
+      },
+      "test": {
+        "equals": "exactly",
+        "above": "above",
+        "below": "below"
       }
+    },
+    "site": {
+      "language": "Language",
+      "languageHint": "Without it the browser of the display decides.",
+      "region": "Region for numbers and dates",
+      "regionHint": "Such as de-DE or en-GB – separate from the language: English texts with German dates are a valid choice.",
+      "theme": "Colour theme",
+      "nightTheme": "Colour theme for the night",
+      "nightThemeHint": "After sunset the display switches to it and back in the morning. Needs a source “Sun and moon”.",
+      "astro": "Source for day and night"
+    },
+    "events": {
+      "events": "Messages",
+      "name": "Name",
+      "nameHint": "Lower-case letters, digits, hyphens – the message is raised under this name: POST /api/v1/events/<name>.",
+      "text": "Text on the display",
+      "sound": "Sound",
+      "speak": "Read the text aloud",
+      "seconds": "Stays for (seconds)",
+      "secondsHint": "Without it 10 seconds, with a camera 90.",
+      "video": "Show a camera with it",
+      "videoHint": "Id of a video stream that fills the display behind the panel.",
+      "videoSource": "Video source",
+      "signal": "Signal only: the displays show nothing",
+      "signalHint": "For programs listening on the realtime channel – such as the monitor control.",
+      "when": "Raise by itself",
+      "whenHint": "The message appears as soon as the datapoint newly meets the condition.",
+      "datapoint": "Datapoint",
+      "test": "Condition",
+      "value": "Value",
+      "valueHint": "For “exactly” also true, false or a text such as done.",
+      "speakHint": "The voice comes from the browser of the display – it has nothing to do with voice control. Sound and voice only work after the display has been tapped once."
     }
   },
   "form": {
@@ -366,6 +429,48 @@
     "notes": "Messages of the source",
     "noNotes": "The source has reported nothing since it started.",
     "help": "How to set up this source"
+  },
+  "system": {
+    "title": "Settings",
+    "needsAdmin": "The settings need access of level “admin”. Open the address once with “#token=” and the token of that access at the end.",
+    "site": "Display",
+    "siteHint": "Language and colour theme apply to all displays; open displays pick up a change at once. On a single display the address additions ?theme=… and ?night=… take precedence.",
+    "siteSaved": "Saved – the displays have picked it up.",
+    "events": "Messages",
+    "eventsHint": "“Someone is at the door”, “The washing machine is done”: what a message does on the displays. It is raised from outside via the API or by itself through a datapoint.",
+    "eventsSaved": "Saved – the messages apply at once.",
+    "eventNoName": "A message has no name.",
+    "eventTwice": "The name “{name}” is used twice.",
+    "try": "Raise as a trial:",
+    "raised": "“{name}” raised – the message appears here and on every open display. A display gives sound and voice only after it has been tapped once: before that the browser allows no sound.",
+    "access": "Access",
+    "accessOpen": "The API is unprotected: anyone on the network can read, switch and set up. The first access entry protects it.",
+    "accessHint": "Every access entry has a token. A display or a program may do with it what the level allows. The tokens are kept in secrets.json; the core does not hand them out again.",
+    "name": "Name of the access entry",
+    "role": "Level",
+    "roles": {
+      "read": "read",
+      "control": "read and operate",
+      "admin": "read, operate and set up"
+    },
+    "add": "Create access",
+    "remove": "Remove",
+    "removeSure": "Remove “{name}”? Displays with this token are locked out afterwards.",
+    "firstAdmin": "The first access entry must have the level “set up”. This page remembers its token so that it is not locked out itself; all other displays have to be unlocked afterwards.",
+    "roleSaved": "Level of “{name}” changed – it applies at once.",
+    "accessRemoved": "“{name}” removed.",
+    "freshTitle": "Access “{name}” created",
+    "freshOnce": "The token is shown only now. If it is lost, remove the access entry and create it again.",
+    "token": "Token (for programs: header “Authorization: Bearer …”)",
+    "unlock": "Address to unlock a display",
+    "unlockHint": "Open this address once in the browser of the display – it remembers the access and removes the token from the address bar again.",
+    "adopted": "This browser has remembered the token and stays unlocked.",
+    "freshDone": "Noted – hide",
+    "nightOffset": "Night begins … minutes after sunset",
+    "nightOffsetHint": "Then the display switches to the colour theme for the night – and back as many minutes before sunrise. Negative values move the switch into the day. The setting belongs to the source “{source}”; it restarts when saved.",
+    "nightOffsetMissing": "When the night begins can be set once a source “Sun and moon” has been set up.",
+    "accessHelp": "How access works",
+    "accessHelpText": "An access entry is a secret token with a level: whoever presents the token may read, operate or set up. The token is not bound to a device – the browser of a display remembers it after the unlock address has been opened there once, and sends it along with every request afterwards. Whoever knows the token has the access, from any device.\nThe name is only a label so that you can tell the entries apart: such as “kitchen” for the kitchen screen, “hall” for the tablet in the hallway, “openhab” for rules of the home automation, “office” for your PC. It appears in the log and in error messages (“The token “hall” may only read”). One entry per device or program makes sense: if a tablet is lost you remove only its entry, all others stay.\nThe levels: “read” for a display nobody should switch from; “read and operate” for ordinary displays and for programs that raise messages; “set up” additionally for these pages – layouts, sources, settings.\nWithout access entries the API is open: on the home network everybody may do everything. The first entry closes it – and must therefore be allowed to “set up”, otherwise nobody could change anything afterwards, not even you. For the same reason at least one entry with “set up” always remains. Further entries may have any level."
   },
   "state": {
     "on": "on",

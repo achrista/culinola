@@ -132,6 +132,13 @@ export class EventHub {
     this.log = log;
   }
 
+  /** Ersetzt die eingerichteten Meldungen im Betrieb. Bedingungen beginnen neu: Die erste Wertänderung löst nichts aus. */
+  replace(events: Record<string, EventConfig>): void {
+    for (const name of Object.keys(this.events)) delete this.events[name];
+    Object.assign(this.events, events);
+    this.met.clear();
+  }
+
   /** Die eingerichteten Meldungen – ohne das, was nur den Kern angeht. */
   list(): { name: string; text: string; trigger?: string }[] {
     return Object.entries(this.events).map(([name, event]) => ({ name, text: event.text, ...(event.when ? { trigger: event.when.datapoint } : {}) }));

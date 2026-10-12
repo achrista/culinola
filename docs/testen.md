@@ -91,6 +91,14 @@ Geprüft wird bei 1920 × 1080 und zusätzlich einmal schmal (etwa 800 × 480). 
 - [ ] Eine zweite „Eieruhr“ (`kurzzeit`) startet nicht – die Ursache steht bei der Quelle, die erste Eieruhr läuft weiter. „Quelle entfernen“ fragt nach und nimmt sie heraus.
 - [ ] Eine ungültige Einstellung (etwa `"overrunSeconds": "viel"` unter „Erweitert“) wird beim Speichern mit der Meldung des Plugins abgelehnt; gespeichert ist dann nichts.
 
+**Einstellungen** (<http://localhost:8191/?edit=settings>, daneben in einem zweiten Fenster eine Anzeige)
+- [ ] Anzeige: Farbschema „Nacht“ wählen und speichern – das zweite Fenster wird ohne Neuladen dunkel. Sprache „English“: Die Texte der Anzeige und dieser Seite wechseln sofort; auch Layout-Editor und Quellen sind danach englisch. Zurückstellen.
+- [ ] „Nacht beginnt … Minuten nach Sonnenuntergang“ auf 45 stellen und speichern: Unter „Quellen“ steht der Wert bei `astro`, die Quelle läuft. Feld leeren: Es gilt wieder die Vorgabe 30.
+- [ ] Meldungen: Die vier Meldungen der Testinstanz stehen da; aufgeklappt zeigen sie Text, Ton und ihre Bedingung. „Zur Probe auslösen: hausglocke“ – die Tafel erscheint auf dieser Seite mit Türglocke und vorgelesenem Text, und im zweiten Fenster (dort mit Ton erst, nachdem es einmal angetippt wurde).
+- [ ] „+ Hinzufügen“: Name `probe`, Text „Probe“, unter „Von selbst auslösen“ den Datenpunkt `demo:licht_esstisch`, Bedingung „genau“, Wert `true`. Speichern, dann am Schalter „Esstisch“ einer Anzeige einschalten: Die Tafel erscheint. Eine Meldung ohne Text oder mit doppeltem Namen wird beim Speichern mit einer lesbaren Meldung abgelehnt.
+- [ ] Zugänge: Die Seite sagt, dass die API offen ist. Zugang `buero` mit „lesen, bedienen und einrichten“ anlegen: Token und Adresse zum Freischalten stehen einmal da, die Seite bleibt bedienbar. Das zweite Fenster zeigt nach dem Neuladen, dass es nicht freigeschaltet ist; mit der Adresse zum Freischalten geht es wieder.
+- [ ] Ein zweiter Zugang `flur` mit „lesen“: Mit seinem Token lässt sich eine Anzeige ansehen, aber nicht schalten. `buero` lässt sich weder herabstufen noch entfernen, solange `flur` besteht. Beide entfernen: Die API ist wieder offen.
+
 **Uhr und Eieruhr**
 - [ ] Uhrzeit mit Sekunden und Datum stimmen.
 - [ ] Antippen öffnet die Auswahl. Eine Voreinstellung wählen, mit −10 s auf 10 Sekunden verkürzen, starten: Die Auswahl schließt sich, die Restzeit steht groß an der Stelle der Uhrzeit, die Uhrzeit mit Sekunden darunter an der Stelle des Datums.

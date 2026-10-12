@@ -84,6 +84,16 @@ Mit dem Zusatz `?edit=sources` – etwa `http://localhost:8090/?edit=sources`, o
 - Ist ein Zugriffsschutz eingerichtet, braucht die Seite einen Zugang der Stufe `admin`.
 - Werden die Quellen in `config.json` von Hand geändert, wirkt das wie bisher nach einem Neustart; bis dahin lehnt die Seite Änderungen ab, damit nichts überschrieben wird.
 
+### Einstellungen in der Oberfläche
+
+Unter `?edit=settings` – oder über „Einstellungen“ im Layout-Editor und auf der Seite der Quellen – steht, was sonst noch einzurichten ist. Jede Änderung gilt sofort, ohne Neustart, und steht danach in `config.json`.
+
+- **Anzeige:** Sprache, Region für Zahlen und Datum, Farbschema, Farbschema für die Nacht und die Quelle, die Tag und Nacht kennt. Offene Anzeigen übernehmen die Änderung ohne Neuladen.
+- **Meldungen:** anlegen, ändern, entfernen – Text, Ton, Vorlesen, Kamera, Dauer, reines Signal und die Bedingung, die eine Meldung von selbst auslöst. Gespeicherte Meldungen lassen sich zur Probe auslösen.
+- **Zugänge:** Name und Stufe. Das Token erzeugt der Kern; es steht genau einmal da, zusammen mit der Adresse zum Freischalten einer Anzeige, und danach nur noch in `secrets.json`. Der erste Zugang schließt die bis dahin offene API und muss deshalb die Stufe `admin` haben; solange es Zugänge gibt, bleibt mindestens einer mit `admin`. Der Browser, in dem der erste Zugang angelegt wird, merkt sich dessen Token – alle anderen Anzeigen müssen danach freigeschaltet werden.
+
+Nicht in der Oberfläche: der Port, HTTPS und der Datenordner – das bleibt in `config.json` und braucht einen Neustart.
+
 ### Layout
 
 Die Anzeige ist ein Raster. Jedes Widget steht mit `at: [Spalte, Zeile, Breite, Höhe]` darin, gezählt ab 0.
@@ -559,9 +569,12 @@ Die Oberfläche benutzt dieselbe Schnittstelle wie jedes andere Programm. Alle P
 | `GET /sources`, `GET /plugins` | Eingerichtete Quellen mit Einstellungen und Zustand – von den Zugangsdaten nur die Namen der hinterlegten; installierte Plugins mit der Beschreibung ihrer Einstellungen (Stufe `admin`) |
 | `POST /sources`, `PUT /sources/{id}` | Quelle anlegen (`{ "id", "plugin", "config", "secrets" }`) oder ändern (`{ "config", "secrets" }`); sie startet damit neu. In `secrets` setzt ein Text die Angabe, `null` nimmt sie heraus, was fehlt, bleibt (Stufe `admin`) |
 | `POST /sources/{id}/restart`, `DELETE /sources/{id}` | Eine Quelle neu starten; anhalten und samt Zugangsdaten entfernen (Stufe `admin`) |
+| `GET /settings` | Anzeige, Meldungen und Zugänge zum Einrichten – von den Zugängen nur Name und Stufe (Stufe `admin`) |
+| `PUT /settings/site`, `PUT /settings/events` | Einstellungen der Anzeige bzw. alle Meldungen ersetzen; gilt sofort (Stufe `admin`) |
+| `POST /settings/access`, `PUT /settings/access/{name}`, `DELETE /settings/access/{name}` | Zugang anlegen (`{ "name", "role" }` – die Antwort nennt das Token, nur dieses eine Mal), Stufe ändern, entfernen (Stufe `admin`) |
 | `GET /access` | Name und Stufe des vorgelegten Zugangs |
 | `GET /embed?url=` | Ob eine Seite aus einer Kachel `web` das Einbetten erlaubt |
-| WebSocket `/stream` | Änderungen in Echtzeit; abonnieren mit `{ "op": "sub", "topics": ["dp/*"] }`. `layout/{id}` meldet, dass ein Layout geändert wurde |
+| WebSocket `/stream` | Änderungen in Echtzeit; abonnieren mit `{ "op": "sub", "topics": ["dp/*"] }`. `layout/{id}` meldet, dass ein Layout geändert wurde; `site` kommt an jede Anzeige, wenn Sprache oder Farbschema geändert wurden |
 
 ### Zugriffsschutz
 

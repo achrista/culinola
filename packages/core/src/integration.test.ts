@@ -14,6 +14,7 @@ import { LayoutStore } from './layouts.ts';
 import { PluginHost } from './plugins.ts';
 import { DatapointRegistry } from './registry.ts';
 import { buildServer } from './server.ts';
+import { SettingsStore } from './settings.ts';
 import { SourceStore } from './sources.ts';
 import { parseTemplate } from './templates.ts';
 
@@ -51,7 +52,8 @@ let dataDir: string;
 const hosts: PluginHost[] = [];
 const servers: FastifyInstance[] = [];
 
-async function core(access: readonly AccessToken[]): Promise<FastifyInstance> {
+async function core(given: readonly AccessToken[]): Promise<FastifyInstance> {
+  const access = [...given];
   const registry = new DatapointRegistry();
   const actions = new ActionRegistry();
   // Jeder Kern bekommt eigene Layouts und eine eigene Datei: Was der eine speichert, sieht der andere nicht
@@ -60,16 +62,18 @@ async function core(access: readonly AccessToken[]): Promise<FastifyInstance> {
   const layouts = new LayoutStore(own.layouts, file, own, quiet);
   const secrets: Record<string, Record<string, string>> = {};
   const plugins = new PluginHost(registry, actions, secrets, quiet, dataDir, own.layouts);
-  const sources = new SourceStore({ sources: own.sources, secrets, plugins, configFile: file, secretsFile: new JsonFile(join(dataDir, `kern-${servers.length}`, 'secrets.json')), initial: own, log: quiet });
+  const secretsFile = new JsonFile(join(dataDir, `kern-${servers.length}`, 'secrets.json'));
+  const sources = new SourceStore({ sources: own.sources, secrets, plugins, configFile: file, secretsFile, initial: own, log: quiet });
   registerBuiltinActions(actions, registry, plugins);
-  const events = new EventHub(config.events ?? {}, quiet);
+  own.events = structuredClone(config.events ?? {});
+  const events = new EventHub(own.events, quiet);
   registry.on('change', (datapoint) => events.observe(datapoint));
   hosts.push(plugins);
   await plugins.startAll(own.sources);
   // Zwei Adressen wie von einem Plugin angemeldet: eine, die nur liest, obwohl sie POST benutzt, und eine gewöhnliche
   plugins.routes.push({ method: 'POST', instance: 'probe', path: '/lesen', role: 'read', handler: () => Response.json({ ok: true }) });
   plugins.routes.push({ method: 'POST', instance: 'probe', path: '/schalten', handler: () => Response.json({ ok: true }) });
-  const server = await buildServer({ config: own, registry, plugins, actions, events, layouts, sources, templates: [parseTemplate('klein', { name: { de: 'Klein' }, layout: { grid: { columns: 4, rows: 2 }, widgets: [{ type: 'clock', at: [0, 0, 4, 2] }] } })], log: quiet, access });
+  const server = await buildServer({ config: own, registry, plugins, actions, events, layouts, sources, settings: new SettingsStore({ config: own, events, access, secrets, configFile: file, secretsFile, log: quiet }), templates: [parseTemplate('klein', { name: { de: 'Klein' }, layout: { grid: { columns: 4, rows: 2 }, widgets: [{ type: 'clock', at: [0, 0, 4, 2] }] } })], log: quiet, access });
   servers.push(server);
   return server;
 }
@@ -429,6 +433,10 @@ describe('Kern mit Zugriffsschutz', () => {
       expect((await app.inject({ ...call, headers: as('token-der-kueche-0123456789') })).statusCode, call.url).toBe(403);
     }
     expect((await app.inject({ url: '/api/v1/sources', headers: as('token-vom-buero-0123456789') })).statusCode).toBe(200);
+    // Einstellungen: lesen und ändern nur mit der Stufe zum Einrichten
+    for (const call of [{ method: 'GET', url: '/api/v1/settings' }, { method: 'PUT', url: '/api/v1/settings/site', payload: {} }, { method: 'POST', url: '/api/v1/settings/access', payload: { name: 'neu', role: 'admin' } }] as const) {
+      expect((await app.inject({ ...call, headers: as('token-der-kueche-0123456789') })).statusCode, call.url).toBe(403);
+    }
     // Die Oberfläche fragt vorab, was ihr Zugang darf
     expect((await app.inject({ url: '/api/v1/access', headers: as('token-der-kueche-0123456789') })).json()).toEqual({ name: 'kueche', role: 'control' });
     expect((await app.inject({ url: '/api/v1/access', headers: as('token-vom-buero-0123456789') })).json()).toEqual({ name: 'buero', role: 'admin' });
@@ -452,5 +460,92 @@ describe('Kern mit Zugriffsschutz', () => {
     expect((await app.inject('/api/v1/p/recipes/file/kuchen-kaesekuchen/bild.png?token=token-vom-flur-0123456789')).statusCode).toBe(200);
     expect((await app.inject('/api/v1/status?token=token-vom-flur-0123456789')).statusCode).toBe(401);
     expect((await app.inject({ method: 'POST', url: '/api/v1/actions/timer.stop?token=token-der-kueche-0123456789', payload: {} })).statusCode).toBe(401);
+  });
+});
+
+describe('Einstellungen im Betrieb', () => {
+  let app: FastifyInstance;
+  let index: number;
+  const onDisk = (name: string) => JSON.parse(readFileSync(join(dataDir, `kern-${index}`, name), 'utf8'));
+  beforeAll(async () => {
+    index = servers.length;
+    app = await core([]);
+    // Der Echtzeitkanal lässt sich im Test erst öffnen, wenn der Server bereit ist
+    await app.ready();
+  });
+
+  it('ändert Sprache und Farbschema und sagt es den offenen Anzeigen', async () => {
+    const socket = await app.injectWS('/api/v1/stream');
+    const seen: unknown[] = [];
+    socket.on('message', (data: Buffer) => seen.push(JSON.parse(data.toString())));
+    const put = (payload: unknown) => app.inject({ method: 'PUT', url: '/api/v1/settings/site', payload: payload as object });
+
+    const site = { language: 'en', region: 'en-GB', theme: 'glut', nightTheme: 'nacht', eigenes: 'bleibt' };
+    expect((await put({ ...site, astro: '' })).json()).toEqual(site);
+    await new Promise((resume) => setTimeout(resume, 50));
+    socket.terminate();
+
+    expect((await app.inject('/api/v1/site')).json()).toEqual(site);
+    expect(onDisk('config.json').site).toEqual(site);
+    expect(seen).toEqual([{ t: 'site', d: site }]);
+    for (const wrong of [{ language: 'deutsch!' }, { region: 'kein land' }, { theme: 'Glut 2' }, { nightTheme: 7 }, [1]]) expect((await put(wrong)).statusCode, JSON.stringify(wrong)).toBe(400);
+    expect((await app.inject('/api/v1/site')).json()).toEqual(site);
+  });
+
+  it('ändert die Meldungen: Neue lassen sich sofort auslösen, entfernte nicht mehr', async () => {
+    const events = { paket: { text: 'Ein Paket ist da.', sound: 'bell' }, warm: { text: 'Es ist warm.', when: { datapoint: 'demo:temp_aussen', above: 30 } } };
+    expect((await app.inject({ method: 'PUT', url: '/api/v1/settings/events', payload: events })).statusCode).toBe(200);
+    expect((await app.inject('/api/v1/events')).json()).toEqual([{ name: 'paket', text: 'Ein Paket ist da.' }, { name: 'warm', text: 'Es ist warm.', trigger: 'demo:temp_aussen' }]);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/events/paket' })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'POST', url: '/api/v1/events/hausglocke' })).statusCode).toBe(404);
+    expect(onDisk('config.json').events).toEqual(events);
+    expect((await app.inject('/api/v1/settings')).json<{ events: unknown }>().events).toEqual(events);
+
+    const wrong = await app.inject({ method: 'PUT', url: '/api/v1/settings/events', payload: { paket: { sound: 'bell' } } });
+    expect([wrong.statusCode, wrong.json<{ error: string }>().error]).toEqual([400, 'Meldung "paket": "text" fehlt.']);
+    expect(onDisk('config.json').events).toEqual(events);
+  });
+
+  it('richtet Zugänge ein: Das Token kommt einmal, gilt sofort, und einer muss einrichten dürfen', async () => {
+    const as = (token: string) => ({ authorization: `Bearer ${token}` });
+    const add = (payload: object, token?: string) => app.inject({ method: 'POST', url: '/api/v1/settings/access', payload, ...(token ? { headers: as(token) } : {}) });
+
+    // Der erste Zugang schließt die bis dahin offene API – also muss er einrichten dürfen
+    const first = await add({ name: 'kueche', role: 'control' });
+    expect([first.statusCode, first.json<{ error: string }>().error]).toEqual([409, expect.stringMatching(/muss einer die Stufe „admin“ haben/)]);
+    for (const wrong of [{ name: 'büro', role: 'admin' }, { name: 'buero', role: 'chef' }, { role: 'admin' }]) expect((await add(wrong)).statusCode, JSON.stringify(wrong)).toBe(400);
+
+    const admin = (await add({ name: 'buero', role: 'admin' })).json<{ name: string; role: string; token: string }>();
+    expect(admin).toMatchObject({ name: 'buero', role: 'admin' });
+    expect(admin.token.length).toBeGreaterThanOrEqual(40);
+    // Ab jetzt ist die API geschützt – ohne Neustart
+    expect((await app.inject('/api/v1/status')).statusCode).toBe(401);
+    expect((await app.inject({ url: '/api/v1/status', headers: as(admin.token) })).json()).toMatchObject({ protected: true });
+    expect(onDisk('config.json').access).toEqual({ tokens: [{ name: 'buero', role: 'admin' }] });
+    expect(onDisk('secrets.json').api).toEqual({ buero: admin.token });
+
+    const kitchen = (await add({ name: 'kueche', role: 'control' }, admin.token)).json<{ token: string }>();
+    expect((await add({ name: 'kueche', role: 'read' }, admin.token)).statusCode).toBe(409);
+    // Die Liste nennt Namen und Stufen, nie die Tokens
+    const listed = await app.inject({ url: '/api/v1/settings', headers: as(admin.token) });
+    expect(listed.json<{ access: unknown }>().access).toEqual([{ name: 'buero', role: 'admin' }, { name: 'kueche', role: 'control' }]);
+    expect(listed.body).not.toContain(admin.token);
+    expect(listed.body).not.toContain(kitchen.token);
+
+    // Der letzte, der einrichten darf, lässt sich weder herabstufen noch entfernen, solange es andere gibt
+    const change = (method: 'PUT' | 'DELETE', name: string, payload?: object) => app.inject({ method, url: `/api/v1/settings/access/${name}`, headers: as(admin.token), ...(payload ? { payload } : {}) });
+    expect((await change('PUT', 'buero', { role: 'read' })).statusCode).toBe(409);
+    expect((await change('DELETE', 'buero')).statusCode).toBe(409);
+    expect((await change('DELETE', 'fehlt')).statusCode).toBe(404);
+    expect((await change('PUT', 'kueche', { role: 'read' })).json()).toEqual({ name: 'kueche', role: 'read' });
+    expect((await app.inject({ method: 'POST', url: '/api/v1/actions/timer.stop', payload: {}, headers: as(kitchen.token) })).statusCode).toBe(403);
+
+    // Ohne Zugänge ist die API wieder offen
+    expect((await change('DELETE', 'kueche')).statusCode).toBe(200);
+    expect((await app.inject({ url: '/api/v1/status', headers: as(kitchen.token) })).statusCode).toBe(401);
+    expect((await change('DELETE', 'buero')).statusCode).toBe(200);
+    expect((await app.inject('/api/v1/status')).json()).toMatchObject({ protected: false });
+    expect(onDisk('config.json').access).toBeUndefined();
+    expect(onDisk('secrets.json').api).toBeUndefined();
   });
 });

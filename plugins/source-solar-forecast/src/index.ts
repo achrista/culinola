@@ -23,7 +23,7 @@ export default definePlugin<Config>({
   id: 'source-solar-forecast',
   name: { de: 'Solarprognose', en: 'Solar forecast' },
   text: { de: 'Ertragsprognose einer Solaranlage von forecast.solar.', en: 'Yield forecast of a solar plant from forecast.solar.' },
-  help: { de: 'Der freie Zugang von forecast.solar braucht keinen Schlüssel. Neigung und Ausrichtung der Module und die Leistung der Anlage stehen in den Unterlagen der Solaranlage.', en: 'The free access of forecast.solar needs no key. Tilt and orientation of the modules and the power of the plant are found in the documents of the solar plant.' },
+  help: { de: 'Die Prognose kommt von https://api.forecast.solar; die Adresse ist fest eingestellt. Der freie Zugang braucht keinen Schlüssel. Neigung und Ausrichtung der Module und die Leistung der Anlage stehen in den Unterlagen der Solaranlage.', en: 'The forecast comes from https://api.forecast.solar; the address is fixed. The free access needs no key. Tilt and orientation of the modules and the power of the plant are found in the documents of the solar plant.' },
   settings: [
     { key: 'latitude', type: 'number', label: { de: 'Breitengrad', en: 'Latitude' }, min: -90, max: 90 },
     { key: 'longitude', type: 'number', label: { de: 'Längengrad', en: 'Longitude' }, min: -180, max: 180 },
@@ -31,7 +31,6 @@ export default definePlugin<Config>({
     { key: 'azimuth', type: 'number', label: { de: 'Ausrichtung (Grad)', en: 'Orientation (degrees)' }, hint: { de: '0 ist Süden, -90 Osten, 90 Westen.', en: '0 is south, -90 east, 90 west.' }, min: -180, max: 180 },
     { key: 'kwp', type: 'number', label: { de: 'Leistung (kWp)', en: 'Power (kWp)' }, min: 0.1, max: 1000 },
     { key: 'refreshMinutes', type: 'number', label: { de: 'Abruf alle … Minuten', en: 'Fetch every … minutes' }, min: 15, max: 1440, placeholder: 180 },
-    { key: 'url', type: 'text', label: { de: 'Adresse des Dienstes', en: 'Address of the service' }, placeholder: 'https://api.forecast.solar' },
   ],
   secrets: [
     { key: 'apiKey', label: { de: 'Schlüssel', en: 'API key' }, hint: { de: 'Nur für einen eigenen Zugang; der freie kommt ohne aus.', en: 'Only for a paid account; the free one needs none.' } },
