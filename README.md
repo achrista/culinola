@@ -73,7 +73,7 @@ Voice commands and the recipe import send a sentence, a text or a photo to Anthr
 3. Under *API keys*, create a key. It starts with `sk-ant-` and is shown only once.
 4. In Culinola open *Sources*, choose the source `voice` or `recipes`, and enter the key under *Credentials → Claude API key*. One key serves both.
 
-A spoken sentence costs a fraction of a cent, a recipe a little more; Culinola writes the number of tokens used into its log. Without a key everything else works as usual – the voice tile and the "add recipe" button simply stay inactive.
+A spoken sentence costs a fraction of a cent, a recipe a little more; Culinola writes the number of tokens used into its log. Without a key everything else works as usual – the button for adding recipes is not shown, and the voice tile says that voice control is not set up.
 
 > **Before you expose it:** out of the box the API is open to everyone on your network. Create an access token under *Settings → Access* and put HTTPS in front before reaching it from outside your home network.
 
