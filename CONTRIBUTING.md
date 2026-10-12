@@ -1,25 +1,31 @@
-# Mitwirken
+# Contributing
 
-Culinola ist im Aufbau. Beiträge von außen werden erst angenommen, wenn die Beitragsvereinbarung (CLA) eingerichtet ist.
+Thank you for wanting to improve Culinola. Bug reports and ideas are welcome as [issues](https://github.com/achrista/culinola/issues); code is welcome as pull requests.
 
-## Beitragsvereinbarung (CLA)
+## Contributor License Agreement
 
-Wer Code beiträgt, räumt dem Projektinhaber die dafür nötigen Rechte ein. Der Text der Vereinbarung und die automatische Abfrage bei jedem Beitrag sind noch nicht eingerichtet.
+Before a pull request can be merged, its author has to agree to the [Contributor License Agreement](CLA.md) once. It lets the project keep distributing your contribution under its licence; you keep all rights to your own work.
 
-**Offen:** Text festlegen und juristisch prüfen lassen, CLA-Abfrage im Repository einrichten.
+A bot asks for this on your first pull request. You agree by posting the comment it suggests:
+
+> I have read the CLA Document and I hereby sign the CLA
 
 ## Tests
 
-Jede Änderung läuft durch `npm run check`. Was darüber hinaus zu prüfen ist und welche Tests zu neuem Code gehören, steht in [docs/testen.md](docs/testen.md).
+Every change has to pass `npm run check` (type check, tests, licence check). What else has to be checked and which tests belong to new code is described in [docs/testen.md](docs/testen.md) (German for now).
 
-## Regeln für Abhängigkeiten
+## Language
 
-Zugelassen sind nur permissiv lizenzierte Pakete: MIT, MIT-0, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0, 0BSD, Unlicense, CC0-1.0. Für Schriften zusätzlich OFL-1.1.
+The interface is German and English; every text of the interface needs both. Code comments, commit messages and the messages of the core are German at present – contributions in English are fine.
 
-Nicht zugelassen sind GPL, AGPL, eingebundene LGPL, SSPL, BUSL, Lizenzen mit dem Vorbehalt „nur nicht-kommerziell“ sowie Pakete ohne klare Lizenzangabe.
+## Rules for dependencies
 
-`npm run licenses` prüft das für alle ausgelieferten Abhängigkeiten und bricht bei einem Verstoß ab.
+Only permissively licensed packages are allowed: MIT, MIT-0, ISC, BSD-2-Clause, BSD-3-Clause, Apache-2.0, 0BSD, Unlicense, CC0-1.0, and OFL-1.1 for fonts.
 
-## Was nie ins Repository gehört
+Not allowed: GPL, AGPL, linked LGPL, SSPL, BUSL, licences restricted to non-commercial use, and packages without a clear licence.
 
-Zugangsdaten, Schlüssel, Token, private Adressen sowie Bilder, Klänge und Schriften mit ungeklärten Rechten.
+`npm run licenses` checks this for all shipped dependencies and fails on a violation.
+
+## What never belongs in the repository
+
+Credentials, keys, tokens, private addresses, and images, sounds or fonts with unclear rights.

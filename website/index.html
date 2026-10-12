@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Culinola – the home dashboard for your kitchen screen</title>
+    <meta name="description" content="Culinola brings your house, your media and your family's day together on one touch display. Open source, self-hosted, set up in the browser." />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="./">Culinola</a>
+        <nav>
+          <a href="#features">Features</a>
+          <a href="#start">Get started</a>
+          <a href="https://github.com/achrista/culinola">GitHub</a>
+        </nav>
+      </header>
+
+      <div class="hero">
+        <h1>The home dashboard for the screen in your kitchen</h1>
+        <p>Culinola brings your house, your media and your family's day together on one touch display – arranged the way you want, set up entirely in the browser.</p>
+        <p>
+          <a class="button" href="#start">Get started</a>
+          <a class="button plain" href="https://github.com/achrista/culinola">View on GitHub</a>
+        </p>
+      </div>
+      <img class="shot" src="images/dashboard-night.png" alt="Culinola dashboard with energy gauges, presence, sun and moon and a clock" width="1920" height="1080" />
+
+      <section id="features">
+        <h2>Why Culinola</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>Everything at a glance</h3>
+            <p>No scrolling, no menus: a grid of tiles that fills the display and scales with it.</p>
+          </div>
+          <div class="card">
+            <h3>Works with what you have</h3>
+            <p>openHAB, Home Assistant, Homematic, MQTT, FRITZ!Box, IMAP, Google Calendar, RSS, cameras via go2rtc – each one is a plugin.</p>
+          </div>
+          <div class="card">
+            <h3>Set up in the browser</h3>
+            <p>Drag tiles into place, pick datapoints from a searchable list, add sources and credentials. Displays pick up every change without a restart.</p>
+          </div>
+          <div class="card">
+            <h3>Made for the whole family</h3>
+            <p>An egg timer on the clock, recipes to cook from, ingredients onto the shopping list, a doorbell message with the camera behind it.</p>
+          </div>
+          <div class="card">
+            <h3>Yours</h3>
+            <p>Runs on your own hardware in your own network. Apache-2.0, with only permissively licensed dependencies.</p>
+          </div>
+          <div class="card">
+            <h3>One API for everything</h3>
+            <p>The interface uses the same HTTP and WebSocket API as any other program – with access tokens in three levels.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>A look around</h2>
+        <div class="shots">
+          <figure>
+            <img class="shot" src="images/layout-editor.png" alt="Layout editor with tiles and the list of tile types" width="1920" height="1080" loading="lazy" />
+            <figcaption>Layout editor – move, resize, add and configure tiles on a true-to-scale preview.</figcaption>
+          </figure>
+          <figure>
+            <img class="shot" src="images/dashboard.png" alt="Dashboard in the light theme" width="1920" height="1080" loading="lazy" />
+            <figcaption>Six colour themes, with an automatic switch at sunset.</figcaption>
+          </figure>
+          <figure>
+            <img class="shot" src="images/sources.png" alt="List of sources with their state" width="1920" height="1080" loading="lazy" />
+            <figcaption>Sources – each connection restarts on its own and tells you what it found.</figcaption>
+          </figure>
+          <figure>
+            <img class="shot" src="images/settings.png" alt="Settings for display, messages and access" width="1920" height="1080" loading="lazy" />
+            <figcaption>Settings – language, themes, on-screen messages and access tokens.</figcaption>
+          </figure>
+        </div>
+        <p>The screenshots show the built-in test instance with made-up values.</p>
+      </section>
+
+      <section id="start">
+        <h2>Get started</h2>
+        <p>You need Node.js 22.18 or newer.</p>
+        <pre>git clone https://github.com/achrista/culinola.git
+cd culinola
+npm install
+npm run build
+npm start</pre>
+        <p>Open <code>http://localhost:8090</code>. Without a configuration of your own, Culinola starts with made-up demo values. Add <code>?layout=main&amp;edit</code> to the address to open the layout editor.</p>
+        <p>Culinola is young: expect rough edges, and please report them on <a href="https://github.com/achrista/culinola/issues">GitHub</a>. The interface is available in German and English.</p>
+      </section>
+
+      <footer>
+        Culinola is open source under the Apache License 2.0 · <a href="https://github.com/achrista/culinola">GitHub</a> · <a href="impressum.html">Impressum / Legal notice</a> · <a href="datenschutz.html">Datenschutz / Privacy</a>
+      </footer>
+    </div>
+  </body>
+</html>

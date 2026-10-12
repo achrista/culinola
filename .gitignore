@@ -22,3 +22,6 @@ tools/
 
 # Interne Arbeitspapiere bleiben auf diesem Rechner
 intern/
+
+# Die Bilder der Webseite kommen beim Veroeffentlichen aus docs/images
+website/images/

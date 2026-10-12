@@ -60,10 +60,12 @@ The interface is available in German and English. Messages produced by the core 
 
 ## Documentation
 
+- [Architecture](docs/architecture.md): how core, plugins and interface fit together
 - [Handbook](docs/handbuch.de.md) (German): every tile, every plugin, the API and access control
 - [Testing](docs/testen.md) (German): what is tested automatically and the manual checklist
 - [Google account setup](docs/google-einrichten.md) (German)
-- [Contributing](CONTRIBUTING.md)
+- [Contributing](CONTRIBUTING.md) and the [Contributor License Agreement](CLA.md)
+- [Security](SECURITY.md)
 
 ## License
 
