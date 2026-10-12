@@ -47,7 +47,7 @@ export function parseClient(json: string): Client {
 
 export function readClient(storageDir: string): Client {
   const file = clientFile(storageDir);
-  if (!existsSync(file)) throw new LoginRequired(`Der Google-Zugang fehlt: ${file} gibt es nicht. Wie er angelegt wird, steht in docs/google-einrichten.md.`);
+  if (!existsSync(file)) throw new LoginRequired(`Der Google-Zugang fehlt: ${file} gibt es nicht. Wie er angelegt wird, steht in docs/google-setup.md.`);
   return parseClient(readFileSync(file, 'utf8'));
 }
 

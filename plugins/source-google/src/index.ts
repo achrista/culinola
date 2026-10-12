@@ -35,7 +35,7 @@ export default definePlugin<Config>({
   id: 'source-google',
   name: { de: 'Google', en: 'Google' },
   text: { de: 'Termine aus dem Google-Kalender und Erinnerungen aus den Kontakten. Die Anmeldung geschieht einmalig mit „npm run google:login“.', en: 'Appointments from Google Calendar and reminders from the contacts. Sign in once with “npm run google:login”.' },
-  help: { de: 'Die Anmeldung am Google-Konto geschieht nicht hier, sondern einmalig auf dem Rechner des Kerns mit „npm run google:login“. Die Schritte stehen in docs/google-einrichten.md.', en: 'Signing in to the Google account does not happen here but once on the computer of the core with “npm run google:login”. The steps are described in docs/google-einrichten.md.' },
+  help: { de: 'Die Anmeldung am Google-Konto geschieht nicht hier, sondern einmalig auf dem Rechner des Kerns mit „npm run google:login“. Die Schritte stehen in docs/google-setup.md.', en: 'Signing in to the Google account does not happen here but once on the computer of the core with “npm run google:login”. The steps are described in docs/google-setup.md.' },
   settings: [
     { key: 'calendars', type: 'tags', label: { de: 'Kalender', en: 'Calendars' }, hint: { de: 'Name oder Kennung; leer gilt der Hauptkalender (primary).', en: 'Name or id; empty means the main calendar (primary).' } },
     { key: 'reminderCalendars', type: 'tags', label: { de: 'Kalender für Erinnerungen', en: 'Calendars for reminders' }, hint: { de: 'Ihre jährlichen ganztägigen Termine gelten als Erinnerungen.', en: 'Their yearly all-day events count as reminders.' } },

@@ -12,7 +12,7 @@ A bot asks for this on your first pull request. You agree by posting the comment
 
 ## Tests
 
-Every change has to pass `npm run check` (type check, tests, licence check). What else has to be checked and which tests belong to new code is described in [docs/testen.md](docs/testen.md) (German for now).
+Every change has to pass `npm run check` (type check, tests, licence check). What else has to be checked and which tests belong to new code is described in [docs/testing.md](docs/testing.md).
 
 ## Language
 

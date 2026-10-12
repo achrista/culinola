@@ -81,14 +81,14 @@ A spoken sentence costs a fraction of a cent, a recipe a little more; Culinola w
 
 Culinola is young. It was built for its author's kitchen display running against openHAB, and every connector is covered by automated tests against stand-ins – but not every plugin has been exercised against every real device, and the setup pages are new. Expect rough edges and please report them.
 
-The interface is available in German and English. Messages produced by the core (rejected input, connection errors) and the detailed handbook are still German only; translating both is in progress.
+The interface is available in German and English. Messages produced by the core (rejected input, connection errors) are still German only; translating them is in progress.
 
 ## Documentation
 
 - [Architecture](docs/architecture.md): how core, plugins and interface fit together
-- [Handbook](docs/handbuch.de.md) (German): every tile, every plugin, the API and access control
-- [Testing](docs/testen.md) (German): what is tested automatically and the manual checklist
-- [Google account setup](docs/google-einrichten.md) (German)
+- [Handbook](docs/handbook.md): every tile, every plugin, the API and access control
+- [Testing](docs/testing.md): what is tested automatically and the manual checklist
+- [Google account setup](docs/google-setup.md)
 - [Contributing](CONTRIBUTING.md) and the [Contributor License Agreement](CLA.md)
 - [Security](SECURITY.md)
 
