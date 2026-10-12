@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Modularer Infobildschirm fürs Zuhause – Haustechnik, Medien und Alltag auf einem Touch-Bildschirm.",
-  "license": "Apache-2.0",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "engines": {
     "node": ">=22"

@@ -624,4 +624,4 @@ Beim Arbeiten an der Oberfläche läuft sie mit `npm run dev:ui` auf eigenem Por
 
 ## Lizenz
 
-Apache License 2.0, siehe [LICENSE](LICENSE). Hinweise zum Mitwirken stehen in [CONTRIBUTING.md](CONTRIBUTING.md).
+PolyForm Noncommercial License 1.0.0, siehe [LICENSE](../LICENSE): frei für nicht-kommerzielle Zwecke; eine kommerzielle Nutzung braucht eine gesonderte Lizenz. Hinweise zum Mitwirken stehen in [CONTRIBUTING.md](CONTRIBUTING.md).

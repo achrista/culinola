@@ -10,7 +10,7 @@
 - **Works with what you have.** openHAB, Home Assistant, Homematic, MQTT (Tasmota, Zigbee2MQTT …), FRITZ!Box, IMAP mail, Google Calendar, RSS, go2rtc cameras – each is a plugin, and a tile does not care which system a value comes from.
 - **Set up in the browser.** Drag tiles into place, pick datapoints from a searchable list, add sources and credentials, create access tokens – from your desk or your phone, while the kitchen display keeps running and picks up every change without a restart.
 - **Made for touch and for the whole family.** Tap the clock for an egg timer, tap a recipe to cook from it, put its ingredients on the shopping list, ask by voice how warm it is outside.
-- **Yours.** Runs on your own hardware, in your own network. Apache-2.0, with only permissively licensed dependencies – checked on every build.
+- **Yours.** Runs on your own hardware, in your own network. The source is open to read and change, and free for private and other noncommercial use.
 
 ## A look around
 
@@ -69,4 +69,6 @@ The interface is available in German and English. Messages produced by the core 
 
 ## License
 
-[Apache License 2.0](LICENSE) – see [NOTICE](NOTICE).
+Culinola is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE): you may use, change and share it for any noncommercial purpose – at home, for a club, a school, for trying it out. Commercial use – selling it, bundling it with hardware, offering it as a service or installing it for customers – needs a separate licence; write to <mail@christa-web.de>. See also [NOTICE](NOTICE).
+
+Culinola builds only on permissively licensed dependencies; this is checked on every build.

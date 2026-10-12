@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Erfundene Beispielwerte, damit Culinola ohne angebundenes System läuft.",
-  "license": "Apache-2.0",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

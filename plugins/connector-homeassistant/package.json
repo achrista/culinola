@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Bindet Home Assistant an: Stand aller Geräte in Echtzeit, schalten über Dienste, Verlauf.",
-  "license": "Apache-2.0",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

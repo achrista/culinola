@@ -2,7 +2,7 @@
 
 Version 1 – October 2026
 
-Thank you for your contribution to Culinola ("the Project"), maintained by Arnulf Christa ("the Maintainer"). This agreement records the rights you grant so that the Project can use and distribute your contribution. You keep the copyright in your contribution and may use it for any other purpose.
+Thank you for your contribution to Culinola ("the Project"), maintained by Arnulf Christa ("the Maintainer", which includes his legal successors and anyone to whom he assigns his rights in the Project). This agreement records the rights you grant so that the Project can use and distribute your contribution. The Project is published under the PolyForm Noncommercial License; the Maintainer also offers it under commercial licences, and your contribution may become part of both. You keep the copyright in your contribution and may use it for any other purpose.
 
 By posting the comment "I have read the CLA Document and I hereby sign the CLA" on a pull request, you accept the following terms for this and all your future contributions to the Project.
 
@@ -12,11 +12,11 @@ By posting the comment "I have read the CLA Document and I hereby sign the CLA" 
 
 ## 2. Copyright licence
 
-You grant the Maintainer and everyone who receives the Project a perpetual, worldwide, non-exclusive, royalty-free, irrevocable licence to reproduce, modify, publicly display, publicly perform, sublicense and distribute your Contributions and works derived from them, under the Apache License 2.0 or under other licence terms chosen by the Maintainer.
+You grant the Maintainer a perpetual, worldwide, non-exclusive, royalty-free, irrevocable licence to reproduce, modify, publicly display, publicly perform, sublicense and distribute your Contributions and works derived from them, under the licence of the Project or under any other licence terms chosen by the Maintainer, including commercial licences. Everyone else receives your Contributions as part of the Project, under the licence of the Project.
 
 ## 3. Patent licence
 
-You grant the Maintainer and everyone who receives the Project a perpetual, worldwide, non-exclusive, royalty-free, irrevocable patent licence to make, use, sell, offer for sale, import and otherwise transfer your Contributions. It covers only those patent claims you can license that are necessarily infringed by your Contribution alone or in combination with the Project.
+You grant the Maintainer, and everyone who receives the Project from the Maintainer under any licence, a perpetual, worldwide, non-exclusive, royalty-free, irrevocable patent licence to make, use, sell, offer for sale, import and otherwise transfer your Contributions. It covers only those patent claims you can license that are necessarily infringed by your Contribution alone or in combination with the Project.
 
 ## 4. Your assurances
 

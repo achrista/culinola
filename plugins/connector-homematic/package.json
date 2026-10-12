@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Bindet eine Homematic-Zentrale (CCU, RaspberryMatic) an: klassische und IP-Geräte, lesen und schalten.",
-  "license": "Apache-2.0",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

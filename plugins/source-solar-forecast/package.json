@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Ertragsprognose für die Solaranlage von forecast.solar: erwartete Leistung im Tagesverlauf, Ertrag heute und morgen.",
-  "license": "Apache-2.0",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

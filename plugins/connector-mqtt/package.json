@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Bindet Geräte über MQTT an: einzelne Themen von Hand oder Geräte, die sich selbst anmelden (Tasmota, Home-Assistant-Muster).",
-  "license": "Apache-2.0",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

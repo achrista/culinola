@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Wandelt Rezepte aus Dokumenten, Fotos und Webseiten mit Claude Haiku in das Rezeptformat von Culinola und Merkio um.",
-  "license": "Apache-2.0",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",

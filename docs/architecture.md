@@ -20,7 +20,7 @@ Culinola has three parts: a **core** that runs on a small server in the house, *
 - **Capabilities, not systems.** A tile is bound to a datapoint, not to a smart-home product. Replace openHAB by Home Assistant and the tile stays the same.
 - **One API for everything.** The interface uses the same HTTP and WebSocket API as any other program. Nothing the interface can do is private.
 - **Raw values out, formatting in the display.** The core delivers value and unit; language, number format and theme belong to the display.
-- **Only permissively licensed dependencies**, checked on every build.
+- **Only permissively licensed dependencies**, checked on every build – so that Culinola itself stays free to license.
 
 ## Packages
 

@@ -4,7 +4,7 @@ Thank you for wanting to improve Culinola. Bug reports and ideas are welcome as 
 
 ## Contributor License Agreement
 
-Before a pull request can be merged, its author has to agree to the [Contributor License Agreement](CLA.md) once. It lets the project keep distributing your contribution under its licence; you keep all rights to your own work.
+Before a pull request can be merged, its author has to agree to the [Contributor License Agreement](CLA.md) once. Culinola is published under the [PolyForm Noncommercial License](LICENSE), and its maintainer may also license it commercially. The agreement lets your contribution be part of both; you keep all rights to your own work.
 
 A bot asks for this on your first pull request. You agree by posting the comment it suggests:
 

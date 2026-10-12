@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "Radio- und Fernsehsender: Senderliste, Wiedergabe über den Kern, Titelanzeige.",
-  "license": "Apache-2.0",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
