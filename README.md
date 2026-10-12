@@ -64,6 +64,17 @@ Culinola itself needs nothing but Node.js. A few features rely on things that ar
 
 The Docker image already contains go2rtc and ffmpeg. How to set each of these up is described in the handbook.
 
+#### Getting a Claude API key
+
+Voice commands and the recipe import send a sentence, a text or a photo to Anthropic's Claude API. You do not need a subscription for that – a Claude.ai plan is neither required nor does it cover API use. The API is paid for with prepaid credits:
+
+1. Create an account at <https://platform.claude.com>.
+2. Under *Billing*, buy credits. The smallest amount is about US$5 at the time of writing; the console shows the current figure. Credits expire one year after purchase.
+3. Under *API keys*, create a key. It starts with `sk-ant-` and is shown only once.
+4. In Culinola open *Sources*, choose the source `voice` or `recipes`, and enter the key under *Credentials → Claude API key*. One key serves both.
+
+A spoken sentence costs a fraction of a cent, a recipe a little more; Culinola writes the number of tokens used into its log. Without a key everything else works as usual – the voice tile and the "add recipe" button simply stay inactive.
+
 > **Before you expose it:** out of the box the API is open to everyone on your network. Create an access token under *Settings → Access* and put HTTPS in front before reaching it from outside your home network.
 
 ## Status
