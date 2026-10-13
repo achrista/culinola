@@ -81,7 +81,7 @@ export class SourceStore {
       const { id, plugin } = input;
       if (typeof id !== 'string' || !SOURCE_ID.test(id)) throw new InvalidSource(ID_RULE);
       // "api" ist in secrets.json der Platz für die Zugangstokens
-      if (id === 'api') throw new InvalidSource('Eine Quelle darf nicht "api" heißen – der Name ist vergeben.');
+      if (id === 'api' || id === 'setup') throw new InvalidSource(`Eine Quelle darf nicht "${id}" heißen – der Name ist vergeben.`);
       if (this.find(id)) throw new SourceConflict(`Eine Quelle "${id}" gibt es schon.`);
       if (typeof plugin !== 'string') throw new InvalidSource('Es fehlt "plugin" – der Name des Plugins, etwa "media-radio".');
       const source = await this.checked({ id, plugin, ...(input.config === undefined ? {} : { config: input.config }) });

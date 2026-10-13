@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { AccessDenied, accessToken, deleteJson, getJson, postJson, putJson, rememberToken } from '../api.ts';
+import { AccessDenied, accessToken, deleteJson, forgetSession, getJson, postJson, putJson, rememberSession, rememberToken, sessionToken } from '../api.ts';
 import EventLayer from '../EventLayer.vue';
 import { type SiteSettings, applySite } from '../i18n.ts';
 import { wantedLayout } from '../layout.ts';
@@ -44,6 +44,18 @@ const site = reactive({ saved: {} as Record<string, unknown>, value: {} as Recor
 const night = reactive({ source: undefined as { id: string; config: Record<string, unknown> } | undefined, saved: '', value: '' });
 const events = reactive({ saved: [] as EventEntry[], value: [] as EventEntry[], said: '', failed: false, busy: false });
 const access = reactive({ list: [] as Access[], name: '', role: 'control' as Role, said: '', failed: false, busy: false, sure: '' });
+/** Das Einrichtungskennwort: ob eines gesetzt ist, und das Formular zum Festlegen oder Ändern. */
+const password = reactive({ set: false, value: '', repeat: '', said: '', failed: false, busy: false, sure: false });
+interface Waiting {
+  id: string;
+  code: string;
+  label: string;
+  address: string;
+  since: string;
+}
+/** Anzeigen, die um einen Zugang bitten, und was für sie eingetragen wird. */
+const pair = reactive({ list: [] as Waiting[], names: {} as Record<string, string>, roles: {} as Record<string, Role>, said: '', failed: false, busy: false });
+const signedIn = ref(!!sessionToken());
 /** Das Token eines eben angelegten Zugangs – der Kern nennt es nur dieses eine Mal. */
 const fresh = ref<{ name: string; token: string; adopted: boolean }>();
 
@@ -71,12 +83,15 @@ onMounted(async () => {
       forbidden.value = true;
       return;
     }
-    const all = await getJson<{ site: Record<string, unknown>; events: Record<string, unknown>; access: Access[] }>('/settings');
+    const all = await getJson<{ site: Record<string, unknown>; events: Record<string, unknown>; access: Access[]; password?: boolean }>('/settings');
+    password.set = all.password === true;
     Object.assign(site, { saved: all.site, value: clone(all.site) });
     Object.assign(events, { saved: toEntries(all.events), value: toEntries(all.events) });
     access.list = all.access;
-    // Der erste Zugang muss einrichten dürfen – das ist dann auch die Vorgabe
-    access.role = all.access.length ? 'control' : 'admin';
+    // Ohne Kennwort muss der erste Zugang einrichten dürfen – das ist dann auch die Vorgabe
+    access.role = all.access.length || password.set ? 'control' : 'admin';
+    void loadWaiting();
+    waitingTimer = window.setInterval(() => void loadWaiting(), 3_000);
     sources.value = (await getJson<{ sources: (Source & { state: string })[] }>('/status')).sources.filter((source) => source.state === 'running');
     await loadNight();
     loaded.value = true;
@@ -88,6 +103,19 @@ onMounted(async () => {
     problem.value = cause instanceof Error ? cause.message : String(cause);
   }
 });
+
+let waitingTimer: number | undefined;
+onUnmounted(() => window.clearInterval(waitingTimer));
+
+/** Holt die Anzeigen, die gerade um einen Zugang bitten; scheitert es, bleibt die Liste, wie sie ist. */
+async function loadWaiting(): Promise<void> {
+  try {
+    pair.list = await getJson<Waiting[]>('/settings/pairing');
+    for (const entry of pair.list) pair.roles[entry.id] ??= 'control';
+  } catch {
+    // Ein Kern ohne Koppeln oder eine abgelaufene Anmeldung: Dann gibt es hier nichts zu zeigen.
+  }
+}
 
 /** Ruft den Kern und sagt im Abschnitt, was daraus wurde. */
 async function calling(section: { said: string; failed: boolean; busy: boolean }, call: () => Promise<string>): Promise<void> {
@@ -134,9 +162,56 @@ const raise = (name: string) =>
     return t('system.raised', { name });
   });
 
+const savePassword = () =>
+  calling(password, async () => {
+    if (password.value !== password.repeat) throw new Error(t('gate.mismatch'));
+    const wasOpen = !password.set && access.list.length === 0;
+    const session = await putJson<{ token: string }>('/settings/password', { password: password.value });
+    // Mit dem neuen Kennwort enden alle bisherigen Anmeldungen – diese Seite bekommt gleich die neue
+    rememberSession(session.token);
+    signedIn.value = true;
+    Object.assign(password, { set: true, value: '', repeat: '' });
+    if (access.role === 'admin') access.role = 'control';
+    return t(wasOpen ? 'system.passwordSavedOpen' : 'system.passwordSaved');
+  });
+
+const removePassword = () =>
+  calling(password, async () => {
+    try {
+      await deleteJson('/settings/password');
+    } finally {
+      password.sure = false;
+    }
+    forgetSession();
+    // Ohne Kennwort gilt wieder, als was dieser Browser sonst freigeschaltet ist – die Seite zeigt den neuen Stand
+    location.reload();
+    return '';
+  });
+
+const approve = (entry: Waiting) =>
+  calling(pair, async () => {
+    const name = (pair.names[entry.id] ?? '').trim();
+    const created = await postJson<Access>(`/settings/pairing/${encodeURIComponent(entry.id)}`, { name, role: pair.roles[entry.id] ?? 'control' });
+    access.list.push(created);
+    await loadWaiting();
+    return t('system.pairApproved', { name: created.name });
+  });
+
+const reject = (entry: Waiting) =>
+  calling(pair, async () => {
+    await deleteJson(`/settings/pairing/${encodeURIComponent(entry.id)}`);
+    await loadWaiting();
+    return t('system.pairRejected');
+  });
+
+function logout(): void {
+  forgetSession();
+  go((query) => query.delete('edit'));
+}
+
 const addAccess = () =>
   calling(access, async () => {
-    const wasOpen = access.list.length === 0;
+    const wasOpen = access.list.length === 0 && !password.set;
     const created = await postJson<Access & { token: string }>('/settings/access', { name: access.name.trim(), role: access.role });
     // War die API bis eben offen, sperrt der erste Zugang auch diese Seite aus – sie merkt sich deshalb sein Token
     const adopted = wasOpen || !accessToken() ? rememberToken(created.token) : false;
@@ -186,6 +261,7 @@ function go(change: (query: URLSearchParams) => void): void {
       <button type="button" @click="go((query) => query.set('edit', ''))">{{ t('sources.back') }}</button>
       <button type="button" @click="go((query) => query.set('edit', 'sources'))">{{ t('editor.sources') }}</button>
       <button type="button" @click="go((query) => query.delete('edit'))">{{ t('editor.close') }}</button>
+      <button v-if="signedIn" type="button" @click="logout">{{ t('system.logout') }}</button>
     </header>
 
     <main>
@@ -221,11 +297,55 @@ function go(change: (query: URLSearchParams) => void): void {
 
       <section>
         <h2>{{ t('system.access') }}</h2>
-        <p class="hint">{{ access.list.length ? t('system.accessHint') : t('system.accessOpen') }}</p>
-        <details class="help" :open="!access.list.length">
+        <p class="hint" :class="{ bad: !access.list.length && !password.set }">{{ access.list.length || password.set ? t('system.accessHint') : t('system.accessOpen') }}</p>
+        <details class="help" :open="!access.list.length && !password.set">
           <summary>{{ t('system.accessHelp') }}</summary>
           <p v-for="(paragraph, index) in t('system.accessHelpText').split('\n')" :key="index">{{ paragraph }}</p>
         </details>
+
+        <h3>{{ t('system.passwordTitle') }}</h3>
+        <p class="hint">{{ t(password.set ? 'system.passwordSet' : 'system.passwordUnset') }}</p>
+        <form class="adding" @submit.prevent="savePassword">
+          <label>{{ t(password.set ? 'gate.newPassword' : 'gate.password') }} <input v-model="password.value" type="password" required minlength="8" autocomplete="new-password" /></label>
+          <label>{{ t('gate.repeat') }} <input v-model="password.repeat" type="password" required minlength="8" autocomplete="new-password" /></label>
+          <button type="submit" class="primary" :disabled="password.busy">{{ t(password.set ? 'system.passwordChange' : 'system.passwordSave') }}</button>
+          <template v-if="password.set">
+            <template v-if="password.sure">
+              <span>{{ t('system.passwordRemoveSure') }}</span>
+              <button type="button" class="danger" :disabled="password.busy" @click="removePassword">{{ t('sources.removeYes') }}</button>
+              <button type="button" @click="password.sure = false">{{ t('sources.cancel') }}</button>
+            </template>
+            <button v-else type="button" @click="password.sure = true">{{ t('system.passwordRemove') }}</button>
+          </template>
+        </form>
+        <p v-if="!password.set && !access.list.length" class="hint small">{{ t('system.passwordOpenWarning') }}</p>
+        <p v-if="password.said" class="said" :class="{ bad: password.failed }" role="status">{{ password.said }}</p>
+
+        <h3>{{ t('system.pairTitle') }}</h3>
+        <p class="hint">{{ t('system.pairHint') }}</p>
+        <table v-if="pair.list.length" class="waiting">
+          <tr v-for="entry in pair.list" :key="entry.id">
+            <td>
+              <strong class="code">{{ entry.code.replace(/^(\d{3})(\d{3})$/, '$1 $2') }}</strong>
+              <small>{{ entry.label }} · {{ entry.address }}</small>
+            </td>
+            <td>
+              <input v-model="pair.names[entry.id]" type="text" maxlength="40" :aria-label="t('system.name')" :placeholder="t('form.example', { value: 'kueche' })" pattern="[A-Za-z0-9][A-Za-z0-9._\-]*" spellcheck="false" autocapitalize="off" autocomplete="off" />
+              <select v-model="pair.roles[entry.id]" :aria-label="t('system.role')">
+                <option v-for="role in ['read', 'control', 'admin']" :key="role" :value="role">{{ t(`system.roles.${role}`) }}</option>
+              </select>
+            </td>
+            <td class="end">
+              <button type="button" class="primary" :disabled="pair.busy || !(pair.names[entry.id] ?? '').trim()" @click="approve(entry)">{{ t('system.pairApprove') }}</button>
+              <button type="button" :disabled="pair.busy" @click="reject(entry)">{{ t('system.pairReject') }}</button>
+            </td>
+          </tr>
+        </table>
+        <p v-else class="hint small">{{ t('system.pairNone') }}</p>
+        <p v-if="pair.said" class="said" :class="{ bad: pair.failed }" role="status">{{ pair.said }}</p>
+
+        <h3>{{ t('system.tokensTitle') }}</h3>
+        <p class="hint">{{ t('system.tokensHint') }}</p>
 
         <table v-if="access.list.length">
           <tr v-for="entry in access.list" :key="entry.name">
@@ -271,7 +391,7 @@ function go(change: (query: URLSearchParams) => void): void {
           </label>
           <button type="submit" class="primary" :disabled="access.busy">{{ t('system.add') }}</button>
         </form>
-        <p v-if="!access.list.length" class="hint">{{ t('system.firstAdmin') }}</p>
+        <p v-if="!access.list.length && !password.set" class="hint">{{ t('system.firstAdmin') }}</p>
         <p v-if="access.said" class="said" :class="{ bad: access.failed }" role="status">{{ access.said }}</p>
       </section>
     </main>
@@ -321,6 +441,26 @@ section {
 h2 {
   margin: 0 0 6px;
   font-size: 18px;
+}
+h3 {
+  margin: 22px 0 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 16px;
+}
+/* Wartende Anzeigen: der Code groß, damit er sich mit dem auf dem Gerät vergleichen lässt */
+.waiting .code {
+  display: block;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+.waiting small {
+  color: var(--mute);
+}
+.waiting input {
+  width: 9em;
+  margin-right: 6px;
 }
 button,
 select,

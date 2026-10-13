@@ -19,7 +19,7 @@ const THEME = /^[a-z][a-z0-9-]{0,39}$/;
 const ACCESS_NAME = /^[a-z0-9][a-z0-9._-]{0,39}$/i;
 const NAME_RULE = 'Der Name eines Zugangs besteht aus Buchstaben, Ziffern, Punkt, Binde- und Unterstrich – höchstens 40 Zeichen, keine Umlaute.';
 /** Wer die Zugänge so ändert, dass niemand mehr einrichten darf, sperrt sich selbst aus – die Datei von Hand zu ändern wäre dann der einzige Weg zurück. */
-const NEEDS_ADMIN = 'Solange es Zugänge gibt, muss einer die Stufe „admin“ haben – sonst könnte niemand mehr einrichten.';
+const NEEDS_ADMIN = 'Solange es Zugänge gibt, aber kein Einrichtungskennwort, muss ein Zugang die Stufe „admin“ haben – sonst könnte niemand mehr einrichten.';
 
 /** Prüft die Einstellungen der Anzeige. Was der Kern nicht kennt, bleibt stehen. */
 export function parseSite(raw: unknown): Site {
@@ -55,6 +55,8 @@ export interface SettingsDeps {
   configFile: JsonFile;
   secretsFile: JsonFile;
   log: Logger;
+  /** Ob ein Einrichtungskennwort gesetzt ist – dann braucht kein Zugang die Stufe „admin“. */
+  hasPassword?: () => boolean;
 }
 
 /**
@@ -143,7 +145,7 @@ export class SettingsStore {
   }
 
   private saveAccess(next: AccessToken[]): void {
-    if (next.length && !next.some((entry) => entry.role === 'admin')) throw new SettingsConflict(NEEDS_ADMIN);
+    if (next.length && !next.some((entry) => entry.role === 'admin') && !this.deps.hasPassword?.()) throw new SettingsConflict(NEEDS_ADMIN);
     // Erst die Tokens, dann die Namen: Ein Zugang ohne Token wäre beim nächsten Start ein Einrichtungsfehler
     let secrets: Secrets;
     try {

@@ -8,7 +8,7 @@
 
 - **One screen, everything at a glance.** No scrolling, no menus: a grid of tiles that fills the display and scales with it.
 - **Works with what you have.** openHAB, Home Assistant, Homematic, MQTT (Tasmota, Zigbee2MQTT …), FRITZ!Box, IMAP mail, Google Calendar, RSS, go2rtc cameras – each is a plugin, and a tile does not care which system a value comes from.
-- **Set up in the browser.** Drag tiles into place, pick datapoints from a searchable list, add sources and credentials, create access tokens – from your desk or your phone, while the kitchen display keeps running and picks up every change without a restart.
+- **Set up in the browser.** Drag tiles into place, pick datapoints from a searchable list, add sources and credentials, pair a new display by confirming the code it shows – from your desk or your phone, while the kitchen display keeps running and picks up every change without a restart.
 - **More than a smart-home panel.** Internet radio and live TV, your cameras, the newest e-mails, calls from the FRITZ!Box and an egg timer on the clock are built in – no extra apps, no extra screens.
 - **Made for touch and for the whole family.** Tap the clock for an egg timer, tap a recipe to cook from it, put its ingredients on the shopping list, ask by voice how warm it is outside.
 - **Yours.** Runs on your own hardware, in your own network. The source is open to read and change, and free for private and other noncommercial use.
@@ -18,7 +18,7 @@
 | | |
 |---|---|
 | ![The same kitchen display in a light theme](docs/images/dashboard.png) **Themes** – six colour themes, with an automatic switch at sunset. | ![Layout editor with tiles and the list of tile types](docs/images/layout-editor.png) **Layout editor** – move, resize, add and configure tiles on a true-to-scale preview. |
-| ![List of sources with their state](docs/images/sources.png) **Sources** – add and configure connections; each one restarts on its own and tells you what it found. | ![Settings for display, messages and access](docs/images/settings.png) **Settings** – language, themes, on-screen messages and access tokens. |
+| ![List of sources with their state](docs/images/sources.png) **Sources** – add and configure connections; each one restarts on its own and tells you what it found. | ![Settings for display, messages and access](docs/images/settings.png) **Settings** – language, themes, on-screen messages and access protection. |
 
 The kitchen display shows a real installation; calls, e-mails, appointments and reminders in it are made up. The setup pages show the built-in test instance.
 
@@ -28,7 +28,7 @@ The kitchen display shows a real installation; calls, e-mails, appointments and 
 
 **Sources:** openHAB · Home Assistant · Homematic (CCU2, CCU3, RaspberryMatic) · MQTT · FRITZ!Box · IMAP · Google Calendar and Contacts · RSS · Merkio lists · forecast.solar · go2rtc cameras and streams · internet radio · recipes from Markdown files · sun and moon, calculated offline.
 
-**And:** on-screen messages with sound and camera ("Someone is at the door") · day and night themes · German and English · an HTTP and WebSocket API that the interface itself uses · access tokens with three levels.
+**And:** on-screen messages with sound and camera ("Someone is at the door") · day and night themes · German and English · an HTTP and WebSocket API that the interface itself uses · access protection with a setup password, displays paired by code and tokens for programs.
 
 ## Try it
 
@@ -50,6 +50,16 @@ docker run -d -p 8090:8090 -v ./data:/data culinola
 ```
 
 Everything of yours – configuration, credentials, recipes – lives in the `data` folder and never in the repository.
+
+### Protect it
+
+Out of the box Culinola is open: everyone on your network can read, switch and set up. Closing it takes a minute and happens entirely in the browser – the same way on a PC, a NAS or a Raspberry Pi:
+
+1. **Set a setup password.** Open `?edit=settings` and set it under *Access protection*. From then on, whoever wants to change layouts, sources or settings signs in with it.
+2. **Pair your displays.** A display without access shows a six-digit code. It appears in the settings under *Pair devices*: compare the code, choose what the display may do (read only, or also operate), allow it. The display starts by itself – nobody types a token.
+3. **Give programs a token.** For something without a screen – a home-automation rule that raises "Someone is at the door" – create an access entry in the settings and send its token as `Authorization: Bearer …`.
+
+Forgot the password? The sign-in page can request a setup code. Culinola puts it into its data folder as `einrichtungscode.txt` (and writes it to its log); with the code you set a new password. So only someone who can reach the files of the installation gets back in. Details are in the [handbook](docs/handbook.md#access-protection).
 
 ### What you need in addition
 
@@ -75,7 +85,7 @@ Voice commands and the recipe import send a sentence, a text or a photo to Anthr
 
 A spoken sentence costs a fraction of a cent, a recipe a little more; Culinola writes the number of tokens used into its log. Without a key everything else works as usual – the button for adding recipes is not shown, and the voice tile says that voice control is not set up.
 
-> **Before you expose it:** out of the box the API is open to everyone on your network. Create an access token under *Settings → Access* and put HTTPS in front before reaching it from outside your home network.
+> **Before you expose it:** access protection decides who may do what; it does not encrypt. Set a setup password (see [Protect it](#protect-it)) and put HTTPS in front before reaching Culinola from outside your home network.
 
 ## Status
 

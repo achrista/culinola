@@ -6,10 +6,12 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import type { Datapoint, DatapointValue, Logger } from '@culinola/sdk';
 import { type AccessToken, type Role, authorize, bearerToken, requiredRole } from './access.ts';
 import { type ActionRegistry, InvalidParams, UnknownAction } from './actions.ts';
+import { type Auth, AuthConflict, InvalidPassword, LoginRefused, TooManyAttempts } from './auth.ts';
 import type { AppConfig } from './config.ts';
 import { EmbedCheck } from './embed.ts';
 import { type EventHub, type Raised, UnknownEvent } from './events.ts';
 import { InvalidLayout, LayoutConflict, type LayoutStore, UnknownLayout } from './layouts.ts';
+import { type Pairing, UnknownPairing } from './pairing.ts';
 import type { PluginHost } from './plugins.ts';
 import type { DatapointRegistry } from './registry.ts';
 import { type Aggregation, downsample, parseDuration, parseTime } from './series.ts';
@@ -38,13 +40,17 @@ export interface ServerDeps {
   log: Logger;
   /** Zugelassene Zugänge; leer = API offen. */
   access: readonly AccessToken[];
+  /** Einrichtungskennwort und Anmeldungen; ohne Angabe gibt es nur Tokens. */
+  auth?: Auth;
+  /** Anzeigen, die um einen Zugang bitten. */
+  pairing?: Pairing;
   /** Ordner mit der gebauten Oberfläche; fehlt er, läuft nur die API. */
   uiDir?: string;
   /** Zertifikat und Schlüssel: Mit ihnen spricht dieser Server HTTPS. */
   tls?: { cert: Buffer; key: Buffer };
 }
 
-export async function buildServer({ config, registry, plugins, actions, events, layouts, sources, settings, templates = [], log, access, uiDir, tls }: ServerDeps): Promise<FastifyInstance> {
+export async function buildServer({ config, registry, plugins, actions, events, layouts, sources, settings, templates = [], log, access, auth, pairing, uiDir, tls }: ServerDeps): Promise<FastifyInstance> {
   // Mit und ohne Zertifikat ist es derselbe Server; nur die Art der Verbindung unterscheidet sich
   const app = (tls ? Fastify({ logger: false, https: tls }) : Fastify({ logger: false })) as unknown as FastifyInstance;
   await app.register(fastifyWebsocket);
@@ -52,10 +58,12 @@ export async function buildServer({ config, registry, plugins, actions, events, 
   // Eingabefehler als 400 mit lesbarer Meldung statt als 500
   class BadRequest extends Error {}
   app.setErrorHandler((error: Error, _request, reply) => {
-    if (error instanceof BadRequest || error instanceof InvalidParams || error instanceof InvalidLayout || error instanceof InvalidSource || error instanceof InvalidSettings) return reply.code(400).send({ error: error.message });
-    if (error instanceof UnknownAction || error instanceof UnknownEvent || error instanceof UnknownLayout || error instanceof UnknownSource || error instanceof UnknownAccess) return reply.code(404).send({ error: error.message });
+    if (error instanceof BadRequest || error instanceof InvalidParams || error instanceof InvalidLayout || error instanceof InvalidSource || error instanceof InvalidSettings || error instanceof InvalidPassword) return reply.code(400).send({ error: error.message });
+    if (error instanceof LoginRefused) return reply.code(401).send({ error: error.message });
+    if (error instanceof TooManyAttempts) return reply.code(429).header('Retry-After', String(error.retryAfter)).send({ error: error.message, retryAfter: error.retryAfter });
+    if (error instanceof UnknownAction || error instanceof UnknownEvent || error instanceof UnknownLayout || error instanceof UnknownSource || error instanceof UnknownAccess || error instanceof UnknownPairing) return reply.code(404).send({ error: error.message });
     // Jemand anderes war schneller: Der Aufrufer bekommt den Stand, der jetzt gilt, und entscheidet
-    if (error instanceof SourceConflict || error instanceof SettingsConflict) return reply.code(409).send({ error: error.message });
+    if (error instanceof SourceConflict || error instanceof SettingsConflict || error instanceof AuthConflict) return reply.code(409).send({ error: error.message });
     if (error instanceof LayoutConflict) return reply.code(409).send({ error: error.message, ...(error.rev ? { rev: error.rev } : {}) });
     // Was der Server selbst am Aufruf beanstandet – zu groß, nicht lesbar –, ist ebenfalls ein Fehler des Aufrufers
     const status = (error as { statusCode?: number }).statusCode;
@@ -93,8 +101,11 @@ export async function buildServer({ config, registry, plugins, actions, events, 
     const fromAddress = mayUseAddress ? (request.query as { token?: string } | undefined)?.token : undefined;
     const presented = bearerToken(request.headers.authorization) ?? fromAddress;
     // Eine Adresse kann ihre Stufe selbst nennen – etwa ein POST, der nur liest, oder das Einrichten
-    const declared = (request.routeOptions?.config as { role?: Role } | undefined)?.role ?? pluginRoute(request.method, request.url)?.route.role;
-    const result = authorize(access, presented, declared ?? requiredRole(request.method));
+    const route = request.routeOptions?.config as { role?: Role; public?: boolean } | undefined;
+    // Was vor dem Zugang liegt, steht jedem offen: anmelden, um Zugang bitten, Sprache und Farbschema der Anzeige
+    if (route?.public) return;
+    const declared = route?.role ?? pluginRoute(request.method, request.url)?.route.role;
+    const result = authorize(access, presented, declared ?? requiredRole(request.method), auth);
     if (!result.ok) return reply.code(result.status).send({ error: result.error });
     granted.set(request.raw, { name: result.name, role: result.role });
   });
@@ -102,9 +113,48 @@ export async function buildServer({ config, registry, plugins, actions, events, 
   // Was der vorgelegte Zugang darf – damit die Oberfläche nur anbietet, was der Kern auch annimmt
   app.get('/api/v1/access', (request) => granted.get(request.raw));
 
-  app.get('/api/v1/status', () => ({ sources: plugins.status, datapoints: registry.all().length, protected: access.length > 0 }));
+  const isProtected = () => access.length > 0 || !!auth?.hasPassword();
+  app.get('/api/v1/status', () => ({ sources: plugins.status, datapoints: registry.all().length, protected: isProtected() }));
 
-  app.get('/api/v1/site', () => config.site ?? {});
+  // Sprache und Farbschema braucht auch die Seite, die erst um Zugang bittet
+  const open = { config: { public: true } };
+  app.get('/api/v1/site', open, () => config.site ?? {});
+
+  // Was eine Seite ohne Zugang wissen muss, um den richtigen Weg anzubieten: Kennwort, Koppeln oder gar nichts
+  app.get('/api/v1/setup', open, () => ({ protected: isProtected(), password: !!auth?.hasPassword(), pairing: !!pairing && !!settings }));
+
+  if (auth) {
+    // Anmelden mit dem Einrichtungskennwort; die Antwort ist eine Anmeldung auf Zeit
+    app.post<{ Body: { password?: unknown } | null }>('/api/v1/login', open, (request) => auth.login(request.body?.password, request.ip));
+    // Kennwort vergessen: Der Kern legt einen Code in den Datenordner – wer ihn dort liest, darf ein neues festlegen
+    app.post('/api/v1/reset', open, () => auth.startReset());
+    app.post<{ Body: { code?: unknown; password?: unknown } | null }>('/api/v1/reset/password', open, (request) => auth.resetPassword(request.body?.code, request.body?.password, request.ip));
+    app.put<{ Body: { password?: unknown } | null }>('/api/v1/settings/password', { config: { role: 'admin' } }, (request) => auth.setPassword(request.body?.password));
+    app.delete('/api/v1/settings/password', { config: { role: 'admin' } }, () => {
+      auth.removePassword();
+      return { ok: true, protected: isProtected() };
+    });
+  }
+
+  if (pairing && settings) {
+    // Koppeln: Eine Anzeige ohne Zugang bittet um einen und fragt nach, bis jemand entschieden hat
+    app.post<{ Body: { label?: unknown } | null }>('/api/v1/pairing', open, (request) => pairing.request(request.body?.label, request.ip));
+    app.post<{ Params: { id: string }; Body: { secret?: unknown } | null }>('/api/v1/pairing/:id', open, (request) => pairing.poll(request.params.id, request.body?.secret));
+    const admin = { config: { role: 'admin' as const } };
+    app.get('/api/v1/settings/pairing', admin, () => pairing.list());
+    // Bestätigen legt den Zugang an; sein Token geht nicht an den, der bestätigt, sondern an das Gerät
+    app.post<{ Params: { id: string }; Body: { name?: unknown; role?: unknown } | null }>('/api/v1/settings/pairing/:id', admin, (request) => {
+      if (!pairing.waiting(request.params.id)) throw new UnknownPairing('Diese Anfrage gibt es nicht mehr – sie ist abgelaufen oder schon beantwortet.');
+      const created = settings.addAccess(request.body ?? {});
+      pairing.approve(request.params.id, created);
+      log.info(`Gerät gekoppelt: Zugang "${created.name}" (${created.role}).`);
+      return { name: created.name, role: created.role };
+    });
+    app.delete<{ Params: { id: string } }>('/api/v1/settings/pairing/:id', admin, (request) => {
+      pairing.reject(request.params.id);
+      return { ok: true };
+    });
+  }
 
   app.get('/api/v1/datapoints', () => registry.all());
 
@@ -246,7 +296,7 @@ export async function buildServer({ config, registry, plugins, actions, events, 
   // Anzeige, Meldungen und Zugänge einrichten. Das Token eines neuen Zugangs kommt genau einmal zurück – beim Anlegen.
   if (settings) {
     const admin = { config: { role: 'admin' as const } };
-    app.get('/api/v1/settings', admin, () => settings.read());
+    app.get('/api/v1/settings', admin, () => ({ ...settings.read(), password: !!auth?.hasPassword() }));
     app.put<{ Body: unknown }>('/api/v1/settings/site', admin, (request) => settings.setSite(request.body));
     app.put<{ Body: unknown }>('/api/v1/settings/events', admin, (request) => settings.setEvents(request.body));
     app.post<{ Body: { name?: unknown; role?: unknown } | null }>('/api/v1/settings/access', admin, (request) => settings.addAccess(request.body ?? {}));

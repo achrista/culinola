@@ -6,11 +6,13 @@ import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { AccessToken } from './access.ts';
 import { ActionRegistry } from './actions.ts';
+import { Auth, RESET_FILE } from './auth.ts';
 import { registerBuiltinActions } from './builtin.ts';
 import type { AppConfig } from './config.ts';
 import { EventHub, parseEvents } from './events.ts';
 import { JsonFile } from './jsonfile.ts';
 import { LayoutStore } from './layouts.ts';
+import { Pairing } from './pairing.ts';
 import { PluginHost } from './plugins.ts';
 import { DatapointRegistry } from './registry.ts';
 import { buildServer } from './server.ts';
@@ -73,7 +75,8 @@ async function core(given: readonly AccessToken[]): Promise<FastifyInstance> {
   // Zwei Adressen wie von einem Plugin angemeldet: eine, die nur liest, obwohl sie POST benutzt, und eine gewöhnliche
   plugins.routes.push({ method: 'POST', instance: 'probe', path: '/lesen', role: 'read', handler: () => Response.json({ ok: true }) });
   plugins.routes.push({ method: 'POST', instance: 'probe', path: '/schalten', handler: () => Response.json({ ok: true }) });
-  const server = await buildServer({ config: own, registry, plugins, actions, events, layouts, sources, settings: new SettingsStore({ config: own, events, access, secrets, configFile: file, secretsFile, log: quiet }), templates: [parseTemplate('klein', { name: { de: 'Klein' }, layout: { grid: { columns: 4, rows: 2 }, widgets: [{ type: 'clock', at: [0, 0, 4, 2] }] } })], log: quiet, access });
+  const auth = new Auth({ secrets, secretsFile, access, dataDir: join(dataDir, `kern-${servers.length}`), log: quiet });
+  const server = await buildServer({ config: own, registry, plugins, actions, events, layouts, sources, settings: new SettingsStore({ config: own, events, access, secrets, configFile: file, secretsFile, log: quiet, hasPassword: () => auth.hasPassword() }), auth, pairing: new Pairing(), templates: [parseTemplate('klein', { name: { de: 'Klein' }, layout: { grid: { columns: 4, rows: 2 }, widgets: [{ type: 'clock', at: [0, 0, 4, 2] }] } })], log: quiet, access });
   servers.push(server);
   return server;
 }
@@ -512,7 +515,7 @@ describe('Einstellungen im Betrieb', () => {
 
     // Der erste Zugang schließt die bis dahin offene API – also muss er einrichten dürfen
     const first = await add({ name: 'kueche', role: 'control' });
-    expect([first.statusCode, first.json<{ error: string }>().error]).toEqual([409, expect.stringMatching(/muss einer die Stufe „admin“ haben/)]);
+    expect([first.statusCode, first.json<{ error: string }>().error]).toEqual([409, expect.stringMatching(/muss ein Zugang die Stufe „admin“ haben/)]);
     for (const wrong of [{ name: 'büro', role: 'admin' }, { name: 'buero', role: 'chef' }, { role: 'admin' }]) expect((await add(wrong)).statusCode, JSON.stringify(wrong)).toBe(400);
 
     const admin = (await add({ name: 'buero', role: 'admin' })).json<{ name: string; role: string; token: string }>();
@@ -547,5 +550,114 @@ describe('Einstellungen im Betrieb', () => {
     expect((await app.inject('/api/v1/status')).json()).toMatchObject({ protected: false });
     expect(onDisk('config.json').access).toBeUndefined();
     expect(onDisk('secrets.json').api).toBeUndefined();
+  });
+});
+
+describe('Einrichtungskennwort, Koppeln und Zurücksetzen', () => {
+  let app: FastifyInstance;
+  let index: number;
+  const onDisk = (name: string) => JSON.parse(readFileSync(join(dataDir, `kern-${index}`, name), 'utf8'));
+  const as = (token: string) => ({ authorization: `Bearer ${token}` });
+  const call = (method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, payload?: object, token?: string) => app.inject({ method, url: `/api/v1${url}`, ...(payload ? { payload } : {}), ...(token ? { headers: as(token) } : {}) });
+  let session = '';
+  beforeAll(async () => {
+    index = servers.length;
+    app = await core([]);
+  });
+
+  it('schützt die offene API mit einem Kennwort und meldet damit an', async () => {
+    expect((await call('GET', '/setup')).json()).toEqual({ protected: false, password: false, pairing: true });
+    expect((await call('PUT', '/settings/password', { password: 'kurz' })).statusCode).toBe(400);
+    const set = await call('PUT', '/settings/password', { password: 'Küchenschlüssel 7' });
+    expect(set.statusCode).toBe(200);
+    session = set.json<{ token: string }>().token;
+
+    // Ab jetzt braucht alles einen Zugang – nur was vor dem Zugang liegt, bleibt offen
+    expect((await call('GET', '/status')).statusCode).toBe(401);
+    expect((await call('GET', '/site')).statusCode).toBe(200);
+    expect((await call('GET', '/setup')).json()).toEqual({ protected: true, password: true, pairing: true });
+    expect((await call('GET', '/access', undefined, session)).json()).toEqual({ name: 'kennwort', role: 'admin' });
+    expect((await call('GET', '/settings', undefined, session)).json()).toMatchObject({ password: true, access: [] });
+    // In der Datei steht ein Prüfwert, das Kennwort nirgends
+    expect(onDisk('secrets.json').setup.password).toMatch(/^scrypt\$/);
+    expect(readFileSync(join(dataDir, `kern-${index}`, 'secrets.json'), 'utf8')).not.toContain('Küchenschlüssel');
+
+    const wrong = await call('POST', '/login', { password: 'falsch geraten' });
+    expect([wrong.statusCode, wrong.json<{ error: string }>().error]).toEqual([401, 'Das Kennwort stimmt nicht.']);
+    const login = await call('POST', '/login', { password: 'Küchenschlüssel 7' });
+    expect(login.json<{ token: string; expires: string }>()).toMatchObject({ token: expect.stringMatching(/^cs1\./), expires: expect.any(String) });
+    // Mit Kennwort braucht kein Zugang mehr die Stufe zum Einrichten
+    expect((await call('POST', '/settings/access', { name: 'openhab', role: 'control' }, session)).statusCode).toBe(200);
+    // … aber das Kennwort lässt sich dann nicht entfernen: Sonst könnte niemand mehr einrichten
+    expect((await call('DELETE', '/settings/password', undefined, session)).statusCode).toBe(409);
+  });
+
+  it('koppelt eine Anzeige: Sie zeigt einen Code, bekommt nach der Bestätigung ihr Token und sonst niemand', async () => {
+    // Die Anzeige hat keinen Zugang und bittet um einen
+    const asked = (await call('POST', '/pairing', { label: 'Chromium · haus' })).json<{ id: string; code: string; secret: string }>();
+    expect(asked.code).toMatch(/^\d{6}$/);
+    expect((await call('POST', `/pairing/${asked.id}`, { secret: asked.secret })).json()).toMatchObject({ state: 'waiting', code: asked.code });
+
+    // Bestätigen darf nur, wer einrichten darf
+    expect((await call('GET', '/settings/pairing')).statusCode).toBe(401);
+    expect((await call('POST', `/settings/pairing/${asked.id}`, { name: 'flur', role: 'read' })).statusCode).toBe(401);
+    const listed = (await call('GET', '/settings/pairing', undefined, session)).json<{ id: string; code: string; label: string }[]>();
+    expect(listed).toMatchObject([{ id: asked.id, code: asked.code, label: 'Chromium · haus' }]);
+    expect(JSON.stringify(listed)).not.toContain(asked.secret);
+
+    // Ein unbrauchbarer oder vergebener Name lässt die Anfrage stehen
+    expect((await call('POST', `/settings/pairing/${asked.id}`, { name: 'flur!', role: 'read' }, session)).statusCode).toBe(400);
+    expect((await call('POST', `/settings/pairing/${asked.id}`, { name: 'openhab', role: 'read' }, session)).statusCode).toBe(409);
+    const approved = await call('POST', `/settings/pairing/${asked.id}`, { name: 'flur', role: 'read' }, session);
+    // Wer bestätigt, bekommt das Token nicht zu sehen
+    expect(approved.json()).toEqual({ name: 'flur', role: 'read' });
+    expect((await call('GET', '/settings/pairing', undefined, session)).json()).toEqual([]);
+
+    expect((await call('POST', `/pairing/${asked.id}`, { secret: 'geraten' })).json()).toEqual({ state: 'expired' });
+    const granted = (await call('POST', `/pairing/${asked.id}`, { secret: asked.secret })).json<{ state: string; name: string; role: string; token: string }>();
+    expect(granted).toMatchObject({ state: 'approved', name: 'flur', role: 'read' });
+    expect((await call('GET', '/access', undefined, granted.token)).json()).toEqual({ name: 'flur', role: 'read' });
+    expect((await call('POST', '/actions/timer.stop', {}, granted.token)).statusCode).toBe(403);
+    // Abgeholt ist abgeholt
+    expect((await call('POST', `/pairing/${asked.id}`, { secret: asked.secret })).json()).toEqual({ state: 'expired' });
+    expect(onDisk('config.json').access.tokens).toEqual([{ name: 'openhab', role: 'control' }, { name: 'flur', role: 'read' }]);
+
+    // Ablehnen geht auch
+    const guest = (await call('POST', '/pairing', { label: 'Gast' })).json<{ id: string; secret: string }>();
+    expect((await call('DELETE', `/settings/pairing/${guest.id}`, undefined, session)).statusCode).toBe(200);
+    expect((await call('POST', `/pairing/${guest.id}`, { secret: guest.secret })).json()).toEqual({ state: 'rejected' });
+    expect((await call('DELETE', `/settings/pairing/${guest.id}`, undefined, session)).statusCode).toBe(404);
+  });
+
+  it('legt mit dem Einrichtungscode aus dem Datenordner ein neues Kennwort fest', async () => {
+    expect((await call('POST', '/reset/password', { code: '1234-5678', password: 'Neues Kennwort 1' })).statusCode).toBe(401);
+    // Anfordern darf jeder – den Code liest nur, wer an den Datenordner kommt
+    expect((await call('POST', '/reset')).json()).toEqual({ file: RESET_FILE, minutes: 15 });
+    const code = /(\d{4}-\d{4})/.exec(readFileSync(join(dataDir, `kern-${index}`, RESET_FILE), 'utf8'))![1]!;
+    expect((await call('POST', '/reset/password', { code: '0000-0000', password: 'Neues Kennwort 1' })).statusCode).toBe(401);
+    expect((await call('POST', '/reset/password', { code, password: 'kurz' })).statusCode).toBe(400);
+    const reset = await call('POST', '/reset/password', { code, password: 'Neues Kennwort 1' });
+    expect(reset.statusCode).toBe(200);
+    // Die alte Anmeldung endet, die neue gilt; die Zugänge der Geräte bleiben
+    expect((await call('GET', '/access', undefined, session)).statusCode).toBe(401);
+    session = reset.json<{ token: string }>().token;
+    expect((await call('GET', '/access', undefined, session)).json()).toEqual({ name: 'kennwort', role: 'admin' });
+    expect((await call('POST', '/login', { password: 'Küchenschlüssel 7' })).statusCode).toBe(401);
+    expect((await call('GET', '/settings', undefined, session)).json<{ access: unknown[] }>().access).toHaveLength(2);
+    expect((await call('POST', '/reset/password', { code, password: 'Noch ein Kennwort' })).statusCode).toBe(401);
+  });
+
+  it('bremst das Raten des Kennworts', async () => {
+    // Ein Fehlversuch steht aus dem vorigen Fall schon zu Buche; nach dem fünften ist Schluss
+    for (let attempt = 0; attempt < 4; attempt++) expect((await call('POST', '/login', { password: `geraten ${attempt}` })).statusCode).toBe(401);
+    const blocked = await call('POST', '/login', { password: 'Neues Kennwort 1' });
+    expect([blocked.statusCode, blocked.headers['retry-after'], blocked.json<{ retryAfter: number }>().retryAfter]).toEqual([429, '30', 30]);
+  });
+
+  it('öffnet die API wieder, wenn Kennwort und Zugänge entfernt sind', async () => {
+    for (const name of ['openhab', 'flur']) expect((await call('DELETE', `/settings/access/${name}`, undefined, session)).statusCode).toBe(200);
+    expect((await call('DELETE', '/settings/password', undefined, session)).json()).toEqual({ ok: true, protected: false });
+    expect((await call('GET', '/status')).json()).toMatchObject({ protected: false });
+    expect(onDisk('secrets.json').setup).toBeUndefined();
   });
 });

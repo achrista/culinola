@@ -1,5 +1,5 @@
 import { reactive, ref, watch } from 'vue';
-import { accessToken, getJson } from './api.ts';
+import { currentToken, getJson } from './api.ts';
 import { datapoints } from './store.ts';
 
 export interface Station {
@@ -32,7 +32,7 @@ export function currentStation(source: string): Station | undefined {
 
 /** Hängt das Zugangstoken an eine Adresse, die ein Ton- oder Bildelement des Browsers lädt. */
 export function mediaUrl(path: string): string {
-  const token = accessToken();
+  const token = currentToken();
   return `/api/v1${path}${token ? `${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}` : ''}`;
 }
 

@@ -7,6 +7,7 @@ import { type LoadedLayout, datapointsOf, wantedLayout } from './layout.ts';
 import { connect, connected, onLayoutChanged, onSiteChanged, subscribe, datapoints } from './store.ts';
 import EventLayer from './EventLayer.vue';
 import LayoutGrid from './LayoutGrid.vue';
+import PairingScreen from './PairingScreen.vue';
 
 const { t } = useI18n();
 const layout = ref<LoadedLayout>();
@@ -21,7 +22,10 @@ const LayoutEditor = defineAsyncComponent(() => import('./editor/LayoutEditor.vu
 // …&edit=sources führt zu den Quellen statt zum Layout
 const SourcesEditor = defineAsyncComponent(() => import('./editor/SourcesEditor.vue'));
 const SystemEditor = defineAsyncComponent(() => import('./editor/SystemEditor.vue'));
+const AccessGate = defineAsyncComponent(() => import('./editor/AccessGate.vue'));
 const ready = ref(false);
+/** Wer einrichten will, muss sich ausweisen – bis dahin steht die Anmeldung da statt des Editors. */
+const gate = ref(false);
 
 /** Holt das Layout vom Kern und abonniert, was es braucht. Ist es noch dasselbe, bleibt alles, wie es ist. */
 async function loadLayout(): Promise<void> {
@@ -41,11 +45,23 @@ onMounted(async () => {
     if (adoptTokenFromAddress()) location.reload();
   });
   try {
+    // Sprache und Farbschema gibt der Kern jedem – auch der Seite, die erst um Zugang bittet
     applySite(await getJson<SiteSettings>('/site'));
-    ready.value = true;
     // Sprache und Farbschema übernimmt jede offene Seite sofort – auch die zum Einrichten
     onSiteChanged((site) => applySite(site as SiteSettings));
-    if (editing) return;
+    if (editing) {
+      const role = await getJson<{ role?: string }>('/access').then(
+        (access) => access.role,
+        (cause: unknown) => {
+          if (cause instanceof AccessDenied) return undefined;
+          throw cause;
+        },
+      );
+      if (role === 'admin') ready.value = true;
+      else gate.value = true;
+      return;
+    }
+    ready.value = true;
     await loadLayout();
     connect();
     // Wird das Layout geändert – im Editor, über die API oder von Hand in der Datei –, übernimmt es die Anzeige ohne Neuladen.
@@ -68,7 +84,9 @@ watch(
 </script>
 
 <template>
-  <p v-if="denied" class="notice">{{ t('app.notUnlocked', { error }) }}</p>
+  <AccessGate v-if="gate" />
+  <!-- Eine Anzeige ohne Zugang bittet um einen, statt nur abzulehnen -->
+  <PairingScreen v-else-if="denied" :layout="name" :reason="error" />
   <p v-else-if="error" class="notice">{{ t('app.layoutFailed', { error }) }}</p>
   <SourcesEditor v-else-if="editing && ready && edit === 'sources'" />
   <SystemEditor v-else-if="editing && ready && edit === 'settings'" />

@@ -81,7 +81,7 @@ With the suffix `?edit=sources` – for example `http://localhost:8090/?edit=sou
 - **"Running"** means that the source has started. Whether it reaches its device is shown by the **source's messages** on the same page and by its number of datapoints – for example "Central unit 192.168.178.9 unreachable: connection refused". If a plugin rejects the settings, nothing is saved; if the start fails, the cause is shown at the source.
 - **"How to set up this source"** explains per plugin what to enter and where to get it – where in openHAB or Home Assistant a token is created, what has to be enabled on the Homematic central unit or the FRITZ!Box.
 - What a form cannot show – for example feeds from the catalog, which appear only with their identifier – is preserved and can be changed as JSON under "Advanced".
-- If access protection is set up, the page requires an access of level `admin`.
+- If access protection is set up, the page asks you to sign in with the setup password.
 - If the sources in `config.json` are changed by hand, this takes effect as before after a restart; until then the page rejects changes so that nothing is overwritten.
 
 ### Settings in the interface
@@ -90,7 +90,7 @@ Under `?edit=settings` – or via "Settings" in the layout editor and on the sou
 
 - **Display:** language, region for numbers and dates, color scheme, color scheme for the night, and the source that knows day and night. Open displays pick up the change without reloading.
 - **Messages:** create, change, remove – text, sound, reading aloud, camera, duration, signal only, and the condition that triggers a message by itself. Saved messages can be triggered as a test.
-- **Access:** name and level. The core generates the token; it is shown exactly once, together with the address for authorizing a display, and afterwards only exists in `secrets.json`. The first access closes the API that was open until then and must therefore have level `admin`; as long as there are accesses, at least one with `admin` remains. The browser in which the first access is created remembers its token – all other displays then have to be authorized.
+- **Access protection:** the setup password, pairing displays, and access entries with tokens for programs – see [Access protection](#access-protection). Every change applies at once; nothing needs a restart.
 
 Not in the interface: the port, HTTPS and the data folder – these stay in `config.json` and need a restart.
 
@@ -100,7 +100,7 @@ The display is a grid. Each widget sits in it with `at: [column, row, width, hei
 
 Several layouts may be listed under `layouts`. A display shows `main`; with the address suffix `?layout=name` it shows another – this gives the hallway its own picture, or lets you view a new draft next to the existing one.
 
-**Editing in the interface:** With the suffix `&edit` – for example `http://localhost:8090/?layout=main&edit` – the layout opens for editing: move tiles with mouse or finger, resize them at the handles, nudge them with the arrow keys (with Shift: size), undo steps. Tiles must not overlap. The layout is shown to scale, like on the screen it is meant for; that screen's size is given by the optional entry `"screen": [1920, 1080]` on the layout (without it, 16:9 applies). The grid and screen size can be changed with the "Grid … ▾" button in the control bar; the tiles are converted to the new grid if you wish. Nothing is written until "Save"; until then the draft lives in the browser. The displays pick up the saved layout without a restart. The sidebar lists all tile types for adding – a new tile lands in its usual size at the first free spot –, copies the selected tile with its settings, and removes it. Tiles whose source is not set up appear greyed out. The settings of the selected tile are shown as a form in the sidebar; datapoints are chosen from a list that searches identifier and label, shows the current value and can be narrowed down by source. Every change affects the tile immediately. What has no form field (such as `map` on the value tile) can be changed as JSON under "Advanced". If access protection is set up, editing requires an access of level `admin`.
+**Editing in the interface:** With the suffix `&edit` – for example `http://localhost:8090/?layout=main&edit` – the layout opens for editing: move tiles with mouse or finger, resize them at the handles, nudge them with the arrow keys (with Shift: size), undo steps. Tiles must not overlap. The layout is shown to scale, like on the screen it is meant for; that screen's size is given by the optional entry `"screen": [1920, 1080]` on the layout (without it, 16:9 applies). The grid and screen size can be changed with the "Grid … ▾" button in the control bar; the tiles are converted to the new grid if you wish. Nothing is written until "Save"; until then the draft lives in the browser. The displays pick up the saved layout without a restart. The sidebar lists all tile types for adding – a new tile lands in its usual size at the first free spot –, copies the selected tile with its settings, and removes it. Tiles whose source is not set up appear greyed out. The settings of the selected tile are shown as a form in the sidebar; datapoints are chosen from a list that searches identifier and label, shows the current value and can be narrowed down by source. Every change affects the tile immediately. What has no form field (such as `map` on the value tile) can be changed as JSON under "Advanced". If access protection is set up, editing asks you to sign in with the setup password.
 
 Via "Layouts ▾" you can create layouts – empty, as a copy of the one shown, or from a bundled template (`templates/`: kitchen, hallway, house only) –, rename them and delete them. Templates bring the arrangement but no datapoints; you enter those in the tiles afterwards. A layout's name appears in the display's address and therefore consists of lowercase letters, digits and hyphens.
 
@@ -572,13 +572,47 @@ The interface uses the same API as any other program. All paths begin with `/api
 | `GET /settings` | Display, messages and accesses for setting up – of the accesses only name and level (level `admin`) |
 | `PUT /settings/site`, `PUT /settings/events` | Replace the display's settings or all messages; takes effect immediately (level `admin`) |
 | `POST /settings/access`, `PUT /settings/access/{name}`, `DELETE /settings/access/{name}` | Create an access (`{ "name", "role" }` – the response names the token, this one time only), change the level, remove (level `admin`) |
-| `GET /access` | Name and level of the presented access |
+| `GET /access` | Name and level of the presented access; a sign-in with the setup password appears as `kennwort` with level `admin` |
+| `GET /setup` | What a page without access needs to know: `{ "protected", "password", "pairing" }` (no access needed) |
+| `POST /login` | Sign in with the setup password, body `{ "password" }`; the response is `{ "token", "expires" }`, valid for 30 days and presented like any token (no access needed; after five wrong attempts the core answers with 429 and `Retry-After`) |
+| `PUT /settings/password`, `DELETE /settings/password` | Set or change the setup password (`{ "password" }`, at least 8 characters; all earlier sign-ins end, the response is a new one) and remove it (level `admin`) |
+| `POST /reset`, `POST /reset/password` | Forgotten password: have a setup code written into the data folder; set a new password with it, body `{ "code", "password" }` (no access needed) |
+| `POST /pairing`, `POST /pairing/{id}` | A display asks for access (`{ "label" }` → `{ "id", "code", "secret", "expires" }`) and asks how its request is doing (`{ "secret" }` → `waiting`, `approved` with its token – once –, `rejected` or `expired`) (no access needed) |
+| `GET /settings/pairing`, `POST /settings/pairing/{id}`, `DELETE /settings/pairing/{id}` | Waiting requests with code, label and address; allow one (`{ "name", "role" }` – creates the access entry, the token goes to the display only) or reject it (level `admin`) |
 | `GET /embed?url=` | Whether a page from a `web` tile allows embedding |
 | WebSocket `/stream` | Changes in real time; subscribe with `{ "op": "sub", "topics": ["dp/*"] }`. `layout/{id}` reports that a layout was changed; `site` reaches every display when language or color scheme were changed |
 
 ### Access protection
 
-Without setup, the API is open: anyone on the network can read and switch. The core points this out at start. Accesses are set up like this:
+Without setup, Culinola is open: anyone on the network can read, switch and set up. The core points this out at start. Protection is set up in the browser under `?edit=settings` → **Access protection** – the same way whether Culinola runs on a PC, a NAS or a Raspberry Pi. There are three ways in, depending on who or what needs access:
+
+| Who | Way in | How |
+|---|---|---|
+| You, when setting up | **Setup password** | Sign in on the setup pages; the sign-in lasts 30 days in that browser |
+| A display | **Pairing** | The display shows a code; you confirm it in the settings |
+| A program without a screen | **Token** | Created in the settings, sent as `Authorization: Bearer …` |
+
+**Setup password.** Set it under "Setup password" (at least 8 characters). From that moment the API is protected: the setup pages (`?edit`, `?edit=sources`, `?edit=settings`) ask for the password, and every display needs an access. The browser in which you set the password stays signed in. The sign-in applies to the setup pages only – a display remains what it was paired as, so a kitchen display does not become able to set up because someone once signed in on it. "Sign out" on the settings page ends the sign-in in that browser; changing the password ends it everywhere. The core stores only a check value of the password in `secrets.json` (section `setup`), never the password itself, and slows down guessing: after five wrong attempts from one address it makes that address wait, longer each time.
+
+**Pairing a display.** Open Culinola on the display as usual, for example `http://<server>:8090/?layout=flur`. Without access it shows a six-digit code and the address of the settings. On a PC or tablet, open the settings: the request appears under "Pair devices" with its code, the browser and layout it comes from, and its address on the network. Compare the code with the one on the display, give the access a name (one per device: `kueche`, `flur`) and a level, and choose "Allow". The display picks up its token within a few seconds and starts; the token is never shown and nobody has to type it. "Reject" turns a request down. A code is valid for ten minutes; a display that is still waiting then shows a new one by itself, so it can also be paired hours later.
+
+**Tokens for programs.** Under "Access entries and tokens", create an entry with a name and a level. The core generates the token and shows it exactly once; afterwards it only exists in `secrets.json`. Programs send it in the header `Authorization: Bearer …` – in an openHAB rule, for instance, to raise a message. A display can also be unlocked with a token instead of pairing: open its address once with `#token=…` at the end; it remembers the access and removes the token from the address bar again.
+
+| Level | May |
+|---|---|
+| `read` | read – for a display nobody should switch from |
+| `control` | read, switch, trigger actions and messages – for ordinary displays and for programs |
+| `admin` | additionally set up |
+
+Viewing a camera image counts as reading: even a display with level `read` shows cameras and television. With a setup password, no access entry needs the level `admin`. Without one, the first access entry must have it, and one such entry always remains – otherwise nobody could set up any more. For the same reason the password cannot be removed while there are access entries but none with `admin`.
+
+**Forgot the password?** On the sign-in page, choose "Forgot the password?" → "Request setup code". The core writes the code into its data folder as `einrichtungscode.txt` and into its log. The data folder is the one that contains `config.json`: on a PC the `data` folder of the installation, with Docker the folder handed to the container as `/data` (on a NAS you reach it through the file manager; the log is shown by the container manager or `docker logs`). Enter the code and a new password on the sign-in page. The code is valid for 15 minutes and works once; the file disappears afterwards. Access entries of displays and programs stay as they are. Requesting a code reveals nothing and changes nothing – only someone who can read the files or the log of the installation gets back in. The same works for an installation that has access entries but no password yet and whose `admin` token is not at hand.
+
+**Opening it again.** Remove the access entries and then the password in the settings; Culinola is then open as at the beginning.
+
+#### By hand
+
+Access entries can also be written into the files; this takes effect after a restart.
 
 1. Generate a token for each access:
 
@@ -598,15 +632,7 @@ Without setup, the API is open: anyone on the network can read and switch. The c
    "api": { "kueche": "…", "flur": "…" }
    ```
 
-| Level | May |
-|---|---|
-| `read` | read |
-| `control` | read, switch, trigger actions |
-| `admin` | additionally set up (no function yet) |
-
-Viewing a camera image counts as reading: even a display with level `read` shows cameras and television.
-
-Programs send the token in the header `Authorization: Bearer …`. A display is authorized by opening the address once with `#token=…` at the end; it remembers the access and removes the token from the address bar again.
+The setup password cannot be written by hand, because only its check value is stored; set it in the settings or with a setup code. Deleting the section `setup` from `secrets.json` and restarting removes it. Because of these two sections, `api` and `setup` cannot be used as the identifier of a source.
 
 The protection regulates who may do something. It encrypts nothing – outside your own home network, HTTPS belongs in front.
 

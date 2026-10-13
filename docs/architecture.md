@@ -62,7 +62,15 @@ Layouts carry a revision derived from their content. Saving a layout names the r
 
 ## Access
 
-Without access entries the API is open. With them, every call presents a token with one of three levels: `read`, `control` (also switch and trigger) and `admin` (also set up). The first entry must be `admin`, and one `admin` entry always remains.
+Without a setup password and without access entries the API is open. Otherwise every call presents a token with one of three levels: `read`, `control` (also switch and trigger) and `admin` (also set up). Tokens come from three places, one for each kind of caller:
+
+- **People** sign in with the setup password. The core keeps only a scrypt check value and a signing key in `secrets.json`; a sign-in is a signed token with an expiry date that the core verifies without keeping a list. Changing the password replaces the key and thereby ends every sign-in. The interface presents it only on the setup pages, so signing in on a display does not raise what that display may do.
+- **Displays** are paired. A display without access asks the core for a pairing request and shows its short code; it keeps a secret that never appears anywhere else. Someone who may set up confirms the code and chooses name and level; the core creates the access entry and hands the token to whoever presents the secret – once. Requests live in memory only and expire after ten minutes.
+- **Programs** get an access entry whose token is shown once when it is created.
+
+A forgotten password is replaced through the data folder: on request the core writes a short-lived code into a file there. Reading it proves what a browser alone cannot – that the caller can reach the files of the installation. That keeps the whole setup in the browser without a command-line step, whatever the installation runs on.
+
+The few calls needed before any access exists – the display settings, signing in, pairing, requesting and redeeming a setup code – are marked as public on their route; everything else is checked against the level it requires.
 
 ## Interface
 

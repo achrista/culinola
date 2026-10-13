@@ -27,17 +27,28 @@ export function bearerToken(header: string | undefined): string | undefined {
   return match?.[1]?.trim();
 }
 
+/** Was außer den Tokens Zugang gibt: das Einrichtungskennwort und die Anmeldungen, die damit ausgestellt wurden. */
+export interface PasswordGate {
+  hasPassword(): boolean;
+  session(token: string): boolean;
+}
+
+/** Unter diesem Namen erscheint im Protokoll, wer sich mit dem Kennwort angemeldet hat. */
+export const PASSWORD_ACCESS = 'kennwort';
+
 export type AccessResult = { ok: true; name: string; role: Role } | { ok: false; status: 401 | 403; error: string };
 
 /**
- * Prüft ein vorgelegtes Token. Ohne eingerichtete Tokens ist die API offen –
- * gedacht für den ersten Start, nicht für den Dauerbetrieb.
+ * Prüft ein vorgelegtes Token oder eine Anmeldung mit dem Einrichtungskennwort. Ohne Kennwort und ohne
+ * eingerichtete Tokens ist die API offen – gedacht für den ersten Start, nicht für den Dauerbetrieb.
  */
-export function authorize(tokens: readonly AccessToken[], presented: string | undefined, needed: Role): AccessResult {
-  if (tokens.length === 0) return { ok: true, name: 'offen', role: 'admin' };
+export function authorize(tokens: readonly AccessToken[], presented: string | undefined, needed: Role, gate?: PasswordGate): AccessResult {
+  if (tokens.length === 0 && !gate?.hasPassword()) return { ok: true, name: 'offen', role: 'admin' };
   if (!presented) return { ok: false, status: 401, error: 'Zugangstoken fehlt.' };
 
   const match = tokens.find((entry) => sameSecret(entry.token, presented));
+  // Wer sich mit dem Kennwort angemeldet hat, darf einrichten
+  if (!match && gate?.session(presented)) return { ok: true, name: PASSWORD_ACCESS, role: 'admin' };
   if (!match) return { ok: false, status: 401, error: 'Zugangstoken ist ungültig.' };
   if (RANK[match.role] < RANK[needed]) {
     return { ok: false, status: 403, error: `Das Token "${match.name}" darf nur ${match.role === 'read' ? 'lesen' : 'bedienen'}.` };

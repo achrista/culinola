@@ -117,7 +117,8 @@ export function loadConfig(): LoadedConfig {
   if (!Array.isArray(raw.sources)) throw new Error(`${file}: "sources" fehlt oder ist keine Liste.`);
   if (!raw.layouts || typeof raw.layouts !== 'object') throw new Error(`${file}: "layouts" fehlt.`);
   // "api" ist in secrets.json der Platz für die Zugangstokens
-  if (raw.sources.some((source) => source.id === 'api')) throw new Error(`${file}: Eine Quelle darf nicht "api" heißen – der Name ist vergeben.`);
+  // … und "setup" der für das Einrichtungskennwort
+  for (const reserved of ['api', 'setup']) if (raw.sources.some((source) => source.id === reserved)) throw new Error(`${file}: Eine Quelle darf nicht "${reserved}" heißen – der Name ist vergeben.`);
   const config: AppConfig = { port: raw.port ?? 8090, sources: raw.sources, layouts: raw.layouts };
   if (raw.access) config.access = raw.access;
   if (raw.site) config.site = raw.site;

@@ -2,11 +2,13 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { Logger } from '@culinola/sdk';
 import { ActionRegistry } from './actions.ts';
+import { Auth } from './auth.ts';
 import { registerBuiltinActions } from './builtin.ts';
 import { loadAccess, loadConfig, loadSecrets } from './config.ts';
 import { EventHub } from './events.ts';
 import { JsonFile } from './jsonfile.ts';
 import { LayoutStore } from './layouts.ts';
+import { Pairing } from './pairing.ts';
 import { PluginHost } from './plugins.ts';
 import { DatapointRegistry } from './registry.ts';
 import { buildServer } from './server.ts';
@@ -35,8 +37,6 @@ function loadOrExit() {
 
 const { config, dataDir, demo, secrets, access } = loadOrExit();
 if (demo) log.warn(`Keine config.json in ${dataDir} gefunden – Culinola läuft mit erfundenen Beispielwerten.`);
-if (access.length === 0) log.warn('Die API ist ohne Zugriffsschutz: Jeder im Netz kann lesen und schalten. Zugänge lassen sich in config.json unter "access" einrichten.');
-else log.info(`Zugriffsschutz aktiv: ${access.map((entry) => `${entry.name} (${entry.role})`).join(', ')}`);
 
 const registry = new DatapointRegistry();
 const actions = new ActionRegistry();
@@ -49,7 +49,12 @@ const layouts = new LayoutStore(config.layouts, configFile, config, log);
 // Quellen ebenso: einzeln ändern und neu starten, ohne den Kern anzuhalten
 const secretsFile = new JsonFile(join(dataDir, 'secrets.json'));
 const sources = new SourceStore({ sources: config.sources, secrets, plugins, configFile, secretsFile, initial: config, log });
-const settings = new SettingsStore({ config, events, access, secrets, configFile, secretsFile, log });
+// Menschen weisen sich mit dem Einrichtungskennwort aus, Geräte mit ihrem Token; neue Geräte bitten darum (Koppeln)
+const auth = new Auth({ secrets, secretsFile, access, dataDir, log });
+const pairing = new Pairing();
+if (!auth.protected()) log.warn(`Die API ist ohne Zugriffsschutz: Jeder im Netz kann lesen, schalten und einrichten. Ein Einrichtungskennwort lässt sich in den Einstellungen festlegen (http://localhost:${config.port}/?edit=settings).`);
+else log.info(`Zugriffsschutz aktiv: ${[...(auth.hasPassword() ? ['Einrichtungskennwort'] : []), ...access.map((entry) => `${entry.name} (${entry.role})`)].join(', ')}`);
+const settings = new SettingsStore({ config, events, access, secrets, configFile, secretsFile, log, hasPassword: () => auth.hasPassword() });
 const stopWatching = layouts.watch();
 // Meldungen, die an einem Datenpunkt hängen, feuern, sobald er ihre Bedingung neu erfüllt
 registry.on('change', (datapoint) => events.observe(datapoint));
@@ -60,7 +65,7 @@ await plugins.startAll(config.sources);
 
 const uiDir = resolve(import.meta.dirname, '../../ui/dist');
 const templates = loadTemplates(resolve(import.meta.dirname, '../../../templates'), log);
-const servers = [await buildServer({ config, registry, plugins, actions, events, layouts, sources, settings, templates, log, access, uiDir })];
+const servers = [await buildServer({ config, registry, plugins, actions, events, layouts, sources, settings, templates, log, access, auth, pairing, uiDir })];
 await servers[0]!.listen({ port: config.port, host: '0.0.0.0' });
 log.info(`Culinola läuft auf http://localhost:${config.port}`);
 
@@ -68,7 +73,7 @@ log.info(`Culinola läuft auf http://localhost:${config.port}`);
 if (config.https) {
   try {
     const tls = { cert: readFileSync(join(dataDir, config.https.cert)), key: readFileSync(join(dataDir, config.https.key)) };
-    const secure = await buildServer({ config, registry, plugins, actions, events, layouts, sources, settings, templates, log, access, uiDir, tls });
+    const secure = await buildServer({ config, registry, plugins, actions, events, layouts, sources, settings, templates, log, access, auth, pairing, uiDir, tls });
     await secure.listen({ port: config.https.port, host: '0.0.0.0' });
     servers.push(secure);
     log.info(`Gesichert erreichbar auf https://localhost:${config.https.port}`);

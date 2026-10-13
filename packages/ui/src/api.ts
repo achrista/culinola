@@ -1,5 +1,6 @@
 const BASE = '/api/v1';
 const TOKEN_KEY = 'culinola.token';
+const SESSION_KEY = 'culinola.session';
 
 /** Der Kern verlangt ein Zugangstoken, und diese Anzeige hat keines oder ein ungültiges. */
 export class AccessDenied extends Error {}
@@ -39,8 +40,46 @@ export function accessToken(): string | undefined {
   }
 }
 
+/** Ob diese Seite gerade einrichtet (…?edit) – nur dann gilt die Anmeldung mit dem Einrichtungskennwort. */
+const editing = () => new URLSearchParams(location.search).has('edit');
+
+/** Die Anmeldung zum Einrichten, die sich dieser Browser gemerkt hat. */
+export function sessionToken(): string | undefined {
+  try {
+    return localStorage.getItem(SESSION_KEY) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function rememberSession(token: string): boolean {
+  try {
+    localStorage.setItem(SESSION_KEY, token);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Abmelden: Die Seite ist danach wieder nur das, als was die Anzeige freigeschaltet ist. */
+export function forgetSession(): void {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch {
+    // Ohne Speicher gab es auch nichts zu vergessen.
+  }
+}
+
+/**
+ * Was diese Seite dem Kern vorlegt: beim Einrichten die Anmeldung, sonst den Zugang der Anzeige. So bleibt
+ * eine Anzeige, an der sich jemand zum Einrichten angemeldet hat, im Alltag das, als was sie freigeschaltet ist.
+ */
+export function currentToken(): string | undefined {
+  return (editing() ? sessionToken() : undefined) ?? accessToken();
+}
+
 function headers(extra: Record<string, string> = {}): Record<string, string> {
-  const token = accessToken();
+  const token = currentToken();
   return token ? { ...extra, Authorization: `Bearer ${token}` } : extra;
 }
 
@@ -59,6 +98,8 @@ async function read<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string };
     const message = body.error ?? `${response.status} ${response.statusText}`;
+    // Eine abgelaufene Anmeldung wird vergessen – beim nächsten Laden fragt die Seite neu nach dem Kennwort
+    if (response.status === 401 && editing() && sessionToken() && !/\/(login|reset\/password)$/.test(new URL(response.url, location.href).pathname)) forgetSession();
     throw response.status === 401 ? new AccessDenied(message) : new ApiError(message, response.status, body);
   }
   return (await response.json()) as T;
