@@ -21,6 +21,8 @@ interface Shown {
 
 const RETRY_MS = 60_000;
 const RECONNECT_MS = [2_000, 5_000, 15_000, 60_000];
+/** Hat der Echtzeitkanal so lange gehalten, gilt sein Ende als gewöhnlich: Merkios Betreiber beendet jede Verbindung nach einer Viertelstunde. */
+const STEADY_MS = 5 * 60_000;
 
 /**
  * Einkaufs- und Aufgabenlisten aus Merkio. Culinola führt selbst keine Listen: Es zeigt die
@@ -109,12 +111,17 @@ export default definePlugin<Config>({
     /** Hört auf den Echtzeitkanal einer Liste und verbindet sich nach einem Abbruch neu. */
     const listen = async (key: string, list: Shown) => {
       const signal = AbortSignal.any([context.signal, list.stop.signal]);
+      // Jede Störung steht einmal im Protokoll, nicht jeder Versuch
+      let warned = false;
       for (let attempt = 0; !signal.aborted; attempt++) {
+        let opened = 0;
         try {
           const stream = await client.stream(`/lists/${list.info.id}/events`, signal);
+          opened = Date.now();
           // Was während der Unterbrechung geschah, holt ein frischer Abruf nach
           if (attempt > 0) await loadItems(key);
           attempt = 0;
+          warned = false;
           const parser = new EventParser();
           const decoder = new TextDecoder();
           for await (const chunk of stream) {
@@ -130,7 +137,12 @@ export default definePlugin<Config>({
           }
         } catch (error) {
           if (signal.aborted) return;
-          if (attempt === 0) log.warn(`Echtzeitkanal der Liste "${list.info.name}" unterbrochen: ${explain(error)}`);
+          // Nach langer Verbindung ist das Ende kein Fehler: Gemeldet wird erst, wenn sich der Kanal nicht wieder öffnen lässt
+          const routine = opened > 0 && Date.now() - opened >= STEADY_MS;
+          if (!routine && !warned) {
+            warned = true;
+            log.warn(`Echtzeitkanal der Liste "${list.info.name}" unterbrochen: ${explain(error)}`);
+          }
         }
         await new Promise<void>((resume) => {
           const timer = setTimeout(resume, RECONNECT_MS[Math.min(attempt, RECONNECT_MS.length - 1)]);

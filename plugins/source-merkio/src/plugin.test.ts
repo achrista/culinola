@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { InvalidInput, type ActionHandler, type PluginContext } from '@culinola/sdk';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import plugin from './index.ts';
 import type { Entry } from './merkio.ts';
 import { startStandIn, type StandIn } from './standin.ts';
@@ -60,6 +60,7 @@ beforeAll(() => {
   dir = mkdtempSync(join(tmpdir(), 'culinola-merkio-'));
 });
 afterEach(async () => {
+  vi.restoreAllMocks();
   for (const stop of running.splice(0)) stop.abort();
   await merkio?.close();
 });
@@ -191,6 +192,38 @@ describe('Anmeldung bei Merkio', () => {
     // Diese Änderung fällt in die Lücke: Kein Kanal ist offen, der sie melden könnte
     merkio.items.push({ id: 901, listId: 11, name: 'Hefe', checked: 0, position: 99 });
     await until(() => shown.names().includes('Hefe'), 'Stand nachgeholt');
+    // Ein Kanal, der gleich wieder abreißt, ist eine Störung: einmal je Liste gemeldet
+    expect(shown.warnings).toEqual([expect.stringMatching(/Echtzeitkanal der Liste "\w+" unterbrochen/), expect.stringMatching(/Echtzeitkanal der Liste "\w+" unterbrochen/)]);
+  }, 15_000);
+
+  /** Wartet, bis die Echtzeitkanäle nachweislich mitlesen, und stellt die Uhr dann um zwanzig Minuten vor. */
+  async function afterTwentyMinutes(shown: ReturnType<typeof start>) {
+    await until(() => (merkio.calls.get('GET /lists/:id/events') ?? 0) >= 2, 'Echtzeitkanäle offen');
+    for (const [id, listId, name] of [[900, 11, 'Zimt'], [902, 13, 'Leim']] as const) merkio.change('item_created', { id, listId, name, checked: 0, position: 99 });
+    await until(() => shown.names().includes('Zimt') && shown.names('baumarkt').includes('Leim'), 'Kanäle lesen mit');
+    const later = Date.now() + 20 * 60_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => later);
+  }
+
+  it('verbindet sich still neu, wenn Merkio den Echtzeitkanal nach langer Zeit beendet', async () => {
+    merkio = await startStandIn();
+    const shown = start('viertelstunde');
+    await afterTwentyMinutes(shown);
+    merkio.dropStreams();
+    merkio.items.push({ id: 901, listId: 11, name: 'Hefe', checked: 0, position: 99 });
+    await until(() => shown.names().includes('Hefe'), 'Stand nachgeholt');
+    expect(shown.warnings).toEqual([]);
+  }, 15_000);
+
+  it('meldet es, wenn sich der Echtzeitkanal danach nicht wieder öffnen lässt', async () => {
+    merkio = await startStandIn();
+    const shown = start('kein-zurueck');
+    await afterTwentyMinutes(shown);
+    await merkio.close();
+    // Das Ende selbst bleibt still; erst der vergebliche neue Versuch wird gemeldet, einmal je Liste
+    expect(shown.warnings).toEqual([]);
+    await until(() => shown.warnings.length === 2, 'Meldung');
+    expect(shown.warnings.sort()).toEqual([expect.stringMatching(/Echtzeitkanal der Liste "Baumarkt" unterbrochen/), expect.stringMatching(/Echtzeitkanal der Liste "Einkauf" unterbrochen/)]);
   }, 15_000);
 
   it('sagt, was fehlt, wenn keine oder falsche Zugangsdaten hinterlegt sind', async () => {
