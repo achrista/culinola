@@ -116,7 +116,7 @@ When saving, the core rewrites `config.json` and first puts a backup next to it 
 | `switches` | Panel of switches that adapts to the space; an entry with `"type": "cover"` gets three buttons for moving – for awning, roller shutter or blind – and shows the position | `items: [{ datapoint, label }]`; per entry `type` (`cover`), `up` and `down` (labels of the buttons, such as "on" and "off") |
 | `chart` | Time series for today, week, month | `title`, `series: [{ datapoint, label, area, forecast }]` |
 | `note` | Reserves a spot and labels it | `title`, `text` |
-| `radio` | Station buttons, volume, current title | `source` (radio instance) |
+| `radio` | Station buttons, volume, current title – it scrolls through when it is longer than its field | `source` (radio instance) |
 | `voice` | Speaking instead of typing: tap, say a sentence; the answer appears at the bottom of the display and is read aloud | `source` (default `voice`), `title`, `speak` (`false` turns off reading aloud), `wakeWord` (activation word, such as `computer`) |
 | `video` (with `tv`) | The camera tile can also take over television: with `"tv": "radio"` it shows the picture of a running TV station including sound, and the camera image gives way for as long | additionally `tv` (radio instance) |
 | `video` | Live image of a camera or stream; tapping fills the screen. The image fills the tile and is cropped at the edge for that; tapped large, it is shown in full | `source` (video instance), `stream`, `label`, `tv`, `fit` (`cover` as default, `fill` distorts instead of cropping, `contain` shows everything with margins) |
@@ -129,7 +129,7 @@ When saving, the core rewrites `config.json` and first puts a backup next to it 
 | `mail` | E-mails from all configured mailboxes, newest first; tapping shows the message | `source` (mail instance), `title` |
 | `checklist` | A shopping or task list to tick off, set tightly in columns; "+" adds new entries | `source` (list instance, default `merkio`), `list` (identifier or name, otherwise the first), `title`, `recentHours` (how long ticked-off items stay visible, default 12) |
 | `sun-moon` | Sun and moon: the sun travels along an arc from its rising to its setting, at night the moon in today's shape; plus rise and set times, day length and moon phase | `source` (default `astro`) |
-| `recipes` | A randomly chosen recipe with image, changing in turn; tapping opens it, the arrow opens the whole list, in which new recipes can also be added | `source` (recipe instance), `title`, `seconds` |
+| `recipes` | A randomly chosen recipe with image, changing in turn; tapping opens it, the arrow opens the whole list with its search field, in which new recipes can also be added | `source` (recipe instance), `title`, `seconds` |
 
 `map` translates state values into text, for example `{ "0": "off", "1": "running", "3": "done" }`.
 
@@ -296,7 +296,7 @@ A color scheme determines the look of the display. It is chosen in `config.json`
 
 **Day and night.** With a second scheme for the night, the display switches by itself: half an hour after sunset to the dark one, half an hour before sunrise back – the offset is adjustable (`nightOffsetMinutes` of the `astro` source). In the configuration `"site": { "theme": "glut", "nightTheme": "nacht" }`, for trying out on a display `?theme=glut&night=nacht`. When it is night for the display is told by the `astro` source (see [Sun and moon](#sun-and-moon)); if it is named differently, `site.astro` gives its identifier.
 
-A scheme consists only of values – colors, rounding, spacing, shadows, font of the headings, colors of the clock – in [theme.css](packages/ui/src/theme.css); a custom one is another block there.
+A scheme consists only of values – colors, rounding, spacing, shadows, font of the headings, colors of the clock and of the egg timer's surfaces – in [theme.css](packages/ui/src/theme.css); a custom one is another block there.
 
 ### Weather
 
@@ -375,7 +375,7 @@ The login goes in `secrets.json`: `{ "fritzbox": { "user": "…", "password": "�
 
 ### Egg timer
 
-With `{ "id": "timer", "plugin": "timer" }` as a source and `"timer": "timer"` in the clock's settings, the clock becomes an egg timer: tapping opens the choice of duration. As long as the egg timer is running, it appears large in the place of the time, and the time moves to the place of the date. When the time is up, the display rings and then keeps counting with a minus sign – so you can see how long something has been over-cooking –, accompanied by a short sound every two seconds. Tapping switches it off; otherwise it ends by itself after the overrun time (`overrunSeconds` in the source's settings, default 120). Instead of counting backwards, it can also run forwards as a stopwatch.
+With `{ "id": "timer", "plugin": "timer" }` as a source and `"timer": "timer"` in the clock's settings, the clock becomes an egg timer: tapping opens the choice of duration. As long as the egg timer is running, it appears large in the place of the time, and the time moves to the place of the date; while it counts down, the clock stands as a yellow signal surface. When the time is up, the surface turns red, the display rings and then keeps counting with a minus sign – so you can see how long something has been over-cooking –, accompanied by a short sound every two seconds. Tapping switches it off; otherwise it ends by itself after the overrun time (`overrunSeconds` in the source's settings, default 120). Instead of counting backwards, it can also run forwards as a stopwatch.
 
 The egg timer lives in the core, not in the display: it survives a reload and a restart, all displays show the same one, and it can also be set from outside via the actions `timer.start` (`minutes`, `seconds`), `timer.stopwatch`, `timer.add` (`seconds`) and `timer.stop`. For the remaining time to be right, the clocks of the core and the display computer must be in step – so both should get the time from the network.
 
@@ -441,6 +441,8 @@ servings: 4
 ```
 
 All details are optional; German field names (`Titel`, `Kategorie`, `Stichworte`, `Zeit`, `Portionen`) apply as well. A recipe's origin – `source: Family recipe` in the details or a line `Quelle: [Instagram](https://…)` in the text – appears small under the title in the recipe list. If the title is missing, the first heading applies, otherwise the file name. Images sit next to the recipe and are embedded as usual: `![Cake](bilder/kuchen.jpg)`. The first image – or the one named under `image` in the details – is the recipe's image on the tile. Every `seconds` seconds (default 30) the tile shows a different, randomly chosen recipe with image. Embedded HTML is not executed but shown as text.
+
+The list has a search field that filters while you type – by title, category, tags and origin, within the chosen category. Every word must occur; umlauts may be typed, written out (`kaese`) or left off.
 
 In the reading view, the text can be enlarged in steps; as long as a recipe is open, the display keeps the screen awake as far as the browser permits (secure connection or `localhost`). The image from the details sits next to the text there. "Cooking this" holds on to a recipe: it stays on the tile instead of disappearing in the rotation, and a tap opens it again – until "Done cooking" is pressed or six hours are up. The note lives in the core (datapoint `recipes:cooking`, actions `recipes.cook` and `recipes.finish`), so it applies to all displays and survives a reload.
 

@@ -5,6 +5,7 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getJson, postFile, postJson } from '../api.ts';
 import { mediaUrl } from '../media.ts';
+import { matches } from '../search.ts';
 import { datapoints } from '../store.ts';
 import DetailOverlay from './DetailOverlay.vue';
 import TitleIcon from './TitleIcon.vue';
@@ -59,6 +60,7 @@ const list = ref<RecipeInfo[]>([]);
 const featured = ref<RecipeInfo>();
 const open = ref(false);
 const category = ref<string>();
+const query = ref('');
 const recipe = ref<Recipe>();
 const failed = ref('');
 const scale = ref(readScale());
@@ -155,7 +157,8 @@ function pictureFailed(entry: RecipeInfo) {
 }
 
 const categories = computed(() => [...new Set(list.value.map((entry) => entry.category).filter((name): name is string => !!name))].sort((a, b) => a.localeCompare(b)));
-const shown = computed(() => (category.value ? list.value.filter((entry) => entry.category === category.value) : list.value));
+/** Was die Liste zeigt: die gewählte Kategorie, darin das, was zur Suche passt. */
+const shown = computed(() => list.value.filter((entry) => (!category.value || entry.category === category.value) && matches(query.value, [entry.title, entry.category, entry.source, ...entry.tags])));
 
 // Zutaten auf die Einkaufsliste: Menge wählen, abwählen, was im Haus ist, und eintragen lassen
 const shopping = ref<Shopping>();
@@ -361,6 +364,7 @@ onUnmounted(() => {
 
 function close() {
   open.value = false;
+  query.value = '';
   recipe.value = undefined;
   adding.value = false;
   shopOpen.value = false;
@@ -392,6 +396,10 @@ function close() {
       </template>
       <div class="browser" :class="{ reading: !!recipe || adding }">
         <nav>
+          <div v-if="list.length" class="search" role="search">
+            <input v-model="query" type="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" :placeholder="t('recipes.search')" :aria-label="t('recipes.search')" />
+            <button v-if="query" :aria-label="t('recipes.searchClear')" @click="query = ''">×</button>
+          </div>
           <div v-if="categories.length > 1" class="chips">
             <button :class="{ active: !category }" @click="category = undefined">{{ t('recipes.all') }}</button>
             <button v-for="name in categories" :key="name" :class="{ active: category === name }" @click="category = name">{{ name }}</button>
@@ -405,6 +413,7 @@ function close() {
             </li>
           </ul>
           <p v-if="!list.length" class="hint">{{ t('recipes.empty') }}</p>
+          <p v-else-if="!shown.length" class="hint">{{ t('recipes.noMatch') }}</p>
         </nav>
         <article :style="{ fontSize: `${20 * scale}px` }">
           <form v-if="adding" class="add" @submit.prevent>
@@ -606,6 +615,41 @@ nav {
   border-right: 1px solid var(--line);
   background: var(--card);
   overflow-y: auto;
+}
+/* Die Suche bleibt oben stehen, während die Liste darunter durchläuft */
+.search {
+  position: sticky;
+  top: -12px;
+  z-index: 1;
+  margin: -12px -12px 0;
+  padding: 12px 12px 10px;
+  background: var(--card);
+  display: flex;
+  gap: 6px;
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 18px;
+}
+/* Zum Leeren gibt es die eigene, größere Taste */
+.search input::-webkit-search-cancel-button {
+  display: none;
+}
+.search button {
+  flex: none;
+  width: 48px;
+  border-radius: var(--radius);
+  background: var(--soft);
+  font-size: 26px;
+  line-height: 1;
 }
 .chips {
   display: flex;

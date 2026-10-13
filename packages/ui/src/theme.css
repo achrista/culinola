@@ -36,15 +36,17 @@
   --title-size: 16px;
   --title-case: none;
   --title-spacing: normal;
-  /* Die Uhr: Zeit, Datum, Fläche; die laufende Eieruhr und ihr Alarm */
+  /* Die Uhr: Zeit, Datum, Fläche; die Stoppuhr, die herunterzählende Eieruhr als Signalfläche und ihr Alarm */
   --clock-ink: var(--ink);
   --clock-mute: var(--mute);
   --clock-bg: transparent;
   --clock-shadow: none;
   --clock-weight: var(--num-weight);
   --timer-ink: var(--accent);
-  --clock-alarm-ink: var(--alarm);
-  --clock-alarm-bg: var(--clock-bg);
+  --countdown-ink: #1d1600;
+  --countdown-bg: var(--warn);
+  --clock-alarm-ink: #ffffff;
+  --clock-alarm-bg: var(--alarm);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -61,6 +63,7 @@
     --ok: #5cc79b;
     --warn: #f2c94c;
     --alarm: #f08a7a;
+    --clock-alarm-ink: #2b0a04;
     --none: #5a6772;
     --series-1: #f0b93a;
     --series-2: #4fb8dc;
@@ -117,7 +120,6 @@
   --clock-mute: #c3ccd5;
   --clock-weight: 400;
   --timer-ink: #ffffff;
-  --clock-alarm-ink: #ff9d8f;
 }
 
 /* „Signal“: kühles Hell mit kräftigerem Grund; die Uhr steht als orangefarbene Fläche da. */
@@ -145,8 +147,6 @@
   --clock-shadow: var(--shadow);
   --clock-weight: 400;
   --timer-ink: #ffffff;
-  --clock-alarm-ink: #ffffff;
-  --clock-alarm-bg: var(--alarm);
 }
 
 /* „Nacht“: dunkel mit warmem Orange – ruhig am Abend, die Kacheln durch eine feine Kante getrennt. */
@@ -177,6 +177,7 @@
   --clock-ink: var(--accent);
   --clock-weight: 400;
   --timer-ink: var(--ink);
+  --clock-alarm-ink: #2b0a04;
 }
 
 /*
@@ -211,6 +212,7 @@
   --clock-ink: var(--accent);
   --clock-weight: 500;
   --timer-ink: var(--ink);
+  --clock-alarm-ink: #2b0a04;
 }
 
 html,

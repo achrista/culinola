@@ -106,11 +106,11 @@ Checking is done at 1920 × 1080 and additionally once narrow (about 800 × 480)
 
 **Clock and egg timer**
 - [ ] Time with seconds and date are right.
-- [ ] Tapping opens the selection. Choose a preset, shorten to 10 seconds with −10 s, start: the selection closes, the remaining time appears large in the place of the time, the time with seconds below in the place of the date.
+- [ ] Tapping opens the selection. Choose a preset, shorten to 10 seconds with −10 s, start: the selection closes, the remaining time appears large in the place of the time, the time with seconds below in the place of the date, both dark on a yellow surface.
 - [ ] After expiry it rings for a few seconds; the display turns red and keeps counting with a minus sign, plus a short sound every two seconds. Tapping switches everything off, time and date are back.
 - [ ] The short sound after the ringing is clearly quieter than the ringing itself. Under `?layout=web` the clock is set to `"ringVolume": 50, "reminderVolume": 0`: it rings more quietly there, and afterwards stays silent while the display keeps counting.
 - [ ] Let it expire again and do not tap: after 30 seconds (in the test instance; otherwise 120) the egg timer ends by itself.
-- [ ] Start stopwatch: the time runs forwards. Reload the page: it keeps running. Stop.
+- [ ] Start stopwatch: the time runs forwards, without a colored surface. Reload the page: it keeps running. Stop.
 
 **Readings and chart**
 - [ ] Tiles show value, unit and status dot; the values change without reloading.
@@ -142,7 +142,7 @@ Checking is done at 1920 × 1080 and additionally once narrow (about 800 × 480)
 - [ ] Tapping toggles, the state is visible immediately and the same after reloading.
 
 **Radio**
-- [ ] Tap a station: sound plays, the title appears, the media window shows the station name.
+- [ ] Tap a station: sound plays, the title appears, the media window shows the station name. A title longer than its field scrolls through after a short rest and starts over; a short one stands still.
 - [ ] Louder and quieter work. "Off" ends the sound.
 
 **News**
@@ -156,6 +156,7 @@ Checking is done at 1920 × 1080 and additionally once narrow (about 800 × 480)
 - [ ] Tapping opens the recipe: details, image, list with checkboxes, link.
 - [ ] The browser window's title stays "Culinola", the script text appears as text, the two foreign images are missing.
 - [ ] The arrow opens the list with four recipes; "Kaputte Kopfdaten" can be opened. Under the Streifenkuchen the origin "Familienrezept" appears, under the Linsensuppe "Beispielseite".
+- [ ] Type "kuch" into the search field: only Pfannkuchen and Streifenkuchen remain; "SUPPE lins" leaves the Linsensuppe, "xyz" the note that no recipe matches. × empties the field, and after closing and reopening the list it is empty again.
 - [ ] A− and A+ change the font size; it is kept after closing.
 - [ ] "Cooking this" at the Linsensuppe: after closing, both tiles show the Linsensuppe with "Cooking now" and no longer change; tapping opens it again. "Done cooking" brings back the rotation.
 - [ ] Open Pfannkuchen, "Shopping": five ingredients appear selected, "4 servings" at the top. Press "+" twice: "6 servings", 250 g of flour become 375 g. Deselect salt (the selection is kept when converting), "Add to the list (4)": above the recipe it says how many ingredients were newly put on the list and how many were already there; under `?layout=einkauf`, "Mehl 375 g" and "Butter zum Backen" appear. Milk and eggs were already there and stay as they are.
@@ -228,7 +229,7 @@ Checking is done at 1920 × 1080 and additionally once narrow (about 800 × 480)
 
 **Color scheme**
 - [ ] <http://localhost:8191/?theme=glut>, `schiefer`, `signal`, `nacht` and `spiegel` in turn: every tile stays legible, the clock bears the accent color (with `signal` as a surface), headings, switches and chart suit the scheme. Without a suffix, "Klar" applies again.
-- [ ] Let the egg timer expire in `signal`: the clock's surface turns red, the digits stay legible.
+- [ ] Set the egg timer in every scheme and let it expire: yellow surface while it counts down, red surface afterwards, the digits stay legible on both.
 
 **Language**
 - [ ] In the test instance's `config.json`, set `site` to `{ "language": "en", "region": "en-US" }`: texts English, clock with AM/PM, date in US notation.

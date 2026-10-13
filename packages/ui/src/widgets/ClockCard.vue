@@ -129,7 +129,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section class="clock" :class="{ done: mode === 'done' }">
+  <section class="clock" :class="{ down: mode === 'down', done: mode === 'done' }">
     <component :is="props.config.timer ? 'button' : 'div'" class="face" :aria-label="props.config.timer ? t(mode === 'done' ? 'timer.tapToStop' : 'timer.set') : undefined" @click="props.config.timer && tap()">
       <template v-if="mode === 'idle'">
         <span class="big" :class="{ period: !!parts.dayPeriod }">
@@ -189,6 +189,10 @@ onUnmounted(() => {
   background: var(--clock-bg);
   box-shadow: var(--clock-shadow);
   color: var(--clock-ink);
+}
+/* Die laufende Eieruhr steht als Signalfläche da, die abgelaufene als Alarmfläche */
+.clock.down {
+  background: var(--countdown-bg);
 }
 .clock.done {
   background: var(--clock-alarm-bg);
@@ -256,9 +260,16 @@ onUnmounted(() => {
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
+.down .timer,
+.down .time {
+  color: var(--countdown-ink);
+}
 /* Abgelaufen: Die Anzeige macht auf sich aufmerksam, bis jemand sie antippt */
-.done .timer {
+.done .timer,
+.done .time {
   color: var(--clock-alarm-ink);
+}
+.done .timer {
   animation: ring 1s steps(2, jump-none) infinite;
 }
 @keyframes ring {

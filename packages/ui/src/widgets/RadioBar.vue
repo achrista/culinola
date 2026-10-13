@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { postJson } from '../api.ts';
 import { currentStation, playbackBlocked, resumePlayback, startRadioPlayback, stationsOf } from '../media.ts';
 import { datapoints } from '../store.ts';
+import ScrollText from './ScrollText.vue';
 import TitleIcon from './TitleIcon.vue';
 
 const props = defineProps<{ config: { source?: string } }>();
@@ -39,7 +40,7 @@ async function run(action: string, params: Record<string, unknown> = {}) {
     <div class="now">
       <span class="kind"><TitleIcon name="radio" />{{ t(current?.kind === 'video' ? 'radio.tv' : 'radio.radio') }}</span>
       <span class="name">{{ current?.name ?? t('radio.off') }}</span>
-      <span class="title">{{ current?.kind === 'video' ? t('radio.inMediaWindow') : title }}</span>
+      <ScrollText class="title" :text="current?.kind === 'video' ? t('radio.inMediaWindow') : title" />
     </div>
 
     <div class="stations">
