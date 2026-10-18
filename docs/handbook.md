@@ -109,12 +109,12 @@ When saving, the core rewrites `config.json` and first puts a backup next to it 
 | Type | Shows | Main settings |
 |---|---|---|
 | `clock` | Time with seconds and date; tapping sets the egg timer | `timer` (egg timer instance), `ringVolume`, `reminderVolume` |
-| `value-tile` | Reading with status dot and history line; one grid row high, it shows everything in one line. With `gauge`, the value in a tall tile sits inside a ring that fills with it – for power, charge level or fuel level, with the secondary value (such as the range) below | `datapoint`, `label`, `secondary`, `unit`, `decimals`, `factor`, `warn`, `map`, `gauge` (`{ "max": 100 }`, optionally with `min`), `fresh` (datapoint of a switch: if it is off, the tile appears greyed out – the value is then the last known one) |
+| `value-tile` | Reading with status dot and history line; one grid row high, it shows everything in one line. With `gauge`, the value in a tall tile sits inside a ring that fills with it – for power, charge level or fuel level, with the secondary value (such as the range) below. Tapping the tile shows a chart across the whole display: by default the history of its own value (states set with `map` as steps), with `chart` one of your own | `datapoint`, `label`, `secondary`, `unit`, `decimals`, `factor`, `warn`, `map`, `gauge` (`{ "max": 100 }`, optionally with `min`), `fresh` (datapoint of a switch: if it is off, the tile appears greyed out – the value is then the last known one), `chart` (like the settings of a `chart` tile, `{ "title": "Temperature", "series": [ … ] }`, so several tiles can show the same chart; each line may also carry `factor` and `step`; `false` makes the tile open nothing) |
 | `image` | An image from a web address that refreshes itself, such as the still image of a webcam; tapping shows it large | `url`, `refreshSeconds` (default 300), `label`, `fit` (`cover` or `contain`) |
 | `web` | A third-party web page in the tile – rain radar, a chart from Grafana, the page of a device in the house. The tile is a preview; tapping shows the page across the whole display, where it can be operated (see [Embedding other pages](#embedding-other-pages)) | `url`, `label`, `zoom` (0.5 shows twice as much), `refreshMinutes`, `interactive` (can be operated already in the tile) |
 | `presence` | Who is at home: one field per person with name and "home" or "away". Counted as present is a switch that is on, a number above zero, or a text such as `home` or `daheim` | `items` (list of `datapoint` and `label`), `home` (custom texts for "home") |
 | `switches` | Panel of switches that adapts to the space; an entry with `"type": "cover"` gets three buttons for moving – for awning, roller shutter or blind – and shows the position | `items: [{ datapoint, label }]`; per entry `type` (`cover`), `up` and `down` (labels of the buttons, such as "on" and "off") |
-| `chart` | Time series for today, week, month | `title`, `series: [{ datapoint, label, area, forecast }]` |
+| `chart` | Time series for today, week, month | `title`, `series: [{ datapoint, label, area, forecast, factor, step }]` |
 | `note` | Reserves a spot and labels it | `title`, `text` |
 | `radio` | Station buttons, volume, current title – it scrolls through when it is longer than its field | `source` (radio instance) |
 | `voice` | Speaking instead of typing: tap, say a sentence; the answer appears at the bottom of the display and is read aloud | `source` (default `voice`), `title`, `speak` (`false` turns off reading aloud), `wakeWord` (activation word, such as `computer`) |
@@ -133,7 +133,7 @@ When saving, the core rewrites `config.json` and first puts a backup next to it 
 
 `map` translates state values into text, for example `{ "0": "off", "1": "running", "3": "done" }`.
 
-In the chart, "Today" runs from 0 to 24 o'clock. A series with `forecast: true` is drawn dashed and may extend beyond the current moment; readings end at the "now" marker.
+In the chart, "Today" runs from 0 to 24 o'clock. A series with `forecast: true` is drawn dashed and may extend beyond the current moment; readings end at the "now" marker. `factor` converts the values (100 for a share of 0.58), `step: true` draws states as steps.
 
 `warn` takes up to four limits: `lowAlarm`, `lowWarn`, `highWarn`, `highAlarm`. The dot is green within range, yellow for caution, red outside and grey without rating.
 

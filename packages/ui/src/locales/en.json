@@ -194,7 +194,11 @@
       "highWarn": "Caution above",
       "highAlarm": "Alarm above",
       "fresh": "Switch “data is current”",
-      "freshHint": "While this switch is off, the tile is greyed out."
+      "freshHint": "While this switch is off, the tile is greyed out.",
+      "chart": "Chart on tap",
+      "chartHint": "Without lines, tapping shows the history of this value. With lines, the tile shows a chart of its own – several tiles can name the same one, all temperatures for example.",
+      "series": "Lines",
+      "step": "Draw as steps (for states)"
     },
     "switches": {
       "items": "Switches",
@@ -206,7 +210,10 @@
     "chart": {
       "series": "Lines",
       "area": "Fill the area under the line",
-      "forecast": "Forecast (dashed, may reach into the future)"
+      "forecast": "Forecast (dashed, may reach into the future)",
+      "factor": "Factor",
+      "factorHint": "Converts the values, such as 100 for a share of 0.58.",
+      "step": "Draw as steps (for states)"
     },
     "presence": {
       "items": "People",
@@ -539,7 +546,8 @@
       "alarm": "out of range",
       "none": "not rated"
     },
-    "stale": "The value is not current"
+    "stale": "The value is not current",
+    "openChart": "{name}: show history"
   },
   "switches": {
     "failed": "Switching failed: {error}",

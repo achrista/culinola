@@ -70,6 +70,7 @@ export const settings: Record<string, readonly Field[]> = {
     { key: 'gauge', type: 'group', fields: [{ key: 'min', type: 'number', placeholder: 0 }, { key: 'max', type: 'number' }] },
     { key: 'warn', type: 'group', fields: ['lowAlarm', 'lowWarn', 'highWarn', 'highAlarm'].map((key): Field => ({ key, type: 'number' })) },
     { key: 'fresh', type: 'datapoint' },
+    { key: 'chart', type: 'group', fields: [title, { key: 'series', type: 'list', fields: [datapoint, label, { key: 'factor', type: 'number', step: 0.001 }, { key: 'step', type: 'boolean' }] }] },
   ],
   switches: [
     {
@@ -78,7 +79,14 @@ export const settings: Record<string, readonly Field[]> = {
       fields: [{ key: 'datapoint', type: 'datapoint', writable: true }, label, { key: 'type', type: 'select', options: ['switch', 'cover'] }, { key: 'up', type: 'text' }, { key: 'down', type: 'text' }],
     },
   ],
-  chart: [title, { key: 'series', type: 'list', fields: [datapoint, label, { key: 'area', type: 'boolean' }, { key: 'forecast', type: 'boolean' }] }],
+  chart: [
+    title,
+    {
+      key: 'series',
+      type: 'list',
+      fields: [datapoint, label, { key: 'area', type: 'boolean' }, { key: 'forecast', type: 'boolean' }, { key: 'factor', type: 'number', step: 0.001 }, { key: 'step', type: 'boolean' }],
+    },
+  ],
   presence: [
     { key: 'items', type: 'list', fields: [datapoint, label] },
     { key: 'home', type: 'tags' },

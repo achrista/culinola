@@ -194,7 +194,11 @@
       "highWarn": "Achtung über",
       "highAlarm": "Alarm über",
       "fresh": "Schalter „Daten aktuell“",
-      "freshHint": "Ist dieser Schalter aus, steht die Kachel ausgegraut da."
+      "freshHint": "Ist dieser Schalter aus, steht die Kachel ausgegraut da.",
+      "chart": "Diagramm beim Tippen",
+      "chartHint": "Ohne Linien zeigt ein Tippen den Verlauf dieses Werts. Mit Linien lässt sich ein eigenes Diagramm zeigen – mehrere Kacheln können dasselbe nennen, etwa alle Temperaturen.",
+      "series": "Linien",
+      "step": "Als Treppe zeichnen (für Zustände)"
     },
     "switches": {
       "items": "Schalter",
@@ -206,7 +210,10 @@
     "chart": {
       "series": "Linien",
       "area": "Fläche unter der Linie füllen",
-      "forecast": "Prognose (gestrichelt, darf in die Zukunft reichen)"
+      "forecast": "Prognose (gestrichelt, darf in die Zukunft reichen)",
+      "factor": "Faktor",
+      "factorHint": "Rechnet die Werte um, etwa 100 für einen Anteil von 0,58.",
+      "step": "Als Treppe zeichnen (für Zustände)"
     },
     "presence": {
       "items": "Personen",
@@ -539,7 +546,8 @@
       "alarm": "außerhalb",
       "none": "ohne Bewertung"
     },
-    "stale": "Der Wert ist nicht aktuell"
+    "stale": "Der Wert ist nicht aktuell",
+    "openChart": "{name}: Verlauf zeigen"
   },
   "switches": {
     "failed": "Schalten fehlgeschlagen: {error}",

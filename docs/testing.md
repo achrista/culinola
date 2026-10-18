@@ -116,6 +116,7 @@ Checking is done at 1920 × 1080 and additionally once narrow (about 800 × 480)
 - [ ] Tiles show value, unit and status dot; the values change without reloading.
 - [ ] The two flat tiles (Waschen, Bad) show dot, name, secondary value and value in one line, without anything cut off.
 - [ ] The chart shows "Today" from 0 to 24 o'clock with the marker for now; week and month can be chosen.
+- [ ] Tapping "Wohnen" or "Bad" opens the same chart "Temperatur" across the whole display, with Wohnen, Bad and Außen; "Close" and Esc return. Tapping "CO₂" shows only the history of CO₂; "Waschen" (a text) opens an empty chart without an error.
 
 **Weather**
 - [ ] The small tile shows symbol, temperature, weather conditions, wind rose with speed, UV index and as many days as there is room for; the first is called "Today".

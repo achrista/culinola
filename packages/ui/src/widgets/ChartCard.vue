@@ -16,8 +16,17 @@ interface SeriesConfig {
   area?: boolean;
   /** Prognose: gestrichelt gezeichnet, darf in die Zukunft reichen. */
   forecast?: boolean;
+  /** Rechnet die Werte um, wie es eine Messwert-Kachel für die Anzeige tut (100 für einen Anteil von 0,58). */
+  factor?: number;
+  /** Als Treppe zeichnen – für Zustände wie „aus“, „läuft“, „fertig“, die nicht stetig ineinander übergehen. */
+  step?: boolean;
 }
-const props = defineProps<{ config: { title?: string; series?: SeriesConfig[] } }>();
+export interface ChartConfig {
+  title?: string;
+  series?: SeriesConfig[];
+}
+/** `plain`: ohne eigene Überschrift und Kartengrund – so steht das Diagramm in der Einzelansicht einer Kachel. */
+const props = defineProps<{ config: ChartConfig; plain?: boolean }>();
 
 const PERIODS = [
   { id: 'today', step: '5m' },
@@ -76,10 +85,14 @@ async function draw() {
           name: entry.label ?? entry.datapoint,
           type: 'line',
           showSymbol: false,
+          step: entry.step ? 'end' : undefined,
           lineStyle: { width: 2, type: entry.forecast ? 'dashed' : 'solid' },
           areaStyle: entry.area && !entry.forecast ? { opacity: 0.3 } : undefined,
           // Messwerte enden jetzt; nur eine Prognose darf darüber hinausreichen
-          data: entry.forecast ? (data[index]?.points ?? []) : (data[index]?.points ?? []).filter(([time]) => time <= now),
+          data: (entry.forecast ? (data[index]?.points ?? []) : (data[index]?.points ?? []).filter(([time]) => time <= now)).map(([time, value]) => [
+            time,
+            entry.factor !== undefined ? value * entry.factor : value,
+          ]),
           markLine:
             index === 0 && selected.id === 'today'
               ? { silent: true, symbol: 'none', label: { show: false }, lineStyle: { color: token('--mute'), type: 'dotted', width: 1 }, data: [{ xAxis: now }] }
@@ -109,9 +122,9 @@ watch(period, () => void draw());
 </script>
 
 <template>
-  <section class="card">
+  <section class="card" :class="{ plain }">
     <header>
-      <h2>{{ config.title ?? t('chart.title') }}</h2>
+      <h2 v-if="!plain">{{ config.title ?? t('chart.title') }}</h2>
       <div class="periods" role="group" :aria-label="t('chart.period')">
         <button v-for="entry in PERIODS" :key="entry.id" :class="{ active: period === entry.id }" :aria-pressed="period === entry.id" @click="period = entry.id">
           {{ t(`chart.${entry.id}`) }}
@@ -165,6 +178,12 @@ h2 {
   background: var(--card);
   color: var(--ink);
   font-weight: 600;
+}
+.card.plain {
+  flex: 1;
+  padding: 12px 16px 16px;
+  border-radius: 0;
+  background: transparent;
 }
 .plot {
   flex: 1;

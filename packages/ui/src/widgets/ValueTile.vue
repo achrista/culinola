@@ -6,6 +6,8 @@ import { getSeries } from '../api.ts';
 import { formatValue } from '../format.ts';
 import { isOn } from '../state.ts';
 import { datapoints } from '../store.ts';
+import ChartCard, { type ChartConfig } from './ChartCard.vue';
+import DetailOverlay from './DetailOverlay.vue';
 
 interface Warn {
   lowAlarm?: number;
@@ -41,6 +43,12 @@ const props = defineProps<{
      * Daten bekommt. Ist er aus, steht die Kachel ausgegraut da: Der Wert ist der letzte bekannte.
      */
     fresh?: string;
+    /**
+     * Das Diagramm, das ein Tippen auf die Kachel zeigt – aufgebaut wie die Einstellungen einer Diagramm-Kachel.
+     * So können mehrere Kacheln dasselbe Diagramm zeigen, etwa alle Temperaturen. Ohne Angabe zeigt es den
+     * Verlauf des eigenen Werts, mit `false` öffnet die Kachel nichts.
+     */
+    chart?: false | ChartConfig;
   };
 }>();
 
@@ -84,6 +92,21 @@ const filled = computed(() => {
 // Der Ring ist ein Dreiviertelkreis, unten offen: Umfang 2·π·42, davon drei Viertel
 const ARC = 2 * Math.PI * 42 * 0.75;
 
+const name = computed(() => props.config.label ?? main.value?.label ?? props.config.datapoint);
+
+/** Was ein Tippen öffnet: das eingestellte Diagramm oder der Verlauf des eigenen Werts – Zustände als Treppe. */
+const chart = computed<ChartConfig | undefined>(() => {
+  const own = props.config.chart;
+  if (own === false) return undefined;
+  if (own?.series?.length) return own;
+  const factor = props.config.factor;
+  return { title: own?.title || name.value, series: [{ datapoint: props.config.datapoint, label: name.value, step: !!props.config.map, ...(factor !== undefined && { factor }) }] };
+});
+const opened = ref(false);
+function open() {
+  if (chart.value) opened.value = true;
+}
+
 // Verlaufslinie der letzten Stunde: einmal laden, danach mit jedem neuen Wert fortschreiben
 const history = ref<number[]>([]);
 async function loadHistory() {
@@ -117,11 +140,21 @@ const sparkline = computed(() => {
 </script>
 
 <template>
-  <section class="tile" :class="{ 'has-gauge': !!config.gauge, stale }" :title="stale ? t('tile.stale') : undefined">
+  <section
+    class="tile"
+    :class="{ 'has-gauge': !!config.gauge, stale, opens: !!chart }"
+    :title="stale ? t('tile.stale') : undefined"
+    :role="chart ? 'button' : undefined"
+    :tabindex="chart ? 0 : undefined"
+    :aria-label="chart ? t('tile.openChart', { name }) : undefined"
+    @click="open"
+    @keydown.enter.self="open"
+    @keydown.space.self.prevent="open"
+  >
     <!-- Die innere Hülle trägt die Anordnung, damit sie sich nach der Größe der Kachel richten kann -->
     <div class="tile-row">
     <header>
-      <span class="name">{{ config.label ?? main?.label ?? config.datapoint }}</span>
+      <span class="name">{{ name }}</span>
       <span v-if="secondary && secondaryConfig" class="secondary">{{ formatValue(scale(secondary.value, secondaryConfig.factor), secondaryConfig.decimals) }} {{ secondaryConfig.unit ?? secondary.unit }}</span>
       <span class="dot" :class="status" role="img" :aria-label="t(`tile.status.${status}`)"></span>
     </header>
@@ -142,10 +175,13 @@ const sparkline = computed(() => {
           <span class="value">{{ display }}</span>
           <span class="unit">{{ unit }}</span>
         </span>
-        <span class="name">{{ config.label ?? main?.label ?? config.datapoint }}</span>
+        <span class="name">{{ name }}</span>
       </div>
       <span v-if="secondary && secondaryConfig" class="below">{{ formatValue(scale(secondary.value, secondaryConfig.factor), secondaryConfig.decimals) }} {{ secondaryConfig.unit ?? secondary.unit }}</span>
     </div>
+    <DetailOverlay v-if="opened && chart" :title="chart.title || name" @close="opened = false">
+      <ChartCard :config="chart" plain />
+    </DetailOverlay>
   </section>
 </template>
 
@@ -157,6 +193,13 @@ const sparkline = computed(() => {
   border-radius: var(--radius);
   background: var(--card);
   overflow: hidden;
+}
+.tile.opens {
+  cursor: pointer;
+}
+.tile.opens:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 .tile-row {
   box-sizing: border-box;

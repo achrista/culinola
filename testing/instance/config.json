@@ -201,6 +201,23 @@
               "lowWarn": 18,
               "highWarn": 24,
               "highAlarm": 26
+            },
+            "chart": {
+              "title": "Temperatur",
+              "series": [
+                {
+                  "datapoint": "demo:temp_wohnen",
+                  "label": "Wohnen"
+                },
+                {
+                  "datapoint": "demo:temp_bad",
+                  "label": "Bad"
+                },
+                {
+                  "datapoint": "demo:temp_aussen",
+                  "label": "Außen"
+                }
+              ]
             }
           }
         },
@@ -263,6 +280,23 @@
             "warn": {
               "highWarn": 24,
               "highAlarm": 26
+            },
+            "chart": {
+              "title": "Temperatur",
+              "series": [
+                {
+                  "datapoint": "demo:temp_wohnen",
+                  "label": "Wohnen"
+                },
+                {
+                  "datapoint": "demo:temp_bad",
+                  "label": "Bad"
+                },
+                {
+                  "datapoint": "demo:temp_aussen",
+                  "label": "Außen"
+                }
+              ]
             }
           }
         },
@@ -915,7 +949,24 @@
           "config": {
             "datapoint": "demo:temp_bad",
             "label": "Bad veraltet",
-            "fresh": "demo:nie_frisch"
+            "fresh": "demo:nie_frisch",
+            "chart": {
+              "title": "Temperatur",
+              "series": [
+                {
+                  "datapoint": "demo:temp_wohnen",
+                  "label": "Wohnen"
+                },
+                {
+                  "datapoint": "demo:temp_bad",
+                  "label": "Bad"
+                },
+                {
+                  "datapoint": "demo:temp_aussen",
+                  "label": "Außen"
+                }
+              ]
+            }
           }
         },
         {
@@ -1368,7 +1419,24 @@
           "config": {
             "datapoint": "demo:temp_wohnen",
             "label": "Schlafen",
-            "decimals": 1
+            "decimals": 1,
+            "chart": {
+              "title": "Temperatur",
+              "series": [
+                {
+                  "datapoint": "demo:temp_wohnen",
+                  "label": "Wohnen"
+                },
+                {
+                  "datapoint": "demo:temp_bad",
+                  "label": "Bad"
+                },
+                {
+                  "datapoint": "demo:temp_aussen",
+                  "label": "Außen"
+                }
+              ]
+            }
           }
         },
         {
@@ -1382,7 +1450,24 @@
           "config": {
             "datapoint": "demo:temp_wohnen",
             "label": "Wohnen",
-            "decimals": 1
+            "decimals": 1,
+            "chart": {
+              "title": "Temperatur",
+              "series": [
+                {
+                  "datapoint": "demo:temp_wohnen",
+                  "label": "Wohnen"
+                },
+                {
+                  "datapoint": "demo:temp_bad",
+                  "label": "Bad"
+                },
+                {
+                  "datapoint": "demo:temp_aussen",
+                  "label": "Außen"
+                }
+              ]
+            }
           }
         },
         {
