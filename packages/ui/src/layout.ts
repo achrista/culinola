@@ -12,6 +12,9 @@ export interface Layout {
   widgets: Widget[];
   /** Breite und Höhe des Bildschirms, für den das Layout gedacht ist – in Bildpunkten oder nur als Verhältnis. */
   screen?: [width: number, height: number];
+  /** Eigenes Farbschema für Tag und Nacht; ohne Angabe gilt, was für alle Anzeigen eingestellt ist. */
+  theme?: string;
+  nightTheme?: string;
 }
 
 /** Ein Layout, wie es der Kern liefert: mit dem Stand, auf dem eine Änderung aufbaut. */

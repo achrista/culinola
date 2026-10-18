@@ -235,7 +235,7 @@ header {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--none);
+  background: var(--dot-idle);
 }
 .secondary + .dot {
   margin-left: 0;

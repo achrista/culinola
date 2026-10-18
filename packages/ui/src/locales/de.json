@@ -202,6 +202,8 @@
     },
     "switches": {
       "items": "Schalter",
+      "columns": "Spalten",
+      "columnsHint": "Ohne Angabe verteilen sich die Schalter nach der Breite der Kachel. Eine Markise belegt zwei Plätze.",
       "type": "Art",
       "up": "Taste „hoch“",
       "down": "Taste „herunter“",
@@ -309,6 +311,8 @@
         "schiefer": "Schiefer",
         "signal": "Signal",
         "nacht": "Nacht",
+        "leinen": "Leinen",
+        "abend": "Abend",
         "spiegel": "Spiegel"
       },
       "nightTheme": {
@@ -317,6 +321,8 @@
         "schiefer": "Schiefer",
         "signal": "Signal",
         "nacht": "Nacht",
+        "leinen": "Leinen",
+        "abend": "Abend",
         "spiegel": "Spiegel"
       },
       "sound": {

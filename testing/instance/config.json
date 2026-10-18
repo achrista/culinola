@@ -27,6 +27,7 @@
         "feeds": [
           "dw-de",
           "augsburger-allgemeine",
+          "bbc-world",
           {
             "id": "kaputt",
             "name": "Gibt es nicht",
@@ -1669,10 +1670,10 @@
         {
           "type": "chart",
           "at": [
-            10,
-            7,
-            13,
-            6
+            12,
+            8,
+            24,
+            7
           ],
           "config": {
             "title": "Strom",
@@ -2292,6 +2293,500 @@
           "config": {
             "datapoint": "ha:state",
             "label": "Home Assistant"
+          }
+        }
+      ]
+    },
+    "kueche-neu": {
+      "theme": "leinen",
+      "nightTheme": "abend",
+      "grid": {
+        "columns": 48,
+        "rows": 24
+      },
+      "widgets": [
+        {
+          "type": "video",
+          "at": [
+            0,
+            0,
+            12,
+            6
+          ],
+          "config": {
+            "stream": "haustuer",
+            "label": "Haustür"
+          }
+        },
+        {
+          "type": "video",
+          "at": [
+            0,
+            6,
+            12,
+            6
+          ],
+          "config": {
+            "stream": "garten",
+            "label": "Garten / Süd",
+            "tv": "radio"
+          }
+        },
+        {
+          "type": "recipes",
+          "at": [
+            0,
+            12,
+            12,
+            7
+          ],
+          "config": {
+            "source": "recipes",
+            "seconds": 15
+          }
+        },
+        {
+          "type": "sun-moon",
+          "at": [
+            0,
+            19,
+            12,
+            5
+          ],
+          "config": {
+            "source": "astro"
+          }
+        },
+        {
+          "type": "clock",
+          "at": [
+            12,
+            0,
+            8,
+            4
+          ],
+          "config": {
+            "timer": "timer"
+          }
+        },
+        {
+          "type": "weather",
+          "at": [
+            20,
+            0,
+            13,
+            4
+          ],
+          "config": {
+            "temperature": "demo:temp_aussen",
+            "condition": "demo:wetter_text",
+            "code": "demo:wetter_code",
+            "wind": {
+              "direction": "demo:wind_richtung",
+              "speed": "demo:wind"
+            },
+            "uv": "demo:uv",
+            "days": [
+              {
+                "condition": "demo:tag0_text",
+                "max": "demo:tag0_max",
+                "min": "demo:tag0_min"
+              },
+              {
+                "condition": "demo:tag1_text",
+                "max": "demo:tag1_max",
+                "min": "demo:tag1_min"
+              },
+              {
+                "condition": "demo:tag2_text",
+                "max": "demo:tag2_max",
+                "min": "demo:tag2_min"
+              },
+              {
+                "condition": "demo:tag3_text",
+                "max": "demo:tag3_max",
+                "min": "demo:tag3_min"
+              },
+              {
+                "condition": "demo:tag4_text",
+                "max": "demo:tag4_max",
+                "min": "demo:tag4_min"
+              }
+            ]
+          }
+        },
+        {
+          "type": "voice",
+          "at": [
+            33,
+            0,
+            3,
+            4
+          ],
+          "config": {}
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            12,
+            4,
+            6,
+            2
+          ],
+          "config": {
+            "datapoint": "demo:temp_wohnen",
+            "label": "Wohnen",
+            "decimals": 1,
+            "chart": {
+              "title": "Temperatur",
+              "series": [
+                {
+                  "datapoint": "demo:temp_wohnen",
+                  "label": "Wohnen"
+                },
+                {
+                  "datapoint": "demo:temp_wohnen",
+                  "label": "Schlafen"
+                },
+                {
+                  "datapoint": "demo:temp_bad",
+                  "label": "Garage"
+                },
+                {
+                  "datapoint": "demo:temp_aussen",
+                  "label": "Außen"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            18,
+            4,
+            6,
+            2
+          ],
+          "config": {
+            "datapoint": "demo:temp_wohnen",
+            "label": "Schlafen",
+            "decimals": 1,
+            "chart": {
+              "title": "Temperatur",
+              "series": [
+                {
+                  "datapoint": "demo:temp_wohnen",
+                  "label": "Wohnen"
+                },
+                {
+                  "datapoint": "demo:temp_wohnen",
+                  "label": "Schlafen"
+                },
+                {
+                  "datapoint": "demo:temp_bad",
+                  "label": "Garage"
+                },
+                {
+                  "datapoint": "demo:temp_aussen",
+                  "label": "Außen"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            24,
+            4,
+            6,
+            2
+          ],
+          "config": {
+            "datapoint": "demo:temp_bad",
+            "label": "Garage",
+            "decimals": 1,
+            "chart": {
+              "title": "Temperatur",
+              "series": [
+                {
+                  "datapoint": "demo:temp_wohnen",
+                  "label": "Wohnen"
+                },
+                {
+                  "datapoint": "demo:temp_wohnen",
+                  "label": "Schlafen"
+                },
+                {
+                  "datapoint": "demo:temp_bad",
+                  "label": "Garage"
+                },
+                {
+                  "datapoint": "demo:temp_aussen",
+                  "label": "Außen"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            30,
+            4,
+            6,
+            2
+          ],
+          "config": {
+            "datapoint": "demo:temp_aussen",
+            "label": "Außen",
+            "decimals": 1,
+            "chart": {
+              "title": "Temperatur",
+              "series": [
+                {
+                  "datapoint": "demo:temp_wohnen",
+                  "label": "Wohnen"
+                },
+                {
+                  "datapoint": "demo:temp_wohnen",
+                  "label": "Schlafen"
+                },
+                {
+                  "datapoint": "demo:temp_bad",
+                  "label": "Garage"
+                },
+                {
+                  "datapoint": "demo:temp_aussen",
+                  "label": "Außen"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            12,
+            6,
+            6,
+            2
+          ],
+          "config": {
+            "datapoint": "demo:co2",
+            "label": "CO₂ Wohnen",
+            "decimals": 0
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            18,
+            6,
+            6,
+            2
+          ],
+          "config": {
+            "datapoint": "demo:waschen",
+            "label": "Waschen",
+            "decimals": 0
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            24,
+            6,
+            6,
+            2
+          ],
+          "config": {
+            "datapoint": "demo:waschen",
+            "label": "Spülen",
+            "decimals": 0
+          }
+        },
+        {
+          "type": "value-tile",
+          "at": [
+            30,
+            6,
+            6,
+            2
+          ],
+          "config": {
+            "datapoint": "demo:batterie",
+            "label": "Batterie",
+            "decimals": 0,
+            "chart": {
+              "title": "Strom",
+              "series": [
+                {
+                  "datapoint": "demo:solar",
+                  "label": "Solar",
+                  "area": true
+                },
+                {
+                  "datapoint": "demo:verbrauch",
+                  "label": "Verbrauch"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "news",
+          "at": [
+            12,
+            8,
+            12,
+            7
+          ],
+          "config": {
+            "source": "news",
+            "seconds": 8,
+            "closeAfter": 60,
+            "feeds": [
+              "dw-de",
+              "augsburger-allgemeine"
+            ]
+          }
+        },
+        {
+          "type": "news",
+          "at": [
+            24,
+            8,
+            12,
+            7
+          ],
+          "config": {
+            "source": "news",
+            "seconds": 8,
+            "closeAfter": 60,
+            "feeds": [
+              "bbc-world"
+            ]
+          }
+        },
+        {
+          "type": "switches",
+          "at": [
+            24,
+            15,
+            12,
+            6
+          ],
+          "config": {
+            "items": [
+              {
+                "datapoint": "demo:licht_esstisch",
+                "label": "Warmwasser"
+              },
+              {
+                "datapoint": "demo:licht_vitrine",
+                "label": "Glastisch"
+              },
+              {
+                "datapoint": "demo:licht_treppe",
+                "label": "Esstisch"
+              },
+              {
+                "datapoint": "demo:licht_terrasse",
+                "label": "Stehleuchte"
+              },
+              {
+                "datapoint": "demo:licht_vitrine",
+                "label": "Couchlicht"
+              },
+              {
+                "datapoint": "demo:licht_treppe",
+                "label": "Terrasse"
+              },
+              {
+                "datapoint": "demo:markise",
+                "label": "Markise",
+                "type": "cover",
+                "up": "ein",
+                "down": "aus"
+              }
+            ],
+            "columns": 4
+          }
+        },
+        {
+          "type": "calls",
+          "at": [
+            12,
+            15,
+            12,
+            6
+          ],
+          "config": {
+            "source": "demo"
+          }
+        },
+        {
+          "type": "radio",
+          "at": [
+            12,
+            21,
+            24,
+            3
+          ],
+          "config": {
+            "source": "radio"
+          }
+        },
+        {
+          "type": "calendar",
+          "at": [
+            36,
+            0,
+            12,
+            7
+          ],
+          "config": {
+            "source": "demo"
+          }
+        },
+        {
+          "type": "reminders",
+          "at": [
+            36,
+            7,
+            12,
+            4
+          ],
+          "config": {
+            "source": "demo"
+          }
+        },
+        {
+          "type": "mail",
+          "at": [
+            36,
+            11,
+            12,
+            8
+          ],
+          "config": {
+            "source": "demo"
+          }
+        },
+        {
+          "type": "checklist",
+          "at": [
+            36,
+            19,
+            12,
+            5
+          ],
+          "config": {
+            "source": "merkio",
+            "list": "Einkauf",
+            "title": "Einkaufsliste"
           }
         }
       ]

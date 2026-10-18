@@ -2,7 +2,7 @@
 import { defineAsyncComponent, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { AccessDenied, adoptTokenFromAddress, getJson } from './api.ts';
-import { applySite, astroSource, nightTheme, setDaylight, type SiteSettings } from './i18n.ts';
+import { applyLayoutTheme, applySite, astroSource, nightTheme, setDaylight, type SiteSettings } from './i18n.ts';
 import { type LoadedLayout, datapointsOf, wantedLayout } from './layout.ts';
 import { connect, connected, onLayoutChanged, onSiteChanged, subscribe, datapoints } from './store.ts';
 import EventLayer from './EventLayer.vue';
@@ -32,6 +32,7 @@ async function loadLayout(): Promise<void> {
   const loaded = await getJson<LoadedLayout>(`/layouts/${encodeURIComponent(name)}`);
   if (layout.value && loaded.rev !== undefined && loaded.rev === layout.value.rev) return;
   layout.value = loaded;
+  applyLayoutTheme(loaded.theme, loaded.nightTheme);
   const ids = datapointsOf(loaded);
   // Für den Wechsel zwischen Tag- und Nachtschema braucht jede Anzeige den Sonnenstand, gleich welches Layout sie zeigt
   if (nightTheme.value) ids.add(`${astroSource.value}:night`);

@@ -21,6 +21,9 @@ export interface WidgetConfig {
 export interface LayoutConfig {
   grid: { columns: number; rows: number };
   widgets: WidgetConfig[];
+  /** Eigenes Farbschema für Tag und Nacht – geht `site.theme` und `site.nightTheme` vor, etwa für die Küche. */
+  theme?: string;
+  nightTheme?: string;
 }
 
 export interface AppConfig {

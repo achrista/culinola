@@ -1,6 +1,6 @@
 // Verträge zwischen Kern und Plugins. Ein Plugin importiert ausschließlich aus diesem Paket.
 
-export { type Grid, type Place, MAX_GRID, inside, layoutProblems, overlaps } from './layout.ts';
+export { type Grid, type Place, MAX_GRID, THEME_NAME, inside, layoutProblems, overlaps } from './layout.ts';
 export { explain } from './explain.ts';
 
 /** Güte eines Werts: frisch, veraltet oder fehlerhaft. */

@@ -25,7 +25,7 @@ const loaded = ref(false);
 const sources = ref<Source[]>([]);
 
 /** Die mitgelieferten Farbschemata; „Klar“ ist die Vorgabe und folgt dem hellen oder dunklen Modus des Geräts. */
-const THEMES = ['', 'glut', 'schiefer', 'signal', 'nacht', 'spiegel'];
+const THEMES = ['', 'glut', 'schiefer', 'signal', 'nacht', 'leinen', 'abend', 'spiegel'];
 const SITE_FIELDS: readonly Field[] = [
   { key: 'language', type: 'select', options: ['', 'de', 'en'] },
   { key: 'region', type: 'text', placeholder: 'de-DE' },

@@ -202,6 +202,8 @@
     },
     "switches": {
       "items": "Switches",
+      "columns": "Columns",
+      "columnsHint": "Without a value, the switches spread out according to the width of the tile. An awning takes two places.",
       "type": "Kind",
       "up": "Button “up”",
       "down": "Button “down”",
@@ -309,6 +311,8 @@
         "schiefer": "Slate",
         "signal": "Signal",
         "nacht": "Night",
+        "leinen": "Linen",
+        "abend": "Evening",
         "spiegel": "Mirror"
       },
       "nightTheme": {
@@ -317,6 +321,8 @@
         "schiefer": "Slate",
         "signal": "Signal",
         "nacht": "Night",
+        "leinen": "Linen",
+        "abend": "Evening",
         "spiegel": "Mirror"
       },
       "sound": {

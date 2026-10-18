@@ -26,6 +26,9 @@ function isPlace(value: unknown): value is Place {
   return Array.isArray(value) && value.length === 4 && value.every((entry) => Number.isInteger(entry));
 }
 
+/** So heißen Farbschemata: Kleinbuchstaben, Ziffern, Bindestriche – wie sie auch im Adresszusatz ?theme= stehen. */
+export const THEME_NAME = /^[a-z][a-z0-9-]*$/;
+
 const isCount = (value: unknown): value is number => Number.isInteger(value) && (value as number) >= 1 && (value as number) <= MAX_GRID;
 
 /**
@@ -35,7 +38,7 @@ const isCount = (value: unknown): value is number => Number.isInteger(value) && 
  */
 export function layoutProblems(value: unknown): string[] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return ['Ein Layout ist ein Objekt mit "grid" und "widgets".'];
-  const { grid, widgets, screen } = value as { grid?: Partial<Grid> | null; widgets?: unknown; screen?: unknown };
+  const { grid, widgets, screen, theme, nightTheme } = value as { grid?: Partial<Grid> | null; widgets?: unknown; screen?: unknown; theme?: unknown; nightTheme?: unknown };
   if (!grid || typeof grid !== 'object' || !isCount(grid.columns) || !isCount(grid.rows)) {
     return [`"grid" braucht "columns" und "rows" als ganze Zahlen von 1 bis ${MAX_GRID}.`];
   }
@@ -44,6 +47,9 @@ export function layoutProblems(value: unknown): string[] {
   const problems: string[] = [];
   if (screen !== undefined && !(Array.isArray(screen) && screen.length === 2 && screen.every((side) => typeof side === 'number' && Number.isFinite(side) && side > 0))) {
     problems.push('"screen" nennt Breite und Höhe des Bildschirms, etwa [16, 9] oder [1920, 1080].');
+  }
+  for (const [key, name] of [['theme', theme], ['nightTheme', nightTheme]] as const) {
+    if (name !== undefined && !(typeof name === 'string' && THEME_NAME.test(name))) problems.push(`"${key}" nennt ein Farbschema mit seinem Namen, etwa "leinen".`);
   }
   const placed: { name: string; at: Place }[] = [];
   widgets.forEach((widget: unknown, index) => {

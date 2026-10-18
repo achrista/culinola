@@ -229,6 +229,7 @@ Checking is done at 1920 × 1080 and additionally once narrow (about 800 × 480)
 - [ ] <http://localhost:8191/?layout=haus&theme=glut&night=nacht>: half an hour after sunset in Germany, the display shows the scheme "Nacht", until half an hour before sunrise – otherwise "Glut"; without `night` it stays at "Glut".
 
 **Color scheme**
+- [ ] `?layout=kueche-neu` appears in "Linen" without any address suffix, because the layout names its own scheme; `?layout=kueche` keeps the common one. `?layout=kueche-neu&theme=glut` shows Glut.
 - [ ] <http://localhost:8191/?theme=glut>, `schiefer`, `signal`, `nacht` and `spiegel` in turn: every tile stays legible, the clock bears the accent color (with `signal` as a surface), headings, switches and chart suit the scheme. Without a suffix, "Klar" applies again.
 - [ ] Set the egg timer in every scheme and let it expire: yellow surface while it counts down, red surface afterwards, the digits stay legible on both.
 

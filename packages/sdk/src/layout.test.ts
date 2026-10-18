@@ -56,4 +56,11 @@ describe('layoutProblems', () => {
     expect(layoutProblems({ ...good, screen: '16:9' })).toHaveLength(1);
     expect(layoutProblems({ ...good, screen: [16, 0] })).toHaveLength(1);
   });
+
+  it('nimmt ein eigenes Farbschema für Tag und Nacht an, aber nur mit gültigem Namen', () => {
+    expect(layoutProblems({ ...good, theme: 'leinen', nightTheme: 'abend' })).toEqual([]);
+    expect(layoutProblems({ ...good, theme: 'Leinen' })).toHaveLength(1);
+    expect(layoutProblems({ ...good, nightTheme: 7 })).toHaveLength(1);
+    expect(layoutProblems({ ...good, theme: '', nightTheme: '../x' })).toHaveLength(2);
+  });
 });

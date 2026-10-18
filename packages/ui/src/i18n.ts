@@ -1,3 +1,4 @@
+import { THEME_NAME } from '@culinola/sdk';
 import { ref } from 'vue';
 import { createI18n } from 'vue-i18n';
 import de from './locales/de.json';
@@ -32,6 +33,10 @@ export interface SiteSettings {
  * eine nicht mitgelieferte Sprache fällt auf Englisch zurück.
  */
 const themes: { day?: string | undefined; night?: string | undefined } = {};
+/** Was die Konfiguration für alle Anzeigen nennt und was das gezeigte Layout selbst nennt – das Layout geht vor. */
+type Pair = { day?: string | undefined; night?: string | undefined };
+const configured: { site: Pair; layout: Pair } = { site: {}, layout: {} };
+let daylight = true;
 /** Das Schema für die Nacht, wenn eines gewählt ist – dann beobachtet die Anzeige den Sonnenstand. */
 export const nightTheme = ref<string | undefined>();
 export const astroSource = ref('astro');
@@ -46,22 +51,35 @@ export function applySite(site: SiteSettings): void {
   astroSource.value = site.astro ?? 'astro';
 }
 
+/** Stellt das Farbschema ein, das für alle Anzeigen gilt. */
+export function applyTheme(theme: string | undefined, night?: string): void {
+  configured.site = { day: theme, night };
+  resolveTheme();
+}
+
+/** Stellt das Farbschema ein, das das gezeigte Layout selbst nennt – etwa ein wohnlicheres für die Küche als für den Flur. */
+export function applyLayoutTheme(theme: string | undefined, night: string | undefined): void {
+  configured.layout = { day: theme, night };
+  resolveTheme();
+}
+
 /**
- * Stellt das Farbschema ein. Der Adresszusatz ?theme=name geht der Konfiguration vor –
- * so lässt sich ein Schema an einer Anzeige ausprobieren, ohne etwas umzustellen.
+ * Welches Schema gilt: Der Adresszusatz ?theme=name geht vor – so lässt sich ein Schema an einer Anzeige ausprobieren,
+ * ohne etwas umzustellen –, dann das Layout, dann die Einstellung für alle. Ob gerade Tag oder Nacht ist, bleibt dabei.
  */
-export function applyTheme(configured: string | undefined, configuredNight?: string): void {
+function resolveTheme(): void {
   const query = new URLSearchParams(location.search);
-  const valid = (name: string | null | undefined) => (name && /^[a-z][a-z0-9-]*$/.test(name) ? name : undefined);
-  themes.day = valid(query.get('theme') ?? configured);
+  const valid = (name: string | null | undefined) => (name && THEME_NAME.test(name) ? name : undefined);
+  themes.day = valid(query.get('theme') ?? configured.layout.day ?? configured.site.day);
   // Mit ?night=name wechselt diese Anzeige nachts das Schema, auch wenn die Konfiguration keines nennt
-  themes.night = valid(query.get('night') ?? configuredNight);
+  themes.night = valid(query.get('night') ?? configured.layout.night ?? configured.site.night);
   nightTheme.value = themes.night;
-  setDaylight(true);
+  setDaylight(daylight);
 }
 
 /** Stellt das Schema für Tag oder Nacht ein. Ohne eigenes Schema für die Nacht bleibt es beim Tag. */
 export function setDaylight(day: boolean): void {
+  daylight = day;
   const wanted = day ? themes.day : (themes.night ?? themes.day);
   if (wanted) document.documentElement.dataset['theme'] = wanted;
   else delete document.documentElement.dataset['theme'];

@@ -31,6 +31,8 @@
   --bg-ink: var(--mute);
   /* Schatten oder Rand, der eine Kachel vom Hintergrund abhebt */
   --shadow: none;
+  /* Statuspunkt eines Messwerts ohne Bewertung – ein Schema für den Wohnraum lässt ihn weg */
+  --dot-idle: var(--none);
   /* Überschriften der Kacheln */
   --title-ink: var(--ink);
   --title-size: 16px;
@@ -177,6 +179,81 @@
   --clock-ink: var(--accent);
   --clock-weight: 400;
   --timer-ink: var(--ink);
+  --clock-alarm-ink: #2b0a04;
+}
+
+/*
+ * „Leinen“: für die Küche. Haferton statt Weiß, damit nichts blendet; Terrakotta und Salbei als Farben,
+ * eine runde Schrift, weiche Ecken, Überschriften in normaler Schreibweise – eher Küchenbrett als Leitstand.
+ */
+:root[data-theme='leinen'] {
+  --bg: #e4d9c8;
+  --card: #f3ebdf;
+  --ink: #3b302a;
+  --mute: #7a6a5d;
+  --line: #e2d6c4;
+  --soft: #e9dfd0;
+  --accent: #a8532f;
+  --on-accent: #fff8f0;
+  --ok: #5f7f4f;
+  --warn: #cf952a;
+  --alarm: #b5452f;
+  --none: #c4b5a2;
+  --series-1: #c77b30;
+  --series-2: #6f8f6a;
+  --series-3: #b5452f;
+  --series-4: #5f7f9a;
+  --font-text: 'Nunito', sans-serif;
+  --font-num: 'Nunito', sans-serif;
+  --num-weight: 300;
+  --radius: 18px;
+  --gap: 10px;
+  --bg-ink: #6d5d50;
+  --shadow: 0 1px 3px rgba(90, 60, 30, 0.08);
+  --dot-idle: transparent;
+  --title-ink: #8a5a3c;
+  --title-size: 16px;
+  --title-case: none;
+  --title-spacing: normal;
+  --clock-ink: var(--ink);
+  --clock-mute: var(--mute);
+  --clock-weight: 300;
+  --timer-ink: var(--accent);
+}
+
+/* „Abend“: das Gegenstück zu „Leinen“ für die Nacht – warmes Dunkelbraun statt Schwarz, gedämpftes Aprikose. */
+:root[data-theme='abend'] {
+  --bg: #2b2521;
+  --card: #3a322c;
+  --ink: #ede2d3;
+  --mute: #b8a796;
+  --line: #4a3f37;
+  --soft: #463c34;
+  --accent: #e59a63;
+  --on-accent: #2b1a0e;
+  --ok: #9cbf88;
+  --warn: #e8c068;
+  --alarm: #ec8e76;
+  --none: #6e6157;
+  --series-1: #e8b25a;
+  --series-2: #9cbf88;
+  --series-3: #ec8e76;
+  --series-4: #8fb3cc;
+  --font-text: 'Nunito', sans-serif;
+  --font-num: 'Nunito', sans-serif;
+  --num-weight: 300;
+  --radius: 18px;
+  --gap: 10px;
+  --bg-ink: #b8a796;
+  --dot-idle: transparent;
+  --title-ink: #e0a77c;
+  --title-size: 16px;
+  --title-case: none;
+  --title-spacing: normal;
+  --clock-ink: var(--ink);
+  --clock-mute: var(--mute);
+  --clock-weight: 300;
+  --timer-ink: var(--accent);
   --clock-alarm-ink: #2b0a04;
 }
 

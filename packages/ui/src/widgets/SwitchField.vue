@@ -14,7 +14,8 @@ interface Item {
   up?: string;
   down?: string;
 }
-const props = defineProps<{ config: { items?: Item[] } }>();
+/** `columns`: feste Zahl der Spalten – sonst verteilen sich die Tasten nach der Breite der Kachel. */
+const props = defineProps<{ config: { items?: Item[]; columns?: number } }>();
 
 const { t } = useI18n();
 const pending = ref(new Set<string>());
@@ -52,7 +53,7 @@ async function toggle(id: string) {
 </script>
 
 <template>
-  <section class="field">
+  <section class="field" :style="config.columns ? { gridTemplateColumns: `repeat(${config.columns}, minmax(0, 1fr))` } : undefined">
     <template v-for="item in props.config.items ?? []" :key="item.datapoint">
       <div v-if="item.type === 'cover'" class="switch cover">
         <span class="moves">

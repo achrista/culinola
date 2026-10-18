@@ -113,7 +113,7 @@ When saving, the core rewrites `config.json` and first puts a backup next to it 
 | `image` | An image from a web address that refreshes itself, such as the still image of a webcam; tapping shows it large | `url`, `refreshSeconds` (default 300), `label`, `fit` (`cover` or `contain`) |
 | `web` | A third-party web page in the tile – rain radar, a chart from Grafana, the page of a device in the house. The tile is a preview; tapping shows the page across the whole display, where it can be operated (see [Embedding other pages](#embedding-other-pages)) | `url`, `label`, `zoom` (0.5 shows twice as much), `refreshMinutes`, `interactive` (can be operated already in the tile) |
 | `presence` | Who is at home: one field per person with name and "home" or "away". Counted as present is a switch that is on, a number above zero, or a text such as `home` or `daheim` | `items` (list of `datapoint` and `label`), `home` (custom texts for "home") |
-| `switches` | Panel of switches that adapts to the space; an entry with `"type": "cover"` gets three buttons for moving – for awning, roller shutter or blind – and shows the position | `items: [{ datapoint, label }]`; per entry `type` (`cover`), `up` and `down` (labels of the buttons, such as "on" and "off") |
+| `switches` | Panel of switches that adapts to the space; an entry with `"type": "cover"` gets three buttons for moving – for awning, roller shutter or blind – and shows the position | `items: [{ datapoint, label }]`; per entry `type` (`cover`), `up` and `down` (labels of the buttons, such as "on" and "off"); `columns` (fixed number of columns – otherwise the switches spread out according to the width; a cover takes two places) |
 | `chart` | Time series for today, week, month | `title`, `series: [{ datapoint, label, area, forecast, factor, step }]` |
 | `note` | Reserves a spot and labels it | `title`, `text` |
 | `radio` | Station buttons, volume, current title – it scrolls through when it is longer than its field | `source` (radio instance) |
@@ -292,9 +292,13 @@ A color scheme determines the look of the display. It is chosen in `config.json`
 | `schiefer` | Dark ground with light tiles – the strongest separation between tiles |
 | `signal` | Cool light with a stronger ground; the clock appears as an orange surface |
 | `nacht` | Dark with warm orange, the tiles separated by a fine edge |
+| `leinen` | Homely light for the kitchen: oat-colored ground instead of white so nothing glares, cream tiles, terracotta and sage, a rounded font, soft corners, headings in normal case; the grey status dots of the readings are left out |
+| `abend` | The night counterpart of `leinen`: warm dark brown instead of black, muted apricot |
 | `spiegel` | For the display behind mirror glass: everything bright and bold on black, without tile surfaces |
 
 **Day and night.** With a second scheme for the night, the display switches by itself: half an hour after sunset to the dark one, half an hour before sunrise back – the offset is adjustable (`nightOffsetMinutes` of the `astro` source). In the configuration `"site": { "theme": "glut", "nightTheme": "nacht" }`, for trying out on a display `?theme=glut&night=nacht`. When it is night for the display is told by the `astro` source (see [Sun and moon](#sun-and-moon)); if it is named differently, `site.astro` gives its identifier.
+
+**A scheme of its own for one layout.** A layout can carry `"theme"` and `"nightTheme"` itself – they take precedence over `site` for every display that shows this layout. So the kitchen can look homely while the hallway keeps the common scheme: `"layouts": { "main": { "theme": "leinen", "nightTheme": "abend", "grid": …, "widgets": … } }`. The address suffixes `?theme=` and `?night=` still come first.
 
 A scheme consists only of values – colors, rounding, spacing, shadows, font of the headings, colors of the clock and of the egg timer's surfaces – in [theme.css](packages/ui/src/theme.css); a custom one is another block there.
 

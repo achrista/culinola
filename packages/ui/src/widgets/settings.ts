@@ -78,6 +78,7 @@ export const settings: Record<string, readonly Field[]> = {
       type: 'list',
       fields: [{ key: 'datapoint', type: 'datapoint', writable: true }, label, { key: 'type', type: 'select', options: ['switch', 'cover'] }, { key: 'up', type: 'text' }, { key: 'down', type: 'text' }],
     },
+    { key: 'columns', type: 'number', min: 1, max: 12 },
   ],
   chart: [
     title,
