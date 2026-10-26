@@ -38,9 +38,23 @@ const hideLogin = (text: string) => text.replace(/([a-z][a-z0-9+.-]*:\/\/)[^\s/@
 /** Der Name eines Plugins wird Teil eines Paketnamens – deshalb nur, was dort hingehört. */
 const PLUGIN_NAME = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 
+/**
+ * Plugins, die nicht als Paket neben dem Kern liegen, sondern mitgegeben werden – so bringt die Demo im
+ * Browser ihre Plugins selbst mit. Sind welche mitgegeben, gelten nur diese.
+ */
+let provided: Record<string, PluginDefinition<unknown>> | undefined;
+
+export function providePlugins(plugins: Record<string, PluginDefinition<unknown>>): void {
+  provided = plugins;
+}
+
 /** Lädt ein Plugin nach seinem Namen, etwa "media-radio". Wirft mit einer Meldung, die sagt, woran es liegt. */
 export async function loadPlugin(name: string): Promise<PluginDefinition<unknown>> {
   if (typeof name !== 'string' || !PLUGIN_NAME.test(name)) throw new Error(`"${name}" ist kein Name eines Plugins.`);
+  if (provided) {
+    if (!Object.hasOwn(provided, name)) throw new Error(`Das Plugin "${name}" ist nicht installiert.`);
+    return provided[name]!;
+  }
   try {
     return ((await import(`@culinola/plugin-${name}`)) as { default: PluginDefinition<unknown> }).default;
   } catch (error) {
@@ -52,6 +66,7 @@ export async function loadPlugin(name: string): Promise<PluginDefinition<unknown
 
 /** Die Namen aller installierten Plugins: die Pakete `@culinola/plugin-…` neben dem Kern. */
 export function installedPlugins(from: string = import.meta.dirname): string[] {
+  if (provided) return Object.keys(provided).sort();
   for (let dir = from; ; dir = dirname(dir)) {
     const scope = join(dir, 'node_modules', '@culinola');
     if (existsSync(scope)) {

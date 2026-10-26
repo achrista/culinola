@@ -29,6 +29,7 @@ Culinola has three parts: a **core** that runs on a small server in the house, *
 | `packages/core` | The core: HTTP and WebSocket server, datapoint registry, plugin host, actions, messages, access control, and the stores that write configuration |
 | `packages/sdk` | The contract between core and plugins, and what core and interface must compute alike (the layout grid) |
 | `packages/ui` | The interface (Vue): tiles, layout editor, sources and settings pages |
+| `packages/demo` | The live demo on culinola.org: the real core, interface and several real plugins running in the browser, with stand-ins for everything that needs devices or accounts |
 | `packages/recipe-import` | Turns text, photos, documents and web pages into recipe files |
 | `plugins/*` | One folder per plugin |
 | `templates/` | Layout templates offered when creating a layout |

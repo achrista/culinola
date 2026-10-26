@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
 import { definePlugin, explain } from '@culinola/sdk';
+import catalogFile from './catalog.json' with { type: 'json' };
 import { embeddable, type NewsItem, parseFeed } from './parse.ts';
 
 interface Feed {
@@ -16,7 +16,7 @@ interface Config {
 }
 
 /** Mitgelieferte Auswahl von Feeds; in der Konfiguration genügt dann die Kennung. */
-const catalog = JSON.parse(readFileSync(new URL('./catalog.json', import.meta.url), 'utf8')) as (Feed & { language: string; scope: string })[];
+const catalog = catalogFile as (Feed & { language: string; scope: string })[];
 
 const FEED_ID = /^[a-z0-9][a-z0-9-]*$/;
 const TIMEOUT_MS = 15_000;

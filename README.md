@@ -4,6 +4,8 @@
 
 ![Culinola on a kitchen display: camera, clock, weather, readings, charts, calls, e-mail, switches, radio, recipes, calendar and shopping list](docs/images/dashboard-night.png)
 
+**[Try the live demo on culinola.org](https://culinola.org/#demo)** – the real interface running in your browser, layout editor included.
+
 ## Why Culinola
 
 - **One screen, everything at a glance.** No scrolling, no menus: a grid of tiles that fills the display and scales with it.

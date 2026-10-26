@@ -52,11 +52,44 @@
         <h1>The home dashboard for the screen in your kitchen</h1>
         <p>Culinola is a self-hosted smart home dashboard for a wall tablet or kitchen display. It brings your house, your media and your family's day together on one touch screen – arranged the way you want, set up entirely in the browser.</p>
         <p>
-          <a class="button" href="#start">Get started</a>
+          <a class="button" href="#demo">Try it live</a>
+          <a class="button plain" href="#start">Get started</a>
           <a class="button plain" href="https://github.com/achrista/culinola">View on GitHub</a>
         </p>
       </div>
-      <img class="shot" src="images/dashboard-night.png" alt="Culinola on a kitchen display: camera, clock, weather, readings, charts, calls, e-mail, switches, radio, recipes, calendar and shopping list" width="1920" height="1080" />
+
+      <section id="demo" class="demo" aria-labelledby="demo-title">
+        <div class="demo-head">
+          <h2 id="demo-title"><span class="live">Live</span>Try it right here</h2>
+          <p>This is not a screenshot. It is Culinola itself, running in your browser with the layout of the kitchen it was built for. Go ahead and tap: play the radio, set the egg timer on the clock, switch the lights, tick off the shopping list, open a recipe.</p>
+        </div>
+        <div class="demo-screen" data-demo data-src="demo/?lang=en" data-title="Culinola live demo">
+          <img class="demo-poster" src="images/demo-en.jpg" alt="" width="1920" height="1080" />
+          <button class="demo-start" type="button"><span aria-hidden="true">▶</span> Start the live demo</button>
+        </div>
+        <p class="demo-consent">Starting the demo loads current news from Deutsche Welle into your browser; radio stations are only contacted once you pick one. See the <a href="datenschutz.html">privacy policy</a>.</p>
+        <p class="demo-small">The kitchen display is made for a large screen – open it full screen to try it properly.</p>
+        <div class="demo-actions">
+          <a class="button" href="demo/?lang=en" target="_blank">Open full screen</a>
+          <a class="button plain" href="demo/?lang=en&amp;edit" target="_blank">Try the layout editor</a>
+          <button class="button plain" type="button" data-demo-send="ring">Ring the doorbell</button>
+          <button class="button plain" type="button" data-demo-send="reset">Start over</button>
+        </div>
+        <div class="grid demo-notes">
+          <div class="card">
+            <h3>Real</h3>
+            <p>The interface, the layout editor and the setup pages. Radio streams live from the stations, news come live from Deutsche Welle, sun and moon are calculated, the recipes are from our family cookbook.</p>
+          </div>
+          <div class="card">
+            <h3>Made up</h3>
+            <p>Readings, switches, appointments, calls, e-mails and the shopping list are invented. The cameras show recordings of our front door and garden on a loop. Voice control understands only a few fixed sentences.</p>
+          </div>
+          <div class="card">
+            <h3>Yours alone</h3>
+            <p>There is no server behind the demo – it runs entirely in your browser. What you change stays in this browser and nobody else sees it. “Start over” brings back the original.</p>
+          </div>
+        </div>
+      </section>
 
       <section id="features">
         <h2>Why Culinola</h2>
@@ -112,7 +145,7 @@
             <figcaption>Settings – language, themes, on-screen messages and access protection.</figcaption>
           </figure>
         </div>
-        <p>The kitchen display shows a real installation; calls, e-mails, appointments and reminders in it are made up. The setup pages show the built-in test instance.</p>
+        <p>The light theme shows a real installation; calls, e-mails, appointments and reminders in it are made up. The setup pages show the built-in test instance.</p>
       </section>
 
       <section id="start">
@@ -132,5 +165,6 @@ npm start</pre>
         Culinola is free for noncommercial use under the <a href="https://github.com/achrista/culinola/blob/main/LICENSE">PolyForm Noncommercial License</a>; commercial use needs a licence · <a href="https://github.com/achrista/culinola">GitHub</a> · <a href="impressum.html">Impressum / Legal notice</a> · <a href="datenschutz.html">Datenschutz / Privacy</a> · <a href="de/" hreflang="de" lang="de">Deutsch</a>
       </footer>
     </div>
+    <script src="demo-frame.js"></script>
   </body>
 </html>

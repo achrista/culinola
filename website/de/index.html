@@ -53,11 +53,44 @@
         <h1>Das Haus-Dashboard für den Bildschirm in Ihrer Küche</h1>
         <p>Culinola ist ein selbst betriebenes Smart-Home-Dashboard für ein Wand-Tablet oder Küchendisplay. Es bringt Ihr Haus, Ihre Medien und den Tag der Familie auf einem Touch-Bildschirm zusammen – so angeordnet, wie Sie es möchten, und komplett im Browser eingerichtet.</p>
         <p>
-          <a class="button" href="#start">Loslegen</a>
+          <a class="button" href="#demo">Live ausprobieren</a>
+          <a class="button plain" href="#start">Loslegen</a>
           <a class="button plain" href="https://github.com/achrista/culinola">Auf GitHub ansehen</a>
         </p>
       </div>
-      <img class="shot" src="../images/dashboard-night.png" alt="Culinola auf einem Küchendisplay: Kamera, Uhr, Wetter, Messwerte, Diagramme, Anrufe, E-Mail, Schalter, Radio, Rezepte, Kalender und Einkaufsliste (Oberfläche auf Englisch)" width="1920" height="1080" />
+
+      <section id="demo" class="demo" aria-labelledby="demo-title">
+        <div class="demo-head">
+          <h2 id="demo-title"><span class="live">Live</span>Gleich hier ausprobieren</h2>
+          <p>Das ist kein Bildschirmfoto. Das ist Culinola selbst, es läuft in Ihrem Browser, mit dem Layout der Küche, für die es entstanden ist. Tippen Sie ruhig: Radio einschalten, die Eieruhr an der Uhr stellen, Licht schalten, die Einkaufsliste abhaken, ein Rezept öffnen.</p>
+        </div>
+        <div class="demo-screen" data-demo data-src="../demo/?lang=de" data-title="Culinola als Live-Demo">
+          <img class="demo-poster" src="../images/demo-de.jpg" alt="" width="1920" height="1080" />
+          <button class="demo-start" type="button"><span aria-hidden="true">▶</span> Live-Demo starten</button>
+        </div>
+        <p class="demo-consent">Beim Start lädt die Demo aktuelle Nachrichten von DW, Augsburger Allgemeine und tagesschau in Ihren Browser; Radiosender werden erst angesprochen, wenn Sie einen wählen. Mehr in der <a href="../datenschutz.html">Datenschutzerklärung</a>.</p>
+        <p class="demo-small">Die Küchenanzeige ist für einen großen Bildschirm gemacht – im Vollbild lässt sie sich richtig ausprobieren.</p>
+        <div class="demo-actions">
+          <a class="button" href="../demo/?lang=de" target="_blank">Im Vollbild öffnen</a>
+          <a class="button plain" href="../demo/?lang=de&amp;edit" target="_blank">Layout-Editor ausprobieren</a>
+          <button class="button plain" type="button" data-demo-send="ring">An der Haustür klingeln</button>
+          <button class="button plain" type="button" data-demo-send="reset">Von vorn beginnen</button>
+        </div>
+        <div class="grid demo-notes">
+          <div class="card">
+            <h3>Echt</h3>
+            <p>Die Oberfläche, der Layout-Editor und die Einrichtungsseiten. Das Radio kommt live von den Sendern, die Nachrichten live von DW, Augsburger Allgemeine und tagesschau, Sonne und Mond sind berechnet, die Rezepte stammen aus unserem Familienkochbuch.</p>
+          </div>
+          <div class="card">
+            <h3>Erfunden</h3>
+            <p>Messwerte, Schalter, Termine, Anrufe, E-Mails und die Einkaufsliste sind ausgedacht. Die Kameras zeigen Aufnahmen von unserer Haustür und unserem Garten in Schleife. Die Sprachsteuerung versteht nur ein paar feste Sätze.</p>
+          </div>
+          <div class="card">
+            <h3>Nur für Sie</h3>
+            <p>Hinter der Demo steht kein Server – sie läuft ganz in Ihrem Browser. Was Sie ändern, bleibt in diesem Browser, und niemand sonst sieht es. „Von vorn beginnen“ stellt den Ausgangszustand wieder her.</p>
+          </div>
+        </div>
+      </section>
 
       <section id="features">
         <h2>Warum Culinola</h2>
@@ -113,7 +146,7 @@
             <figcaption>Einstellungen – Sprache, Farbschemata, Meldungen auf dem Bildschirm und Zugriffsschutz.</figcaption>
           </figure>
         </div>
-        <p>Das Küchendisplay zeigt eine echte Installation; Anrufe, E-Mails, Termine und Erinnerungen darin sind erfunden. Die Einrichtungsseiten zeigen die eingebaute Testinstanz. Die Bildschirmfotos zeigen die englische Oberfläche; Culinola gibt es auch auf Deutsch.</p>
+        <p>Das helle Farbschema zeigt eine echte Installation; Anrufe, E-Mails, Termine und Erinnerungen darin sind erfunden. Die Einrichtungsseiten zeigen die eingebaute Testinstanz. Die Bildschirmfotos zeigen die englische Oberfläche; Culinola gibt es auch auf Deutsch.</p>
       </section>
 
       <section id="start">
@@ -133,5 +166,6 @@ npm start</pre>
         Culinola ist frei für die nicht kommerzielle Nutzung unter der <a href="https://github.com/achrista/culinola/blob/main/LICENSE">PolyForm Noncommercial License</a>; für die gewerbliche Nutzung braucht es eine Lizenz · <a href="https://github.com/achrista/culinola">GitHub</a> · <a href="../impressum.html">Impressum / Legal notice</a> · <a href="../datenschutz.html">Datenschutz / Privacy</a> · <a href="../" hreflang="en" lang="en">English</a>
       </footer>
     </div>
+    <script src="../demo-frame.js"></script>
   </body>
 </html>

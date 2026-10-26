@@ -11,8 +11,9 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
     "noEmit": true
   },
   "include": ["packages/*/src/**/*.ts", "plugins/*/src/**/*.ts"],
-  "exclude": ["packages/ui"]
+  "exclude": ["packages/ui", "packages/demo"]
 }

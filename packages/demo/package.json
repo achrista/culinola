@@ -1,0 +1,26 @@
+{
+  "name": "@culinola/demo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Culinola im Browser: der Kern mit Beispielquellen, ohne Server – für die Demo auf culinola.org.",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "type": "module",
+  "scripts": {
+    "catalog": "node scripts/catalog.ts",
+    "dev": "node scripts/catalog.ts && vite",
+    "build": "node scripts/catalog.ts && vite build"
+  },
+  "dependencies": {
+    "@culinola/plugin-media-radio": "*",
+    "@culinola/plugin-recipes": "*",
+    "@culinola/plugin-source-astro": "*",
+    "@culinola/plugin-source-merkio": "*",
+    "@culinola/plugin-source-rss": "*",
+    "@culinola/plugin-timer": "*",
+    "@culinola/sdk": "*"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.9",
+    "vite": "^8.3.3"
+  }
+}

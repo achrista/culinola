@@ -1,0 +1,553 @@
+{
+  "theme": "leinen",
+  "grid": {
+    "columns": 48,
+    "rows": 24
+  },
+  "widgets": [
+    {
+      "type": "video",
+      "at": [
+        0,
+        0,
+        12,
+        6
+      ],
+      "config": {
+        "source": "video",
+        "stream": "kamera3",
+        "label": "Haustür"
+      }
+    },
+    {
+      "type": "video",
+      "at": [
+        0,
+        6,
+        12,
+        6
+      ],
+      "config": {
+        "source": "video",
+        "stream": "kamera2",
+        "label": "Garten / Süd",
+        "tv": "radio"
+      }
+    },
+    {
+      "type": "recipes",
+      "at": [
+        0,
+        12,
+        12,
+        7
+      ],
+      "config": {
+        "source": "recipes"
+      }
+    },
+    {
+      "type": "sun-moon",
+      "at": [
+        0,
+        19,
+        12,
+        5
+      ],
+      "config": {
+        "source": "astro"
+      }
+    },
+    {
+      "type": "clock",
+      "at": [
+        12,
+        0,
+        8,
+        4
+      ],
+      "config": {
+        "timer": "timer"
+      }
+    },
+    {
+      "type": "weather",
+      "at": [
+        20,
+        0,
+        13,
+        4
+      ],
+      "config": {
+        "temperature": "openhab:Weather_Temperature",
+        "condition": "openhab:Condition",
+        "code": "openhab:Weather_OWM_ConditionId",
+        "wind": {
+          "direction": "openhab:Wind_Degree",
+          "speed": "openhab:Weather_OWM_Wind_Speed"
+        },
+        "uv": "openhab:UVIndex",
+        "sunrise": "openhab:sunrise",
+        "sunset": "openhab:sunset",
+        "days": [
+          {
+            "condition": "openhab:Condition_0",
+            "max": "openhab:Weather_Temp_Max",
+            "min": "openhab:Weather_Temp_Min"
+          },
+          {
+            "condition": "openhab:Condition_1",
+            "max": "openhab:Temp_Max_1",
+            "min": "openhab:Temp_Min_1"
+          },
+          {
+            "condition": "openhab:Condition_2",
+            "max": "openhab:Temp_Max_2",
+            "min": "openhab:Temp_Min_2"
+          },
+          {
+            "condition": "openhab:Condition_3",
+            "max": "openhab:Temp_Max_3",
+            "min": "openhab:Temp_Min_3"
+          },
+          {
+            "condition": "openhab:Condition_4",
+            "max": "openhab:Temp_Max_4",
+            "min": "openhab:Temp_Min_4"
+          }
+        ]
+      }
+    },
+    {
+      "type": "voice",
+      "at": [
+        33,
+        0,
+        3,
+        4
+      ],
+      "config": {
+        "source": "voice",
+        "wakeWord": "hallo kueche"
+      }
+    },
+    {
+      "type": "value-tile",
+      "at": [
+        12,
+        4,
+        6,
+        2
+      ],
+      "config": {
+        "datapoint": "openhab:Mess_TWohnen",
+        "label": "Wohnen",
+        "secondary": {
+          "datapoint": "openhab:Mess_RWohnen",
+          "factor": 100,
+          "unit": "%",
+          "decimals": 0
+        },
+        "decimals": 1,
+        "warn": {
+          "lowAlarm": 17,
+          "lowWarn": 18,
+          "highWarn": 24,
+          "highAlarm": 25
+        },
+        "chart": {
+          "title": "Temperatur",
+          "series": [
+            {
+              "datapoint": "openhab:Mess_TWohnen",
+              "label": "Wohnen"
+            },
+            {
+              "datapoint": "openhab:Mess_TSchlafen",
+              "label": "Schlafen"
+            },
+            {
+              "datapoint": "openhab:Mess_TGarage",
+              "label": "Garage"
+            },
+            {
+              "datapoint": "openhab:WS_Temperature",
+              "label": "Außen"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "value-tile",
+      "at": [
+        18,
+        4,
+        6,
+        2
+      ],
+      "config": {
+        "datapoint": "openhab:Mess_TSchlafen",
+        "label": "Schlafen",
+        "secondary": {
+          "datapoint": "openhab:Mess_RSchlafen",
+          "factor": 100,
+          "unit": "%",
+          "decimals": 0
+        },
+        "decimals": 1,
+        "warn": {
+          "lowAlarm": 17,
+          "lowWarn": 18,
+          "highWarn": 24,
+          "highAlarm": 25
+        },
+        "chart": {
+          "title": "Temperatur",
+          "series": [
+            {
+              "datapoint": "openhab:Mess_TWohnen",
+              "label": "Wohnen"
+            },
+            {
+              "datapoint": "openhab:Mess_TSchlafen",
+              "label": "Schlafen"
+            },
+            {
+              "datapoint": "openhab:Mess_TGarage",
+              "label": "Garage"
+            },
+            {
+              "datapoint": "openhab:WS_Temperature",
+              "label": "Außen"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "value-tile",
+      "at": [
+        24,
+        4,
+        6,
+        2
+      ],
+      "config": {
+        "datapoint": "openhab:Mess_TGarage",
+        "label": "Garage",
+        "secondary": {
+          "datapoint": "openhab:Mess_RGarage",
+          "factor": 100,
+          "unit": "%",
+          "decimals": 0
+        },
+        "decimals": 1,
+        "chart": {
+          "title": "Temperatur",
+          "series": [
+            {
+              "datapoint": "openhab:Mess_TWohnen",
+              "label": "Wohnen"
+            },
+            {
+              "datapoint": "openhab:Mess_TSchlafen",
+              "label": "Schlafen"
+            },
+            {
+              "datapoint": "openhab:Mess_TGarage",
+              "label": "Garage"
+            },
+            {
+              "datapoint": "openhab:WS_Temperature",
+              "label": "Außen"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "value-tile",
+      "at": [
+        30,
+        4,
+        6,
+        2
+      ],
+      "config": {
+        "datapoint": "openhab:WS_Temperature",
+        "label": "Außen",
+        "secondary": {
+          "datapoint": "openhab:WS_Humidity",
+          "factor": 100,
+          "unit": "%",
+          "decimals": 0
+        },
+        "decimals": 1,
+        "chart": {
+          "title": "Temperatur",
+          "series": [
+            {
+              "datapoint": "openhab:Mess_TWohnen",
+              "label": "Wohnen"
+            },
+            {
+              "datapoint": "openhab:Mess_TSchlafen",
+              "label": "Schlafen"
+            },
+            {
+              "datapoint": "openhab:Mess_TGarage",
+              "label": "Garage"
+            },
+            {
+              "datapoint": "openhab:WS_Temperature",
+              "label": "Außen"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "value-tile",
+      "at": [
+        12,
+        6,
+        6,
+        2
+      ],
+      "config": {
+        "datapoint": "openhab:MultiPPM",
+        "label": "CO₂ Wohnen",
+        "unit": "ppm",
+        "decimals": 0,
+        "warn": {
+          "highWarn": 1200,
+          "highAlarm": 1750
+        }
+      }
+    },
+    {
+      "type": "value-tile",
+      "at": [
+        18,
+        6,
+        6,
+        2
+      ],
+      "config": {
+        "datapoint": "openhab:Waschmaschine_An",
+        "label": "Waschen",
+        "map": {
+          "0": "aus",
+          "1": "läuft",
+          "3": "fertig"
+        }
+      }
+    },
+    {
+      "type": "value-tile",
+      "at": [
+        24,
+        6,
+        6,
+        2
+      ],
+      "config": {
+        "datapoint": "openhab:Spuele_An",
+        "label": "Spülen",
+        "map": {
+          "0": "aus",
+          "1": "läuft",
+          "3": "fertig"
+        }
+      }
+    },
+    {
+      "type": "value-tile",
+      "at": [
+        30,
+        6,
+        6,
+        2
+      ],
+      "config": {
+        "datapoint": "openhab:SenecBatteryFuelCharge",
+        "label": "Batterie",
+        "unit": "%",
+        "decimals": 0,
+        "chart": {
+          "title": "Strom",
+          "series": [
+            {
+              "datapoint": "openhab:SenecEnergyProduction",
+              "label": "PV-Erzeugung",
+              "area": true
+            },
+            {
+              "datapoint": "openhab:SenecHouseConsumption",
+              "label": "Verbrauch"
+            },
+            {
+              "datapoint": "openhab:SenecGridPower",
+              "label": "Netz"
+            },
+            {
+              "datapoint": "prognose:power",
+              "label": "Prognose",
+              "forecast": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "news",
+      "at": [
+        12,
+        8,
+        12,
+        7
+      ],
+      "config": {
+        "source": "news",
+        "feeds": [
+          "dw-de",
+          "augsburger-allgemeine"
+        ]
+      }
+    },
+    {
+      "type": "news",
+      "at": [
+        24,
+        8,
+        12,
+        7
+      ],
+      "config": {
+        "source": "news",
+        "feeds": [
+          "tagesschau"
+        ]
+      }
+    },
+    {
+      "type": "switches",
+      "at": [
+        24,
+        15,
+        12,
+        6
+      ],
+      "config": {
+        "items": [
+          {
+            "datapoint": "openhab:Sonst_Umwaelzpumpe",
+            "label": "Warmwasser"
+          },
+          {
+            "datapoint": "openhab:Licht_Couchtisch",
+            "label": "Glastisch"
+          },
+          {
+            "datapoint": "openhab:Licht_Esstisch",
+            "label": "Esstisch"
+          },
+          {
+            "datapoint": "openhab:Licht_CouchRechts",
+            "label": "Stehleuchte"
+          },
+          {
+            "datapoint": "openhab:OsramCouch",
+            "label": "Couchlicht"
+          },
+          {
+            "datapoint": "openhab:Licht_TerrasseSued",
+            "label": "Terrasse"
+          },
+          {
+            "datapoint": "openhab:Terrassendach",
+            "label": "Markise",
+            "type": "cover",
+            "up": "rein",
+            "down": "raus"
+          }
+        ],
+        "columns": 4
+      }
+    },
+    {
+      "type": "calls",
+      "at": [
+        12,
+        15,
+        12,
+        6
+      ],
+      "config": {
+        "source": "fritzbox"
+      }
+    },
+    {
+      "type": "radio",
+      "at": [
+        12,
+        21,
+        24,
+        3
+      ],
+      "config": {
+        "source": "radio"
+      }
+    },
+    {
+      "type": "calendar",
+      "at": [
+        36,
+        0,
+        12,
+        7
+      ],
+      "config": {
+        "source": "google"
+      }
+    },
+    {
+      "type": "reminders",
+      "at": [
+        36,
+        7,
+        12,
+        4
+      ],
+      "config": {
+        "source": "google"
+      }
+    },
+    {
+      "type": "mail",
+      "at": [
+        36,
+        11,
+        12,
+        8
+      ],
+      "config": {
+        "source": "mail"
+      }
+    },
+    {
+      "type": "checklist",
+      "at": [
+        36,
+        19,
+        12,
+        5
+      ],
+      "config": {
+        "source": "merkio",
+        "title": "Einkaufsliste Merkio"
+      }
+    }
+  ]
+}

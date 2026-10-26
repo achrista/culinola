@@ -1,10 +1,10 @@
 name: Website
 
-# Publishes the project site (folder `website`) to GitHub Pages – culinola.org.
+# Publishes the project site (folder `website`) with the live demo to GitHub Pages – culinola.org.
 on:
   push:
     branches: [main]
-    paths: ['website/**', 'docs/images/**', '.github/workflows/website.yml']
+    paths: ['website/**', 'docs/images/**', 'packages/**', 'plugins/**', 'templates/**', 'package-lock.json', '.github/workflows/website.yml']
   workflow_dispatch:
 
 permissions:
@@ -24,6 +24,13 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # The live demo: Culinola itself, built to run in the browser under /demo/
+      - run: npm run build:demo
       # The site shows the same screenshots as the README
       - run: cp -r docs/images website/images
       - uses: actions/configure-pages@v5

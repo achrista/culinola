@@ -8,7 +8,8 @@ import { mediaUrl } from '../media.ts';
 interface StreamInfo {
   id: string;
   name: string;
-  mode: 'webrtc' | 'hls' | 'mjpeg';
+  /** `file`: eine aufgezeichnete Videodatei, die in Schleife läuft – so zeigt die Demo ihre Kameras. */
+  mode: 'webrtc' | 'hls' | 'mjpeg' | 'file';
   url?: string;
 }
 
@@ -51,6 +52,7 @@ function stop() {
   hls?.destroy();
   hls = undefined;
   if (video.value) {
+    video.value.onerror = null;
     video.value.srcObject = null;
     video.value.removeAttribute('src');
   }
@@ -75,6 +77,7 @@ async function start() {
     if (!info.value) return fail(run);
     if (info.value.mode === 'webrtc') await startWebrtc(run);
     else if (info.value.mode === 'hls') startHls(run, info.value.url ?? '');
+    else if (info.value.mode === 'file') startFile(run, info.value.url ?? '');
     else state.value = 'playing';
   } catch {
     fail(run);
@@ -159,6 +162,16 @@ function startHls(run: number, url: string) {
     element.src = url;
   }
   element.onplaying = () => (state.value = 'playing');
+}
+
+function startFile(run: number, url: string) {
+  const element = video.value;
+  if (!element || !url) return fail(run);
+  element.loop = true;
+  element.src = url;
+  element.onplaying = () => (state.value = 'playing');
+  element.onerror = () => fail(run);
+  void play();
 }
 
 watch(

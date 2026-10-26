@@ -25,3 +25,7 @@ intern/
 
 # Die Bilder der Webseite kommen beim Veroeffentlichen aus docs/images
 website/images/
+
+# Die Demo wird beim Veröffentlichen gebaut, samt der Beschreibung der Plugins
+website/demo/
+packages/demo/src/catalog.json

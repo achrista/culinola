@@ -14,3 +14,8 @@ coverage
 app_key.txt
 .vscode
 .idea
+# Die Demo für die Webseite: Ihr Paket bleibt (die Paketliste verlangt es), Bilder und Clips nicht
+packages/demo/public
+packages/demo/recipes
+packages/demo/media
+website

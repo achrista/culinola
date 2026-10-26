@@ -30,8 +30,20 @@ export function currentStation(source: string): Station | undefined {
   return typeof id === 'string' && id ? stationsOf(source).find((station) => station.id === id) : undefined;
 }
 
+let resolver: ((path: string) => string | undefined) | undefined;
+
+/**
+ * Legt fest, woher Ton- und Bildelemente laden, statt vom Kern – für die Demo im Browser, die keinen Kern im
+ * Netz hat. Was der Auflöser nicht kennt (`undefined`), geht weiter an den Kern.
+ */
+export function resolveMediaWith(resolve: (path: string) => string | undefined): void {
+  resolver = resolve;
+}
+
 /** Hängt das Zugangstoken an eine Adresse, die ein Ton- oder Bildelement des Browsers lädt. */
 export function mediaUrl(path: string): string {
+  const resolved = resolver?.(path);
+  if (resolved !== undefined) return resolved;
   const token = currentToken();
   return `/api/v1${path}${token ? `${path.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}` : ''}`;
 }
@@ -77,7 +89,11 @@ export function startRadioPlayback(source: string): void {
       if (typeof level === 'number') gain.gain.value = level / 100;
     }
     audio.dataset.station = station.id;
-    audio.src = mediaUrl(`/p/${encodeURIComponent(source)}/stream/${encodeURIComponent(station.id)}`);
+    const src = mediaUrl(`/p/${encodeURIComponent(source)}/stream/${encodeURIComponent(station.id)}`);
+    // Ton von einem fremden Server läuft nur mit dessen Erlaubnis (CORS) durch den Verstärker – ohne sie bliebe er stumm
+    if (new URL(src, location.href).origin !== location.origin) audio.crossOrigin = 'anonymous';
+    else audio.removeAttribute('crossorigin');
+    audio.src = src;
     void context.resume();
     audio.play().then(
       () => (playbackBlocked.value = false),
