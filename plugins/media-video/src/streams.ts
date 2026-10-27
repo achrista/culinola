@@ -52,12 +52,14 @@ const TV_FILTER_VAAPI = 'format=vaapi|nv12,hwupload,deinterlace_vaapi=rate=frame
  * go2rtc liest HTTP-Quellen sonst mit "-flags low_delay", und damit gibt der Decoder die Bilder in der
  * Reihenfolge aus, in der sie gesendet werden, statt in der, in der sie gezeigt gehören – bei B-Frames
  * springt das Bild dann ständig ein Stück zurück und wieder vor.
+ * Die Bildspur wählt die Vorlage selbst aus: go2rtc nennt nur die Tonspuren ausdrücklich, und sobald es
+ * zwei davon gibt (AAC und Opus), ließe ffmpeg das Bild sonst weg.
  */
 export function tvTemplates(engine: TvEngine): Record<string, string> {
   if (engine !== 'vaapi') return { 'tv-input': '-i {input}' };
   return {
     'tv-vaapi-input': `-init_hw_device vaapi=va:${VAAPI_DEVICE} -filter_hw_device va -hwaccel vaapi -hwaccel_device va -hwaccel_output_format vaapi -i {input}`,
-    'tv-vaapi': `-vf ${TV_FILTER_VAAPI} -c:v h264_vaapi -g 50 -bf 0 -profile:v high -level:v 4.1 -sei:v 0 -aspect 16:9`,
+    'tv-vaapi': `-map 0:v:0 -vf ${TV_FILTER_VAAPI} -c:v h264_vaapi -g 50 -bf 0 -profile:v high -level:v 4.1 -sei:v 0 -aspect 16:9`,
   };
 }
 

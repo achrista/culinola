@@ -55,7 +55,7 @@ describe('go2rtcYaml', () => {
   it('schreibt eigene ffmpeg-Vorlagen neben den Pfad', () => {
     const withTemplates = go2rtcYaml({ apiPort: 1984, rtspPort: 8554, webrtcPort: 8555, ffmpeg: '/usr/bin/ffmpeg', templates: tvTemplates('vaapi') }, []);
     expect(withTemplates).toContain('ffmpeg:\n  bin: "/usr/bin/ffmpeg"\n  tv-vaapi-input: "-init_hw_device vaapi=va:/dev/dri/renderD128');
-    expect(withTemplates).toMatch(/\n {2}tv-vaapi: ".*deinterlace_vaapi.*-c:v h264_vaapi/);
+    expect(withTemplates).toMatch(/\n {2}tv-vaapi: "-map 0:v:0 .*deinterlace_vaapi.*-c:v h264_vaapi/);
   });
 
   it('lässt den Abschnitt ffmpeg ohne Pfad und Vorlagen weg', () => {
