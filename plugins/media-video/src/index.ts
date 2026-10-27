@@ -1,8 +1,8 @@
-import { type ChildProcess, spawn } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { type ChildProcess, execFile, spawn } from 'node:child_process';
+import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { definePlugin, type PluginRequest } from '@culinola/sdk';
-import { go2rtcYaml, isStreamId, type Mode, modeOf, type StreamConfig } from './streams.ts';
+import { go2rtcYaml, isStreamId, type Mode, modeOf, type StreamConfig, type TvEngine, tvSource, tvTemplates, VAAPI_DEVICE, vaapiProbeArgs } from './streams.ts';
 
 interface Config {
   streams: StreamConfig[];
@@ -18,6 +18,7 @@ interface Config {
 }
 
 const START_TIMEOUT_MS = 10_000;
+const PROBE_TIMEOUT_MS = 15_000;
 
 export default definePlugin<Config>({
   id: 'media-video',
@@ -25,7 +26,7 @@ export default definePlugin<Config>({
   text: { de: 'Live-Bilder von Kameras und Fernsehsendern über go2rtc.', en: 'Live pictures from cameras and TV stations via go2rtc.' },
   help: { de: 'Braucht das Programm go2rtc, das nicht mitgeliefert wird; mit „Pfad zum Programm“ startet Culinola es selbst.\nAdressen ohne Kennwort stehen bei der Videoquelle. Enthält die Adresse einer Kamera Benutzer und Kennwort (rtsp://name:kennwort@…), gehört sie zu den Zugangsdaten: unter „Weitere Zugangsangabe“ als Name die Kennung der Videoquelle und als Wert die ganze Adresse eintragen.', en: 'Needs the program go2rtc, which is not included; with “Path to the program” Culinola starts it itself.\nAddresses without a password go with the video stream. If the address of a camera contains user and password (rtsp://name:password@…), it belongs with the credentials: under “Further credential” enter the id of the stream as name and the whole address as value.' },
   settings: [
-    { key: 'streams', type: 'list', label: { de: 'Videoquellen', en: 'Video streams' }, fields: [{ key: 'id', type: 'text', label: { de: 'Kennung', en: 'Id' }, hint: { de: 'Kleinbuchstaben, Ziffern, Bindestriche.', en: 'Lower-case letters, digits, hyphens.' } }, { key: 'name', type: 'text', label: { de: 'Name', en: 'Name' } }, { key: 'url', type: 'text', label: { de: 'Adresse', en: 'Address' }, hint: { de: 'Enthält sie ein Kennwort, gehört sie zu den Zugangsdaten – unter der Kennung der Videoquelle.', en: 'If it contains a password it belongs with the credentials – under the id of the stream.' } }, { key: 'mode', type: 'select', label: { de: 'Weg', en: 'Transport' }, options: ['', 'webrtc', 'hls', 'mjpeg'] }] },
+    { key: 'streams', type: 'list', label: { de: 'Videoquellen', en: 'Video streams' }, fields: [{ key: 'id', type: 'text', label: { de: 'Kennung', en: 'Id' }, hint: { de: 'Kleinbuchstaben, Ziffern, Bindestriche.', en: 'Lower-case letters, digits, hyphens.' } }, { key: 'name', type: 'text', label: { de: 'Name', en: 'Name' } }, { key: 'url', type: 'text', label: { de: 'Adresse', en: 'Address' }, hint: { de: 'Enthält sie ein Kennwort, gehört sie zu den Zugangsdaten – unter der Kennung der Videoquelle.', en: 'If it contains a password it belongs with the credentials – under the id of the stream.' } }, { key: 'mode', type: 'select', label: { de: 'Weg', en: 'Transport' }, options: ['', 'webrtc', 'hls', 'mjpeg'] }, { key: 'tv', type: 'boolean', label: { de: 'Fernsehsender (Bild wird für den Browser umgerechnet)', en: 'TV station (picture is converted for the browser)' } }] },
     { key: 'go2rtc', type: 'group', label: { de: 'go2rtc', en: 'go2rtc' }, fields: [{ key: 'binary', type: 'text', label: { de: 'Pfad zum Programm', en: 'Path to the program' }, hint: { de: 'Ist er gesetzt, startet Culinola go2rtc selbst; sonst muss es schon laufen.', en: 'If set, Culinola starts go2rtc itself; otherwise it must already be running.' } }, { key: 'ffmpeg', type: 'text', label: { de: 'Pfad zu ffmpeg', en: 'Path to ffmpeg' } }, { key: 'apiPort', type: 'number', label: { de: 'Port der API', en: 'API port' }, min: 1, max: 65535, placeholder: 1984 }, { key: 'rtspPort', type: 'number', label: { de: 'Port für RTSP', en: 'RTSP port' }, min: 1, max: 65535, placeholder: 8554 }, { key: 'webrtcPort', type: 'number', label: { de: 'Port für WebRTC', en: 'WebRTC port' }, min: 1, max: 65535, placeholder: 8555 }] },
   ],
 
@@ -56,21 +57,31 @@ export default definePlugin<Config>({
     const { config, log } = context;
     const api = `http://127.0.0.1:${config.go2rtc.apiPort}`;
 
+    // Fernsehbilder rechnet der Grafikchip um, wenn ffmpeg ihn ansprechen kann – sonst der Prozessor.
+    // Eigene Vorlagen dafür gibt es nur, wenn Culinola go2rtc selbst startet.
+    const hasTv = config.streams.some((stream) => stream.tv);
+    const probe = hasTv && config.go2rtc.binary ? await probeTvEngine(config.go2rtc.ffmpeg ?? 'ffmpeg', context.signal) : { engine: 'cpu' as const };
+    const engine: TvEngine = probe.engine;
+    if (engine === 'vaapi') log.info('Fernsehbilder rechnet der Grafikchip um (VAAPI).');
+    else if (probe.problem) log.warn(`Fernsehbilder rechnet der Prozessor um – der Grafikchip ist da, aber ffmpeg kann ihn nicht nutzen: ${probe.problem}`);
+    else if (hasTv) log.info('Fernsehbilder rechnet der Prozessor um.');
+
     // Adressen kommen aus der Konfiguration oder – mit Zugangsdaten – aus secrets.json
     const streams = new Map<string, { name: string; url: string; mode: Mode }>();
     for (const stream of config.streams) {
-      const url = stream.url ?? context.secrets.get(stream.id);
-      if (!url) {
+      const address = stream.url ?? context.secrets.get(stream.id);
+      if (!address) {
         log.warn(`Videoquelle "${stream.id}" hat keine Adresse – weder in der Konfiguration noch in secrets.json.`);
         continue;
       }
+      const url = stream.tv ? tvSource(address, engine) : address;
       streams.set(stream.id, { name: stream.name, url, mode: modeOf(url, stream.mode) });
     }
     const viaGo2rtc = [...streams].filter(([, stream]) => stream.mode === 'webrtc').map(([id, stream]) => ({ id, url: stream.url }));
 
     if (viaGo2rtc.length > 0 && config.go2rtc.binary) {
       const file = join(context.storageDir, 'go2rtc.yaml');
-      writeFileSync(file, go2rtcYaml(config.go2rtc, viaGo2rtc), { mode: 0o600 });
+      writeFileSync(file, go2rtcYaml({ ...config.go2rtc, templates: tvTemplates(engine) }, viaGo2rtc), { mode: 0o600 });
       const child = spawn(config.go2rtc.binary, ['-config', file], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
       watch(child, log);
       context.signal.addEventListener('abort', () => child.kill());
@@ -195,6 +206,21 @@ function watch(child: ChildProcess, log: { warn(message: string): void; error(me
   child.on('error', (error) => log.error(`go2rtc lässt sich nicht starten: ${error.message}`));
   child.on('exit', (code) => {
     if (code !== null && code !== 0) log.error(`go2rtc hat sich mit Code ${code} beendet.`);
+  });
+}
+
+/**
+ * Probiert aus, ob ffmpeg mit dem Grafikchip umrechnen kann – nur unter Linux und wenn das Gerät da ist.
+ * Scheitert es trotz Gerät, nennt `problem` den Grund (meist fehlender Treiber oder fehlende Rechte).
+ */
+async function probeTvEngine(ffmpeg: string, signal: AbortSignal): Promise<{ engine: TvEngine; problem?: string }> {
+  if (process.platform !== 'linux' || !existsSync(VAAPI_DEVICE)) return { engine: 'cpu' };
+  return new Promise((resolve) => {
+    execFile(ffmpeg, vaapiProbeArgs(), { timeout: PROBE_TIMEOUT_MS, signal, windowsHide: true }, (error, _stdout, stderr) => {
+      if (!error) return resolve({ engine: 'vaapi' });
+      const problem = String(stderr).trim().split('\n').at(-1) || error.message;
+      resolve({ engine: 'cpu', problem: problem.slice(0, 200) });
+    });
   });
 }
 

@@ -57,6 +57,7 @@ cd docker && docker compose up -d --build
 In the image, the folder `docker/data` becomes `/data` and holds `config.json`, `secrets.json`, recipes and station logos.
 
 - The image contains go2rtc and ffmpeg for cameras and television. In `config.json` the paths are then `"go2rtc": { "binary": "/usr/local/bin/go2rtc", "ffmpeg": "/usr/bin/ffmpeg" }`. If you don't need video, build a smaller image with `--build-arg WITH_MEDIA=false`.
+- On amd64 the image also contains the Intel VAAPI drivers. Pass `/dev/dri` into the container (see the commented lines in the compose example) and TV pictures are converted by the graphics chip instead of the processor. Without the device, nothing changes.
 - The example uses the host's network (`network_mode: host`, Linux only), because the cameras' video transmission needs a peer that can be reached directly on the home network. Without video, exposing port 8090 is enough.
 - The service runs as user 1000 and must be able to write to `data`.
 
@@ -406,7 +407,8 @@ The `media-video` plugin prepares cameras and livestreams for the browser. For t
 
 - With `binary`, Culinola starts go2rtc itself; without it, it must already be running.
 - Addresses with credentials do not belong in `config.json` but in `secrets.json` under the stream's identifier: `{ "video": { "haustuer": "rtsp://…" } }`.
-- The browser plays HLS addresses (`.m3u8`) itself. Everything else runs via go2rtc – including its own notations such as `ffmpeg:<address>#video=h264#audio=opus`, with which TV stations of a Tvheadend server can be converted, for example. `ffmpeg` must be installed for this.
+- The browser plays HLS addresses (`.m3u8`) itself. Everything else runs via go2rtc – including its own notations such as `ffmpeg:<address>#video=h264#audio=opus`. `ffmpeg` must be installed for this.
+- TV stations, for example from a Tvheadend server, get `"tv": true` and the station's own address: `{ "id": "ntv", "name": "ntv", "url": "http://tvheadend:9981/stream/channelid/…?profile=pass", "tv": true }`. Broadcast pictures are interlaced and contain B-frames, which WebRTC in the browser cannot play, so they cannot simply be passed through. Culinola has them converted to 1024×576 at 25 frames per second, deinterlaced. At start it checks whether ffmpeg can use the graphics chip (VAAPI, Linux with `/dev/dri`) and otherwise uses the processor; the log says which. On a weak processor, HD stations may stutter without the graphics chip.
 - If a camera delivers only single images instead of a video stream, Culinola detects this on the first connection attempt and shows it as an image sequence.
 
 go2rtc's management interface listens only on its own computer; the display reaches the pictures exclusively via the core. For the video transmission itself, port 8555 (TCP and UDP) must be reachable from the display computer.

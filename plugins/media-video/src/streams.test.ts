@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { go2rtcYaml, isStreamId, modeOf } from './streams.ts';
+import { go2rtcYaml, isStreamId, modeOf, tvSource, tvTemplates } from './streams.ts';
 
 describe('modeOf', () => {
   it('lässt HLS-Listen vom Browser abspielen', () => {
@@ -50,5 +50,34 @@ describe('go2rtcYaml', () => {
 
   it('maskiert Rückstriche im Pfad zu ffmpeg', () => {
     expect(yaml).toContain('bin: "C:\\\\Program Files\\\\ffmpeg\\\\bin\\\\ffmpeg.exe"');
+  });
+
+  it('schreibt eigene ffmpeg-Vorlagen neben den Pfad', () => {
+    const withTemplates = go2rtcYaml({ apiPort: 1984, rtspPort: 8554, webrtcPort: 8555, ffmpeg: '/usr/bin/ffmpeg', templates: tvTemplates('vaapi') }, []);
+    expect(withTemplates).toContain('ffmpeg:\n  bin: "/usr/bin/ffmpeg"\n  tv-vaapi-input: "-init_hw_device vaapi=va:/dev/dri/renderD128');
+    expect(withTemplates).toMatch(/\n {2}tv-vaapi: ".*deinterlace_vaapi.*-c:v h264_vaapi/);
+  });
+
+  it('lässt den Abschnitt ffmpeg ohne Pfad und Vorlagen weg', () => {
+    expect(go2rtcYaml({ apiPort: 1984, rtspPort: 8554, webrtcPort: 8555, templates: tvTemplates('cpu') }, [])).not.toContain('ffmpeg:');
+  });
+});
+
+describe('tvSource', () => {
+  const tvh = 'http://tvh:9981/stream/channelid/1?profile=pass';
+
+  it('rechnet ohne Grafikchip mit dem Prozessor um – deinterlaced und verkleinert', () => {
+    expect(tvSource(tvh, 'cpu')).toBe(`ffmpeg:${tvh}#video=h264#raw=-vf yadif=deint=interlaced,fps=25,scale=1024:576,setsar=1#audio=opus`);
+  });
+
+  it('verweist mit Grafikchip auf die eigenen Vorlagen', () => {
+    const source = tvSource(tvh, 'vaapi');
+    expect(source).toBe(`ffmpeg:${tvh}#input=tv-vaapi-input#video=tv-vaapi#audio=opus`);
+    for (const name of ['tv-vaapi-input', 'tv-vaapi']) expect(tvTemplates('vaapi')).toHaveProperty([name]);
+    expect(tvTemplates('vaapi')['tv-vaapi-input']).toContain('-i {input}');
+  });
+
+  it('lässt eine selbst geschriebene ffmpeg-Quelle unverändert', () => {
+    expect(tvSource(`ffmpeg:${tvh}#video=copy`, 'vaapi')).toBe(`ffmpeg:${tvh}#video=copy`);
   });
 });

@@ -26,3 +26,11 @@ services:
     # Der Dienst läuft im Abbild als Benutzer 1000. Gehört ./data einem anderen Benutzer,
     # hier dessen Nummern eintragen (id -u und id -g zeigen sie an).
     # user: "1001:1001"
+
+    # Grafikchip für Fernsehbilder (Intel, VAAPI): Ohne ihn rechnet der Prozessor, was auf
+    # schwachen Rechnern ruckeln kann. Die Gruppe ist die, der /dev/dri/renderD128 gehört –
+    # ls -ln /dev/dri zeigt ihre Nummer (oft "render" oder "video", auf einer Synology "videodriver").
+    # devices:
+    #   - /dev/dri:/dev/dri
+    # group_add:
+    #   - "993"

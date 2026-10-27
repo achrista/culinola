@@ -24,6 +24,9 @@ ARG TARGETARCH
 
 # Für Kameras und Fernsehen: go2rtc (MIT) und ffmpeg aus Debian. Beides sind eigenständige
 # Programme, die Culinola nur aufruft. Mit --build-arg WITH_MEDIA=false bleibt beides draußen.
+# Auf amd64 kommen die Intel-Treiber für VAAPI dazu (aus Debians Bereich non-free, nur dort
+# kodieren sie auch): Reicht man dem Container /dev/dri durch, rechnet der Grafikchip die
+# Fernsehbilder um. Ohne das Gerät bleiben sie ungenutzt.
 ARG WITH_MEDIA=true
 ARG GO2RTC_VERSION=1.9.14
 ARG GO2RTC_SHA256_AMD64=32d616af226bd731678ffde328b94cfb94e30339bfefc469cfb76323144615a6
@@ -31,12 +34,16 @@ ARG GO2RTC_SHA256_ARM64=359fabade8a7a51e81a55fe6df6b0ef81764a5e1d63179577534eaaa
 RUN if [ "$WITH_MEDIA" = "true" ]; then \
       set -eux; \
       case "$TARGETARCH" in \
-        amd64) sum="$GO2RTC_SHA256_AMD64" ;; \
-        arm64) sum="$GO2RTC_SHA256_ARM64" ;; \
+        amd64) sum="$GO2RTC_SHA256_AMD64"; vaapi="intel-media-va-driver-non-free i965-va-driver-shaders" ;; \
+        arm64) sum="$GO2RTC_SHA256_ARM64"; vaapi="" ;; \
         *) echo "Für die Architektur '$TARGETARCH' ist keine Prüfsumme von go2rtc hinterlegt." >&2; exit 1 ;; \
       esac; \
+      if [ -n "$vaapi" ]; then \
+        sed -i 's/^Components: main$/Components: main non-free/' /etc/apt/sources.list.d/debian.sources; \
+        grep -q '^Components: main non-free$' /etc/apt/sources.list.d/debian.sources; \
+      fi; \
       apt-get update; \
-      apt-get install -y --no-install-recommends ca-certificates curl ffmpeg; \
+      apt-get install -y --no-install-recommends ca-certificates curl ffmpeg $vaapi; \
       curl -fsSL -o /usr/local/bin/go2rtc "https://github.com/AlexxIT/go2rtc/releases/download/v${GO2RTC_VERSION}/go2rtc_linux_${TARGETARCH}"; \
       echo "${sum}  /usr/local/bin/go2rtc" | sha256sum -c -; \
       chmod 0755 /usr/local/bin/go2rtc; \
