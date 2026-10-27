@@ -59,7 +59,7 @@ describe('go2rtcYaml', () => {
   });
 
   it('lässt den Abschnitt ffmpeg ohne Pfad und Vorlagen weg', () => {
-    expect(go2rtcYaml({ apiPort: 1984, rtspPort: 8554, webrtcPort: 8555, templates: tvTemplates('cpu') }, [])).not.toContain('ffmpeg:');
+    expect(go2rtcYaml({ apiPort: 1984, rtspPort: 8554, webrtcPort: 8555, templates: {} }, [])).not.toContain('ffmpeg:');
   });
 });
 
@@ -67,12 +67,21 @@ describe('tvSource', () => {
   const tvh = 'http://tvh:9981/stream/channelid/1?profile=pass';
 
   it('rechnet ohne Grafikchip mit dem Prozessor um – deinterlaced und verkleinert', () => {
-    expect(tvSource(tvh, 'cpu')).toBe(`ffmpeg:${tvh}#video=h264#raw=-vf yadif=deint=interlaced,fps=25,scale=1024:576,setsar=1#audio=opus`);
+    expect(tvSource(tvh, 'cpu')).toBe(`ffmpeg:${tvh}#input=tv-input#video=h264#raw=-vf yadif=deint=interlaced,fps=25,scale=1024:576,setsar=1#audio=aac#audio=opus`);
+    expect(tvTemplates('cpu')).toEqual({ 'tv-input': '-i {input}' });
+  });
+
+  it('bleibt bei einem fremden go2rtc bei dessen eigener Eingangsvorlage', () => {
+    expect(tvSource(tvh, 'cpu', false)).toBe(`ffmpeg:${tvh}#video=h264#raw=-vf yadif=deint=interlaced,fps=25,scale=1024:576,setsar=1#audio=aac#audio=opus`);
+  });
+
+  it('liest ohne low_delay, damit B-Frames in der richtigen Reihenfolge erscheinen', () => {
+    for (const engine of ['cpu', 'vaapi'] as const) for (const args of Object.values(tvTemplates(engine))) expect(args).not.toContain('low_delay');
   });
 
   it('verweist mit Grafikchip auf die eigenen Vorlagen', () => {
     const source = tvSource(tvh, 'vaapi');
-    expect(source).toBe(`ffmpeg:${tvh}#input=tv-vaapi-input#video=tv-vaapi#audio=opus`);
+    expect(source).toBe(`ffmpeg:${tvh}#input=tv-vaapi-input#video=tv-vaapi#audio=aac#audio=opus`);
     for (const name of ['tv-vaapi-input', 'tv-vaapi']) expect(tvTemplates('vaapi')).toHaveProperty([name]);
     expect(tvTemplates('vaapi')['tv-vaapi-input']).toContain('-i {input}');
   });

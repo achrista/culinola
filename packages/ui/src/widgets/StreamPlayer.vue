@@ -11,7 +11,7 @@ interface StreamInfo {
   /** `file`: eine aufgezeichnete Videodatei, die in Schleife läuft – so zeigt die Demo ihre Kameras. */
   mode: 'webrtc' | 'hls' | 'mjpeg' | 'file';
   url?: string;
-  /** Fernsehsender: Hier zählt ein ruhiges Bild mehr als geringe Verzögerung. */
+  /** Fernsehsender: Hier zählt ein ruhiges Bild mehr als geringe Verzögerung – er kommt als MP4-Strom statt über WebRTC. */
   tv?: boolean;
 }
 
@@ -38,10 +38,10 @@ const props = defineProps<{
 const { t } = useI18n();
 const RETRY_MS = 4000;
 /**
- * Empfangspuffer für Fernsehen. Ein Tvheadend liefert seine Daten stoßweise, und WebRTC gibt sie sonst
- * so schnell wie möglich weiter – das Bild stockt dann immer wieder kurz. Kameras bleiben ohne Puffer.
+ * Beim MP4-Strom wächst der Abstand zum laufenden Programm mit jedem Stocken. Liegt mehr als so viel
+ * im Vorrat, springt die Wiedergabe vor und behält eine Sekunde Reserve.
  */
-const TV_BUFFER_MS = 1000;
+const MAX_LAG_S = 4;
 const video = ref<HTMLVideoElement>();
 const info = ref<StreamInfo>();
 const state = ref<'loading' | 'playing' | 'failed'>('loading');
@@ -60,6 +60,8 @@ function stop() {
   hls = undefined;
   if (video.value) {
     video.value.onerror = null;
+    video.value.onended = null;
+    video.value.onprogress = null;
     video.value.srcObject = null;
     video.value.removeAttribute('src');
   }
@@ -82,7 +84,8 @@ async function start() {
     if (run !== generation) return;
     info.value = list.find((entry) => entry.id === props.stream);
     if (!info.value) return fail(run);
-    if (info.value.mode === 'webrtc') await startWebrtc(run);
+    if (info.value.mode === 'webrtc' && info.value.tv) startMp4(run);
+    else if (info.value.mode === 'webrtc') await startWebrtc(run);
     else if (info.value.mode === 'hls') startHls(run, info.value.url ?? '');
     else if (info.value.mode === 'file') startFile(run, info.value.url ?? '');
     else state.value = 'playing';
@@ -98,8 +101,6 @@ async function startWebrtc(run: number) {
   connection.addTransceiver('audio', { direction: 'recvonly' });
   const media = new MediaStream();
   connection.ontrack = (event) => {
-    // Nicht jeder Browser kennt den Puffer; dann läuft das Bild eben ohne
-    if (info.value?.tv && 'jitterBufferTarget' in event.receiver) event.receiver.jitterBufferTarget = TV_BUFFER_MS;
     media.addTrack(event.track);
     if (video.value && video.value.srcObject !== media) video.value.srcObject = media;
     void play();
@@ -171,6 +172,23 @@ function startHls(run: number, url: string) {
     element.src = url;
   }
   element.onplaying = () => (state.value = 'playing');
+}
+
+/** Fernsehen als fortlaufender MP4-Strom vom Kern; der Browser puffert ihn wie jedes andere Video. */
+function startMp4(run: number) {
+  const element = video.value;
+  if (!element) return fail(run);
+  element.loop = false;
+  element.src = mediaUrl(`/p/${encodeURIComponent(props.source)}/mp4/${encodeURIComponent(props.stream)}`);
+  element.onplaying = () => (state.value = 'playing');
+  element.onerror = () => fail(run);
+  // Ein Live-Strom endet nur, wenn die Verbindung abreißt
+  element.onended = () => fail(run);
+  element.onprogress = () => {
+    const end = element.buffered.length > 0 ? element.buffered.end(element.buffered.length - 1) : 0;
+    if (end - element.currentTime > MAX_LAG_S) element.currentTime = end - 1;
+  };
+  void play();
 }
 
 function startFile(run: number, url: string) {

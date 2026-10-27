@@ -47,19 +47,30 @@ export const VAAPI_DEVICE = '/dev/dri/renderD128';
 const TV_FILTER_CPU = 'yadif=deint=interlaced,fps=25,scale=1024:576,setsar=1';
 const TV_FILTER_VAAPI = 'format=vaapi|nv12,hwupload,deinterlace_vaapi=rate=frame:auto=1,scale_vaapi=w=1024:h=576:format=nv12';
 
-/** Eigene ffmpeg-Vorlagen für go2rtc; nur nötig, wenn der Grafikchip rechnet. */
+/**
+ * Eigene ffmpeg-Vorlagen für go2rtc. Auch ohne Grafikchip braucht Fernsehen eine eigene Eingangsvorlage:
+ * go2rtc liest HTTP-Quellen sonst mit "-flags low_delay", und damit gibt der Decoder die Bilder in der
+ * Reihenfolge aus, in der sie gesendet werden, statt in der, in der sie gezeigt gehören – bei B-Frames
+ * springt das Bild dann ständig ein Stück zurück und wieder vor.
+ */
 export function tvTemplates(engine: TvEngine): Record<string, string> {
-  if (engine !== 'vaapi') return {};
+  if (engine !== 'vaapi') return { 'tv-input': '-i {input}' };
   return {
-    'tv-vaapi-input': `-init_hw_device vaapi=va:${VAAPI_DEVICE} -filter_hw_device va -hwaccel vaapi -hwaccel_device va -hwaccel_output_format vaapi -fflags nobuffer -flags low_delay -i {input}`,
+    'tv-vaapi-input': `-init_hw_device vaapi=va:${VAAPI_DEVICE} -filter_hw_device va -hwaccel vaapi -hwaccel_device va -hwaccel_output_format vaapi -i {input}`,
     'tv-vaapi': `-vf ${TV_FILTER_VAAPI} -c:v h264_vaapi -g 50 -bf 0 -profile:v high -level:v 4.1 -sei:v 0 -aspect 16:9`,
   };
 }
 
-/** Die Quelle, die go2rtc für einen Fernsehsender bekommt. Eine Adresse mit "ffmpeg:" bleibt, wie sie ist. */
-export function tvSource(url: string, engine: TvEngine): string {
+/**
+ * Die Quelle, die go2rtc für einen Fernsehsender bekommt. Eine Adresse mit "ffmpeg:" bleibt, wie sie ist.
+ * Der Ton liegt als AAC für den MP4-Strom bereit und als Opus für WebRTC; umgerechnet wird nur, was jemand abruft.
+ * Ohne `templates` – bei einem go2rtc, das Culinola nicht selbst startet – bleibt es bei dessen eigener Eingangsvorlage.
+ */
+export function tvSource(url: string, engine: TvEngine, templates = true): string {
   if (url.startsWith('ffmpeg:')) return url;
-  return engine === 'vaapi' ? `ffmpeg:${url}#input=tv-vaapi-input#video=tv-vaapi#audio=opus` : `ffmpeg:${url}#video=h264#raw=-vf ${TV_FILTER_CPU}#audio=opus`;
+  const audio = '#audio=aac#audio=opus';
+  if (engine === 'vaapi') return `ffmpeg:${url}#input=tv-vaapi-input#video=tv-vaapi${audio}`;
+  return `ffmpeg:${url}${templates ? '#input=tv-input' : ''}#video=h264#raw=-vf ${TV_FILTER_CPU}${audio}`;
 }
 
 /** Prüfaufruf für ffmpeg: Gelingt er, kann der Grafikchip Fernsehbilder umrechnen. */

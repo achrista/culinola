@@ -19,6 +19,8 @@ interface Config {
 
 const START_TIMEOUT_MS = 10_000;
 const PROBE_TIMEOUT_MS = 15_000;
+const PROBE_ATTEMPTS = 3;
+const PROBE_RETRY_MS = 20_000;
 
 export default definePlugin<Config>({
   id: 'media-video',
@@ -67,15 +69,15 @@ export default definePlugin<Config>({
     else if (hasTv) log.info('Fernsehbilder rechnet der Prozessor um.');
 
     // Adressen kommen aus der Konfiguration oder – mit Zugangsdaten – aus secrets.json
-    const streams = new Map<string, { name: string; url: string; mode: Mode }>();
+    const streams = new Map<string, { name: string; url: string; mode: Mode; tv: boolean }>();
     for (const stream of config.streams) {
       const address = stream.url ?? context.secrets.get(stream.id);
       if (!address) {
         log.warn(`Videoquelle "${stream.id}" hat keine Adresse – weder in der Konfiguration noch in secrets.json.`);
         continue;
       }
-      const url = stream.tv ? tvSource(address, engine) : address;
-      streams.set(stream.id, { name: stream.name, url, mode: modeOf(url, stream.mode) });
+      const url = stream.tv ? tvSource(address, engine, Boolean(config.go2rtc.binary)) : address;
+      streams.set(stream.id, { name: stream.name, url, mode: modeOf(url, stream.mode), tv: stream.tv === true });
     }
     const viaGo2rtc = [...streams].filter(([, stream]) => stream.mode === 'webrtc').map(([id, stream]) => ({ id, url: stream.url }));
 
@@ -163,7 +165,21 @@ export default definePlugin<Config>({
       const stream = streams.get(id);
       if (!stream || (stream.mode !== 'mjpeg' && !asImages.has(id))) return Response.json({ error: 'Videoquelle unbekannt.' }, { status: 404 });
       // Direkt von der Kamera – oder, bei einer über go2rtc laufenden Quelle, von dort als Bildfolge
-      const from = stream.mode === 'mjpeg' ? stream.url : `${api}/api/stream.mjpeg?src=${encodeURIComponent(id)}`;
+      return relay(request, id, stream, stream.mode === 'mjpeg' ? stream.url : `${api}/api/stream.mjpeg?src=${encodeURIComponent(id)}`, 'multipart/x-mixed-replace');
+    });
+
+    // Fernsehen kommt als fortlaufender MP4-Strom statt über WebRTC. Der Browser legt sich dabei einen Vorrat an
+    // wie ein gewöhnlicher Abspieler und gleicht so aus, dass ein Tvheadend seine Daten stoßweise liefert.
+    // WebRTC dagegen verwirft, was zu spät kommt – das Bild ruckelt und verliert Einzelbilder.
+    context.routes.get('/mp4/:id', async (request) => {
+      const id = request.params.id ?? '';
+      const stream = streams.get(id);
+      if (!stream || !stream.tv || stream.mode !== 'webrtc') return Response.json({ error: 'Videoquelle unbekannt.' }, { status: 404 });
+      return relay(request, id, stream, `${api}/api/stream.mp4?src=${encodeURIComponent(id)}`, 'video/mp4');
+    });
+
+    // Reicht einen fortlaufenden Strom von der Kamera oder von go2rtc an die Anzeige durch.
+    async function relay(request: PluginRequest, id: string, stream: { name: string }, from: string, type: string): Promise<Response> {
       try {
         const upstream = await fetch(from, { signal: request.signal });
         if (!upstream.ok || !upstream.body) {
@@ -171,12 +187,12 @@ export default definePlugin<Config>({
           return Response.json({ error: `Videoquelle antwortet mit ${upstream.status}.` }, { status: 502 });
         }
         reported.delete(id);
-        return new Response(upstream.body, { headers: { 'Content-Type': upstream.headers.get('content-type') ?? 'multipart/x-mixed-replace', 'Cache-Control': 'no-store' } });
+        return new Response(upstream.body, { headers: { 'Content-Type': upstream.headers.get('content-type') ?? type, 'Cache-Control': 'no-store' } });
       } catch {
         if (!request.signal.aborted) report(id, `Videoquelle "${stream.name}" ist nicht erreichbar.`);
         return Response.json({ error: `Videoquelle "${stream.name}" ist nicht erreichbar.` }, { status: 502 });
       }
-    });
+    }
   },
 });
 
@@ -212,16 +228,24 @@ function watch(child: ChildProcess, log: { warn(message: string): void; error(me
 /**
  * Probiert aus, ob ffmpeg mit dem Grafikchip umrechnen kann – nur unter Linux und wenn das Gerät da ist.
  * Scheitert es trotz Gerät, nennt `problem` den Grund (meist fehlender Treiber oder fehlende Rechte).
+ * Gleich nach dem Hochfahren des Rechners ist der Grafikchip mitunter noch nicht bereit, oder die Prüfung
+ * kommt unter der Startlast nicht rechtzeitig durch – deshalb gibt es mehrere Versuche.
  */
 async function probeTvEngine(ffmpeg: string, signal: AbortSignal): Promise<{ engine: TvEngine; problem?: string }> {
   if (process.platform !== 'linux' || !existsSync(VAAPI_DEVICE)) return { engine: 'cpu' };
-  return new Promise((resolve) => {
-    execFile(ffmpeg, vaapiProbeArgs(), { timeout: PROBE_TIMEOUT_MS, signal, windowsHide: true }, (error, _stdout, stderr) => {
-      if (!error) return resolve({ engine: 'vaapi' });
-      const problem = String(stderr).trim().split('\n').at(-1) || error.message;
-      resolve({ engine: 'cpu', problem: problem.slice(0, 200) });
+  let problem = '';
+  for (let attempt = 1; attempt <= PROBE_ATTEMPTS && !signal.aborted; attempt++) {
+    if (attempt > 1) await new Promise((resolve) => setTimeout(resolve, PROBE_RETRY_MS));
+    problem = await new Promise<string>((resolve) => {
+      execFile(ffmpeg, vaapiProbeArgs(), { timeout: PROBE_TIMEOUT_MS, signal, windowsHide: true }, (error, _stdout, stderr) => {
+        if (!error) return resolve('');
+        if (error.killed) return resolve(`keine Antwort nach ${PROBE_TIMEOUT_MS / 1000} s`);
+        resolve(String(stderr).trim().split('\n').at(-1) || error.message);
+      });
     });
-  });
+    if (!problem) return { engine: 'vaapi' };
+  }
+  return { engine: 'cpu', problem: problem.slice(0, 200) };
 }
 
 async function waitUntilUp(api: string, signal: AbortSignal): Promise<void> {
