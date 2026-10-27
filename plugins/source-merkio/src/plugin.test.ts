@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { InvalidInput, type ActionHandler, type PluginContext } from '@culinola/sdk';
@@ -78,7 +78,10 @@ describe('Listen aus Merkio', () => {
     expect(shown.names()).toEqual(['Milch', 'Butter', 'Eier', 'Tomaten', 'Brot', '✓Kaffee']);
     expect(shown.lists()[0]!.items[0]).toMatchObject({ name: 'Milch', amount: '2 l', checked: false });
     expect(shown.datapoints.get('open')).toBe(6);
-    expect((shown.resources.get('available') as { name: string }[]).map((list) => list.name)).toEqual(['Einkauf', 'Aufgaben', 'Baumarkt']);
+    expect((shown.resources.get('available') as { name: string }[]).map((list) => list.name)).toEqual(['Einkauf', 'Aufgaben', 'Baumarkt', 'Rezepte']);
+    // Ohne eingetragene Rezeptliste kommt kein Rezept herüber
+    expect(shown.datapoints.has('recipeFolder')).toBe(false);
+    expect(merkio.calls.get('GET /items/:id/export.md')).toBeUndefined();
     // Das Erneuerungstoken liegt für den nächsten Start bereit – das Kennwort steht nicht darin
     const saved = readFileSync(join(shown.storageDir, 'token.json'), 'utf8');
     expect(JSON.parse(saved)).toMatchObject({ email: merkio.account.email, refreshToken: expect.stringMatching(/^erneuerung-/) });
@@ -260,7 +263,59 @@ describe('Anmeldung bei Merkio', () => {
   });
 });
 
+describe('Rezepte aus Merkio', () => {
+  const visible = (folder: string) => readdirSync(folder).filter((name) => !name.startsWith('.')).sort();
+
+  it('legt die Rezepte der Rezeptliste in einen Ordner und folgt den Änderungen am Telefon', async () => {
+    merkio = await startStandIn();
+    const shown = start('rezepte', { recipes: 'Rezepte' });
+    const folder = join(shown.storageDir, 'rezepte');
+    expect(shown.datapoints.get('recipeFolder')).toBe(folder);
+    await until(() => existsSync(join(folder, 'Linsensuppe.md')), 'Rezepte abgelegt');
+    expect(visible(folder)).toEqual(['Linsensuppe.md', 'Pfannkuchen.jpg', 'Pfannkuchen.md']);
+    expect(readFileSync(join(folder, 'Pfannkuchen.md'), 'utf8')).toMatch(/^image: "Pfannkuchen\.jpg"$/m);
+    // Die Einkaufslisten bleiben, wie sie sind
+    expect(shown.lists().map((list) => list.id)).toEqual(['einkauf', 'baumarkt']);
+
+    await until(() => (merkio.calls.get('GET /lists/:id/events') ?? 0) >= 3, 'Echtzeitkanäle offen');
+    const soup = merkio.items.find((item) => item.name === 'Linsensuppe')!;
+    merkio.change('item_updated', { ...soup, name: 'Rote Linsensuppe', updatedAt: new Date(Date.now() + 1000).toISOString() });
+    await until(() => existsSync(join(folder, 'Rote Linsensuppe.md')) && !existsSync(join(folder, 'Linsensuppe.md')), 'umbenannt');
+    merkio.change('item_deleted', merkio.items.find((item) => item.name === 'Pfannkuchen')!);
+    await until(() => visible(folder).join() === 'Rote Linsensuppe.md', 'gelöscht');
+  });
+
+  it('meldet, wenn es die Rezeptliste nicht gibt', async () => {
+    merkio = await startStandIn();
+    const shown = start('kein-kochbuch', { recipes: 'Kochbuch' });
+    await until(() => shown.datapoints.get('state') === 'ok', 'Anmeldung');
+    expect(shown.warnings.join('\n')).toMatch(/Nicht gefunden: Rezeptliste "Kochbuch"\. Vorhanden sind: .*Rezepte \(Familie, recipes\)/);
+  });
+
+  it('behält die Rezepte, wenn Merkio nicht erreichbar ist', async () => {
+    merkio = await startStandIn();
+    const first = start('bestand', { recipes: 'Rezepte' });
+    const folder = join(first.storageDir, 'rezepte');
+    await until(() => existsSync(join(folder, 'Linsensuppe.md')), 'Rezepte abgelegt');
+    first.stop.abort();
+    const url = merkio.url;
+    await merkio.close();
+
+    const second = start('bestand', { url, recipes: 'Rezepte' });
+    await until(() => second.datapoints.get('state') === 'offline', 'Meldung');
+    expect(second.datapoints.get('recipeFolder')).toBe(folder);
+    expect(visible(folder)).toEqual(['Linsensuppe.md', 'Pfannkuchen.jpg', 'Pfannkuchen.md']);
+  });
+});
+
 describe('Konfiguration', () => {
+  it('nimmt eine Rezeptliste an; ein leeres Feld heißt keine', () => {
+    expect(plugin.parseConfig!({ recipes: 'Rezepte' })).toMatchObject({ recipes: { name: 'Rezepte' } });
+    expect(plugin.parseConfig!({ recipes: { name: 'Rezepte', group: 'Familie' } })).toMatchObject({ recipes: { name: 'Rezepte', group: 'Familie' } });
+    expect(plugin.parseConfig!({ recipes: '' })).not.toHaveProperty('recipes');
+    for (const recipes of [{}, 2.5, ['Rezepte']]) expect(() => plugin.parseConfig!({ recipes }), JSON.stringify(recipes)).toThrow();
+  });
+
   it('nimmt Listennamen, Nummern und Angaben mit Gruppe an', () => {
     expect(plugin.parseConfig!({})).toEqual({ url: 'https://api.merkio.de', refreshMinutes: 5 });
     expect(plugin.parseConfig!({ lists: ['Einkauf', 7, { name: 'Einkauf', group: 'Verein' }], refreshMinutes: 30 })).toEqual({

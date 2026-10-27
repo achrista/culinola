@@ -1,22 +1,40 @@
+import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { definePlugin, InvalidInput, explain } from '@culinola/sdk';
 import { LoginFailed, MerkioClient } from './client.ts';
 import { applyEvent, chooseLists, EventParser, keyed, splitEntry, toEntries, type ListInfo, type MerkioItem, type Wanted } from './merkio.ts';
+import { mirrorRecipes } from './recipes.ts';
 
 interface Config {
   /** Adresse der Merkio-API. */
   url: string;
   /** Die Listen, die Culinola zeigt; ohne Angabe alle Einkaufslisten des Kontos. */
   lists?: Wanted[];
+  /** Die Rezeptliste, deren Rezepte in einen Ordner für das Rezept-Plugin kommen; ohne Angabe keine. */
+  recipes?: Wanted;
   /** So oft wird zusätzlich zum Echtzeitkanal alles neu gelesen. */
   refreshMinutes: number;
 }
 
-interface Shown {
+interface Followed {
   info: ListInfo;
-  items: MerkioItem[];
   /** Beendet den Echtzeitkanal dieser Liste. */
   stop: AbortController;
+}
+
+interface Shown extends Followed {
+  items: MerkioItem[];
+}
+
+/** Eine Liste in der Konfiguration: ihr Name, ihre Nummer oder { name, group } – sonst nichts. */
+function wishOf(entry: unknown): Wanted | undefined {
+  if (typeof entry === 'string' && entry.trim()) return { name: entry };
+  if (typeof entry === 'number' && Number.isInteger(entry)) return { id: entry };
+  const wish = (entry ?? {}) as { name?: unknown; group?: unknown; id?: unknown };
+  const named = typeof wish.name === 'string' && !!wish.name.trim();
+  const numbered = typeof wish.id === 'number' && Number.isInteger(wish.id);
+  if ((!named && !numbered) || (wish.group !== undefined && typeof wish.group !== 'string')) return undefined;
+  return { ...(named ? { name: wish.name as string } : {}), ...(numbered ? { id: wish.id as number } : {}), ...(typeof wish.group === 'string' ? { group: wish.group } : {}) };
 }
 
 const RETRY_MS = 60_000;
@@ -28,15 +46,19 @@ const STEADY_MS = 5 * 60_000;
  * Einkaufs- und Aufgabenlisten aus Merkio. Culinola führt selbst keine Listen: Es zeigt die
  * aus Merkio, hakt dort ab und trägt dort ein – gepflegt wird weiter am Telefon, und beide
  * Seiten sehen über Merkios Echtzeitkanal sofort denselben Stand.
+ *
+ * Auf Wunsch kommen auch die Rezepte einer Rezeptliste herüber – nur in diese Richtung: Gepflegt werden
+ * sie in Merkio, Culinola legt sie als Dateien in einen Ordner, den das Rezept-Plugin liest.
  */
 export default definePlugin<Config>({
   id: 'source-merkio',
   name: { de: 'Merkio', en: 'Merkio' },
-  text: { de: 'Einkaufs- und Aufgabenlisten aus Merkio, zum Abhaken und Ergänzen.', en: 'Shopping and to-do lists from Merkio, to tick off and add to.' },
-  help: { de: 'Adresse der API: https://api.merkio.de ist eingetragen und bleibt so, solange Merkio nicht selbst betrieben wird.\nE-Mail-Adresse und Kennwort eines Merkio-Kontos. Am besten bekommt die Anzeige ein eigenes Konto, das Mitglied der Familiengruppe ist.\nListen: leer lassen zeigt alle Einkaufslisten des Kontos.', en: 'Address of the API: https://api.merkio.de is filled in and stays that way unless you run Merkio yourself.\nE-mail address and password of a Merkio account. Preferably the display gets its own account that is a member of the family group.\nLists: leaving it empty shows all shopping lists of the account.' },
+  text: { de: 'Einkaufs- und Aufgabenlisten aus Merkio, zum Abhaken und Ergänzen; auf Wunsch auch die Rezepte.', en: 'Shopping and to-do lists from Merkio, to tick off and add to; optionally the recipes as well.' },
+  help: { de: 'Adresse der API: https://api.merkio.de ist eingetragen und bleibt so, solange Merkio nicht selbst betrieben wird.\nE-Mail-Adresse und Kennwort eines Merkio-Kontos. Am besten bekommt die Anzeige ein eigenes Konto, das Mitglied der Familiengruppe ist.\nListen: leer lassen zeigt alle Einkaufslisten des Kontos.\nRezeptliste: Die Rezepte daraus zeigt das Rezept-Plugin, wenn dort „Merkio“ als Herkunft gewählt ist. Gepflegt werden sie dann nur in Merkio.', en:'Address of the API: https://api.merkio.de is filled in and stays that way unless you run Merkio yourself.\nE-mail address and password of a Merkio account. Preferably the display gets its own account that is a member of the family group.\nLists: leaving it empty shows all shopping lists of the account.\nRecipe list: the recipes plugin shows its recipes when “Merkio” is chosen as origin there. They are then maintained in Merkio only.' },
   settings: [
     { key: 'url', type: 'text', label: { de: 'Adresse der API', en: 'Address of the API' }, hint: { de: 'Die Adresse von Merkio; nur für eine eigene Merkio-Installation zu ändern.', en: 'The address of Merkio; only to be changed for your own Merkio installation.' }, initial: 'https://api.merkio.de' },
     { key: 'lists', type: 'tags', label: { de: 'Listen', en: 'Lists' }, hint: { de: 'Namen der Listen; leer zeigt alle Einkaufslisten des Kontos.', en: 'Names of the lists; empty shows all shopping lists of the account.' } },
+    { key: 'recipes', type: 'text', label: { de: 'Rezeptliste', en: 'Recipe list' }, hint: { de: 'Name der Rezeptliste in Merkio, deren Rezepte Culinola zeigt – beim Rezept-Plugin dazu „Merkio“ als Herkunft wählen. Leer: keine.', en: 'Name of the recipe list in Merkio whose recipes Culinola shows – choose “Merkio” as origin in the recipes plugin as well. Empty: none.' } },
     { key: 'refreshMinutes', type: 'number', label: { de: 'Abruf alle … Minuten', en: 'Fetch every … minutes' }, min: 1, max: 1440, placeholder: 5 },
   ],
   secrets: [
@@ -45,7 +67,7 @@ export default definePlugin<Config>({
   ],
 
   parseConfig(raw) {
-    const config = raw as { url?: unknown; lists?: unknown; refreshMinutes?: unknown };
+    const config = raw as { url?: unknown; lists?: unknown; recipes?: unknown; refreshMinutes?: unknown };
     const url = config.url ?? 'https://api.merkio.de';
     if (typeof url !== 'string' || !/^https?:\/\/[^\s/]+/i.test(url)) throw new Error('"url" muss die Adresse der Merkio-API sein, etwa https://api.merkio.de.');
     const refreshMinutes = config.refreshMinutes ?? 5;
@@ -54,16 +76,15 @@ export default definePlugin<Config>({
     if (config.lists !== undefined) {
       if (!Array.isArray(config.lists)) throw new Error('"lists" muss eine Liste von Listennamen sein.');
       lists = config.lists.map((entry: unknown): Wanted => {
-        if (typeof entry === 'string' && entry.trim()) return { name: entry };
-        if (typeof entry === 'number' && Number.isInteger(entry)) return { id: entry };
-        const wish = (entry ?? {}) as { name?: unknown; group?: unknown; id?: unknown };
-        const named = typeof wish.name === 'string' && !!wish.name.trim();
-        const numbered = typeof wish.id === 'number' && Number.isInteger(wish.id);
-        if ((!named && !numbered) || (wish.group !== undefined && typeof wish.group !== 'string')) throw new Error('Ein Eintrag in "lists" ist der Name einer Liste oder { "name": …, "group": … }.');
-        return { ...(named ? { name: wish.name as string } : {}), ...(numbered ? { id: wish.id as number } : {}), ...(typeof wish.group === 'string' ? { group: wish.group } : {}) };
+        const wish = wishOf(entry);
+        if (!wish) throw new Error('Ein Eintrag in "lists" ist der Name einer Liste oder { "name": …, "group": … }.');
+        return wish;
       });
     }
-    return { url, refreshMinutes, ...(lists ? { lists } : {}) };
+    // Ein leeres Feld heißt: keine Rezepte
+    const recipes = config.recipes === undefined || config.recipes === '' ? undefined : wishOf(config.recipes);
+    if (config.recipes !== undefined && config.recipes !== '' && !recipes) throw new Error('"recipes" ist der Name einer Rezeptliste oder { "name": …, "group": … }.');
+    return { url, refreshMinutes, ...(lists ? { lists } : {}), ...(recipes ? { recipes } : {}) };
   },
 
   start(context) {
@@ -85,6 +106,14 @@ export default definePlugin<Config>({
       context.datapoints.set({ id: 'updated', value: new Date().toISOString(), label: 'Merkio: letzte Änderung' });
     };
     publish();
+
+    // Die Rezepte liegen als Dateien in einem Ordner, den das Rezept-Plugin liest. Was schon dort liegt,
+    // bleibt auch dann sichtbar, wenn Merkio gerade nicht erreichbar ist.
+    const recipeFolder = join(context.storageDir, 'rezepte');
+    if (config.recipes) {
+      mkdirSync(recipeFolder, { recursive: true });
+      context.datapoints.set({ id: 'recipeFolder', value: recipeFolder, label: 'Merkio: Ordner der Rezepte' });
+    }
 
     const email = context.secrets.get('email') ?? context.secrets.get('user');
     const password = context.secrets.get('password');
@@ -108,8 +137,11 @@ export default definePlugin<Config>({
       if (list) adopt(key, (await client.request<{ items: MerkioItem[] }>('GET', `/lists/${list.info.id}/items`)).items);
     };
 
-    /** Hört auf den Echtzeitkanal einer Liste und verbindet sich nach einem Abbruch neu. */
-    const listen = async (key: string, list: Shown) => {
+    /**
+     * Hört auf den Echtzeitkanal einer Liste und verbindet sich nach einem Abbruch neu. Jede Meldung geht an
+     * `handle`; nach einer Unterbrechung holt `catchUp` nach, was in der Lücke geschah.
+     */
+    const listen = async (list: Followed, handle: (event: string, data: string) => Promise<void>, catchUp: () => Promise<void>) => {
       const signal = AbortSignal.any([context.signal, list.stop.signal]);
       // Jede Störung steht einmal im Protokoll, nicht jeder Versuch
       let warned = false;
@@ -119,21 +151,13 @@ export default definePlugin<Config>({
           const stream = await client.stream(`/lists/${list.info.id}/events`, signal);
           opened = Date.now();
           // Was während der Unterbrechung geschah, holt ein frischer Abruf nach
-          if (attempt > 0) await loadItems(key);
+          if (attempt > 0) await catchUp();
           attempt = 0;
           warned = false;
           const parser = new EventParser();
           const decoder = new TextDecoder();
           for await (const chunk of stream) {
-            for (const { event, data } of parser.push(decoder.decode(chunk, { stream: true }))) {
-              let changed: MerkioItem[] | undefined;
-              try {
-                changed = applyEvent(list.items, event, JSON.parse(data));
-              } catch {
-                // Eine unlesbare Meldung ist wie eine unbekannte: Die Liste wird neu gelesen.
-              }
-              if (!adopt(key, changed)) await loadItems(key);
-            }
+            for (const { event, data } of parser.push(decoder.decode(chunk, { stream: true }))) await handle(event, data);
           }
         } catch (error) {
           if (signal.aborted) return;
@@ -149,6 +173,44 @@ export default definePlugin<Config>({
           signal.addEventListener('abort', () => (clearTimeout(timer), resume()), { once: true });
         });
       }
+    };
+
+    let recipeList: Followed | undefined;
+    let mirroring: Promise<void> | undefined;
+    let again = false;
+    let failures = '';
+    /** Gleicht den Rezeptordner ab. Kommt während eines Abgleichs eine Änderung, folgt gleich ein weiterer. */
+    const mirror = (): Promise<void> => {
+      if (mirroring) {
+        again = true;
+        return mirroring;
+      }
+      mirroring = (async () => {
+        do {
+          again = false;
+          const list = recipeList;
+          if (!list) return;
+          const { items } = await client.request<{ items: MerkioItem[] }>('GET', `/lists/${list.info.id}/items`);
+          const { written, removed, failed } = await mirrorRecipes(recipeFolder, list.info.id, items, (path) => client.file(path));
+          if (written.length || removed.length) log.info(`Rezepte aus Merkio: ${written.length} neu oder geändert, ${removed.length} entfernt`);
+          // Ein Rezept, das sich nicht holen lässt, steht einmal im Protokoll, nicht bei jedem Abruf
+          const now = failed.join('\n');
+          if (now && now !== failures) log.warn(`Nicht übernommen, beim nächsten Abruf neuer Versuch: ${failed.join('; ')}`);
+          failures = now;
+        } while (again);
+      })().finally(() => (mirroring = undefined));
+      return mirroring;
+    };
+    /** Folgt der gefundenen Rezeptliste; ist sie verschwunden, bleibt der Ordner, wie er ist. */
+    const followRecipes = (info: ListInfo | undefined) => {
+      if (recipeList && recipeList.info.id === info?.id) {
+        recipeList.info = info;
+        return;
+      }
+      recipeList?.stop.abort();
+      recipeList = info ? { info, stop: new AbortController() } : undefined;
+      // Merkio meldet Änderungen an Rezepten mit dem ganzen Rezept; einfacher und sicher ist, abzugleichen
+      if (recipeList) void listen(recipeList, mirror, mirror);
     };
 
     let announced = '';
@@ -179,17 +241,36 @@ export default definePlugin<Config>({
           const list: Shown = { info, items: [], stop: new AbortController() };
           shown.set(key, list);
           await loadItems(key);
-          void listen(key, list);
+          void listen(
+            list,
+            async (event, data) => {
+              let changed: MerkioItem[] | undefined;
+              try {
+                changed = applyEvent(list.items, event, JSON.parse(data));
+              } catch {
+                // Eine unlesbare Meldung ist wie eine unbekannte: Die Liste wird neu gelesen.
+              }
+              if (!adopt(key, changed)) await loadItems(key);
+            },
+            () => loadItems(key),
+          );
         }
       }
 
-      const summary = `${groups.length}|${[...wanted.values()].map((list) => `${list.name} (${list.group})`).join(', ') || 'keine Liste'}|${missing.join(', ')}`;
+      const lost = [...missing];
+      if (config.recipes) {
+        const found = chooseLists(available.filter((list) => list.type === 'recipes'), [config.recipes]);
+        followRecipes(found.chosen[0]);
+        lost.push(...found.missing.map((described) => `Rezeptliste ${described}`));
+      }
+
+      const summary = `${groups.length}|${[...wanted.values()].map((list) => `${list.name} (${list.group})`).join(', ') || 'keine Liste'}${recipeList ? `; Rezepte: ${recipeList.info.name} (${recipeList.info.group})` : ''}|${lost.join(', ')}`;
       if (summary !== announced) {
         announced = summary;
         // Ein frisches Konto sieht nichts, bis es einer Gruppe beigetreten ist und dort bestätigt wurde
         if (!groups.length) log.warn('Bei Merkio angemeldet, aber das Konto ist in keiner Gruppe Mitglied. In Merkio mit diesem Konto der Gruppe beitreten und den Beitritt dort bestätigen lassen.');
         else log.info(`Bei Merkio angemeldet. Listen: ${summary.split('|')[1]}`);
-        if (groups.length && missing.length) log.warn(`Nicht gefunden: ${missing.join(', ')}. Vorhanden sind: ${available.map((list) => `${list.name} (${list.group}, ${list.type})`).join(', ') || 'keine Listen'}`);
+        if (groups.length && lost.length) log.warn(`Nicht gefunden: ${lost.join(', ')}. Vorhanden sind: ${available.map((list) => `${list.name} (${list.group}, ${list.type})`).join(', ') || 'keine Listen'}`);
       }
       return groups.length > 0;
     };
@@ -200,6 +281,7 @@ export default definePlugin<Config>({
       try {
         const member = await discover();
         await Promise.all([...shown.keys()].map(loadItems));
+        await mirror();
         setState(member ? 'ok' : 'nogroup');
         // Der Beitritt wird am Telefon bestätigt; bis dahin öfter nachsehen
         if (!member) wait = Math.min(wait, RETRY_MS);

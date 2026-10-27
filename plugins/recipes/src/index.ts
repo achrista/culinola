@@ -6,6 +6,13 @@ import { amountText, ingredientsOf, toShoppingItems, yieldOf } from './ingredien
 import { inside, parseRecipe, recipeId, type RecipeInfo } from './library.ts';
 
 interface Config {
+  /**
+   * Woher die Rezepte kommen: ohne Angabe aus dem Ordner, wo sie sich auch hinzufügen lassen; mit `merkio`
+   * aus einer Rezeptliste in Merkio – dann werden sie nur dort gepflegt und in Culinola nur gelesen.
+   */
+  origin?: 'merkio';
+  /** Die Instanz von source-merkio, die die Rezepte holt; ohne Angabe "merkio". */
+  merkio?: string;
   /** Ordner mit den Rezepten; ohne Angabe der eigene Ordner der Instanz im Datenordner. */
   folder?: string;
   /** Sprache, in der neue Rezepte geschrieben werden: de, en oder fr. */
@@ -32,15 +39,21 @@ const MAX_DEPTH = 4;
 const MAX_RECIPE_BYTES = 1_000_000;
 const SETTLE_MS = 500;
 const POLL_MS = 60_000;
+/** So oft sieht das Plugin nach, ob die Merkio-Quelle ihren Rezeptordner meldet. */
+const LOOKUP_MS = 2_000;
+/** So lange darf das dauern, bevor es im Protokoll steht. */
+const PATIENCE_MS = 60_000;
 /** So lange bleibt ein Rezept als „wird gekocht“ stehen, wenn niemand es abmeldet. */
 const COOKING_MS = 6 * 3_600_000;
 
 export default definePlugin<Config>({
   id: 'recipes',
   name: { de: 'Rezepte', en: 'Recipes' },
-  text: { de: 'Rezepte aus einem Ordner mit Markdown-Dateien; neue lassen sich aus Text, Foto oder Webseite hinzufügen.', en: 'Recipes from a folder of Markdown files; new ones can be added from text, photo or web page.' },
-  help: { de: 'Der Schlüssel der Claude-API wird nur für das Hinzufügen neuer Rezepte gebraucht. Er wird unter https://platform.claude.com bei den API-Schlüsseln erzeugt und beginnt mit „sk-ant-“. Jede Umwandlung kostet einen kleinen Betrag nach Verbrauch.', en: 'The Claude API key is only needed for adding new recipes. It is created at https://platform.claude.com under API keys and starts with “sk-ant-”. Every conversion costs a small amount by usage.' },
+  text: { de: 'Rezepte aus einem Ordner mit Markdown-Dateien oder aus Merkio; neue lassen sich aus Text, Foto oder Webseite hinzufügen.', en: 'Recipes from a folder of Markdown files or from Merkio; new ones can be added from text, photo or web page.' },
+  help: { de: 'Herkunft: „folder“ liest den Ordner, und neue Rezepte lassen sich hier hinzufügen. „merkio“ zeigt die Rezepte einer Rezeptliste in Merkio – sie werden dann nur in Merkio gepflegt. Die Rezeptliste steht in den Einstellungen der Merkio-Quelle.\nDer Schlüssel der Claude-API wird nur für das Hinzufügen neuer Rezepte gebraucht. Er wird unter https://platform.claude.com bei den API-Schlüsseln erzeugt und beginnt mit „sk-ant-“. Jede Umwandlung kostet einen kleinen Betrag nach Verbrauch.', en: 'Origin: “folder” reads the folder, and new recipes can be added here. “merkio” shows the recipes of a recipe list in Merkio – they are then maintained in Merkio only. The recipe list is set in the settings of the Merkio source.\nThe Claude API key is only needed for adding new recipes. It is created at https://platform.claude.com under API keys and starts with “sk-ant-”. Every conversion costs a small amount by usage.' },
   settings: [
+    { key: 'origin', type: 'select', label: { de: 'Herkunft', en: 'Origin' }, options: ['folder', 'merkio'] },
+    { key: 'merkio', type: 'text', label: { de: 'Merkio-Quelle', en: 'Merkio source' }, hint: { de: 'Kennung der Merkio-Quelle, nur bei Herkunft „merkio“.', en: 'Id of the Merkio source, only with origin “merkio”.' }, placeholder: 'merkio' },
     { key: 'folder', type: 'text', label: { de: 'Ordner', en: 'Folder' }, hint: { de: 'Leer gilt der Ordner der Quelle im Datenordner.', en: 'Empty means the folder of the source inside the data folder.' } },
     { key: 'shoppingList', type: 'text', label: { de: 'Einkaufsliste', en: 'Shopping list' }, hint: { de: 'Name der Liste, auf die Zutaten gesetzt werden; leer die erste, die gezeigt wird.', en: 'Name of the list ingredients go on; empty means the first one shown.' } },
     { key: 'importLanguage', type: 'select', label: { de: 'Sprache neuer Rezepte', en: 'Language of new recipes' }, options: ['', 'de', 'en', 'fr'] },
@@ -51,12 +64,16 @@ export default definePlugin<Config>({
   ],
 
   parseConfig(raw) {
-    const config = raw as { folder?: unknown; importLanguage?: unknown; importModel?: unknown; shoppingList?: unknown };
+    const config = raw as { origin?: unknown; merkio?: unknown; folder?: unknown; importLanguage?: unknown; importModel?: unknown; shoppingList?: unknown };
+    if (config.origin !== undefined && config.origin !== 'folder' && config.origin !== 'merkio') throw new Error('"origin" ist "folder" oder "merkio".');
+    if (config.merkio !== undefined && (typeof config.merkio !== 'string' || !config.merkio.trim())) throw new Error('"merkio" muss die Kennung einer Merkio-Quelle sein.');
     if (config.folder !== undefined && (typeof config.folder !== 'string' || !config.folder)) throw new Error('"folder" muss ein Ordnerpfad sein.');
     if (config.importLanguage !== undefined && !['de', 'en', 'fr'].includes(config.importLanguage as string)) throw new Error('"importLanguage" muss de, en oder fr sein.');
     if (config.importModel !== undefined && (typeof config.importModel !== 'string' || !config.importModel)) throw new Error('"importModel" muss die Kennung eines Sprachmodells sein.');
     if (config.shoppingList !== undefined && (typeof config.shoppingList !== 'string' || !config.shoppingList.trim())) throw new Error('"shoppingList" muss der Name einer Einkaufsliste sein.');
     return {
+      ...(config.origin === 'merkio' ? { origin: 'merkio' as const } : {}),
+      ...(typeof config.merkio === 'string' ? { merkio: config.merkio.trim() } : {}),
       ...(typeof config.shoppingList === 'string' ? { shoppingList: config.shoppingList.trim() } : {}),
       ...(typeof config.folder === 'string' ? { folder: config.folder } : {}),
       ...(typeof config.importLanguage === 'string' ? { importLanguage: config.importLanguage } : {}),
@@ -66,8 +83,14 @@ export default definePlugin<Config>({
 
   start(context) {
     const { log } = context;
-    const folder = resolve(context.config.folder ?? context.storageDir);
-    mkdirSync(folder, { recursive: true });
+    const fromMerkio = context.config.origin === 'merkio';
+    const merkio = context.config.merkio ?? 'merkio';
+    // Aus Merkio kommt der Ordner von der Merkio-Quelle, sobald sie ihn meldet; bis dahin gibt es keine Rezepte
+    let folder: string | undefined;
+    if (!fromMerkio) {
+      folder = resolve(context.config.folder ?? context.storageDir);
+      mkdirSync(folder, { recursive: true });
+    }
 
     let recipes = new Map<string, Entry>();
 
@@ -111,8 +134,9 @@ export default definePlugin<Config>({
     const scan = () => {
       const next = new Map<string, Entry>();
       const before = new Map([...recipes.values()].map((entry) => [entry.file, entry]));
-      for (const file of files(folder)) {
-        const way = relative(folder, file);
+      const dir = folder;
+      for (const file of dir ? files(dir) : []) {
+        const way = relative(dir ?? '', file);
         try {
           if (statSync(file).size > MAX_RECIPE_BYTES) throw new Error('Datei ist größer als 1 MB');
           const { markdown: _markdown, problem, ...info } = parseRecipe(file, readFileSync(file, 'utf8'));
@@ -135,8 +159,8 @@ export default definePlugin<Config>({
         }
       }
       recipes = next;
-      // Ein Rezept, das es nicht mehr gibt, kann niemand mehr kochen
-      if (cooking && !recipes.has(cooking.id)) setCooking(undefined);
+      // Ein Rezept, das es nicht mehr gibt, kann niemand mehr kochen – solange der Ordner aus Merkio noch fehlt, ist das offen
+      if (dir && cooking && !recipes.has(cooking.id)) setCooking(undefined);
       context.resources.set(
         'list',
         [...recipes.values()].map(({ file: _file, ...entry }) => entry).sort((a, b) => a.title.localeCompare(b.title)),
@@ -147,7 +171,8 @@ export default definePlugin<Config>({
     };
 
     scan();
-    log.info(`${recipes.size} Rezepte in ${folder}`);
+    if (folder) log.info(`${recipes.size} Rezepte in ${folder}`);
+    else log.info(`Die Rezepte kommen aus Merkio (Quelle "${merkio}") und werden dort gepflegt.`);
     setCooking(cooking, false);
 
     /** Findet ein Rezept über seine Kennung oder seinen Titel; vom Titel genügt ein eindeutiger Teil. */
@@ -252,16 +277,42 @@ export default definePlugin<Config>({
       clearTimeout(settle);
       settle = setTimeout(scan, SETTLE_MS);
     };
-    try {
-      const watcher = watch(folder, { recursive: true }, rescan);
-      watcher.on('error', () => undefined);
-      context.signal.addEventListener('abort', () => watcher.close());
-    } catch {
-      // Wo das System den Ordner nicht beobachten kann, wird er regelmäßig neu gelesen.
-      const timer = setInterval(scan, POLL_MS);
+    let unfollow = () => undefined as void;
+    const follow = (dir: string) => {
+      unfollow();
+      try {
+        const watcher = watch(dir, { recursive: true }, rescan);
+        watcher.on('error', () => undefined);
+        unfollow = () => watcher.close();
+      } catch {
+        // Wo das System den Ordner nicht beobachten kann, wird er regelmäßig neu gelesen.
+        const timer = setInterval(scan, POLL_MS);
+        unfollow = () => clearInterval(timer);
+      }
+    };
+    if (folder) follow(folder);
+    context.signal.addEventListener('abort', () => (unfollow(), clearTimeout(settle)));
+
+    // Die Merkio-Quelle legt die Rezepte in ihren eigenen Ordner und nennt ihn in einem Datenpunkt
+    if (fromMerkio) {
+      const began = Date.now();
+      let waited = false;
+      const lookup = () => {
+        const named = context.datapoints.list().find((datapoint) => datapoint.id === `${merkio}:recipeFolder`)?.value;
+        if (typeof named === 'string' && named && named !== folder) {
+          folder = named;
+          scan();
+          follow(named);
+          log.info(`${recipes.size} Rezepte aus Merkio`);
+        } else if (!folder && !waited && Date.now() - began >= PATIENCE_MS) {
+          waited = true;
+          log.warn(`Von der Quelle "${merkio}" kommen keine Rezepte. Dort unter "Rezeptliste" die Rezeptliste aus Merkio eintragen.`);
+        }
+      };
+      lookup();
+      const timer = setInterval(lookup, LOOKUP_MS);
       context.signal.addEventListener('abort', () => clearInterval(timer));
     }
-    context.signal.addEventListener('abort', () => clearTimeout(settle));
 
     context.routes.get('/text/:id', (request) => {
       const entry = recipes.get(request.params.id ?? '');
@@ -274,7 +325,7 @@ export default definePlugin<Config>({
     context.routes.get('/file/:id/*', (request) => {
       const entry = recipes.get(request.params.id ?? '');
       const wanted = request.params['*'] ?? '';
-      const file = entry && wanted ? inside(folder, relative(folder, dirname(entry.file)), wanted) : undefined;
+      const file = entry && wanted && folder ? inside(folder, relative(folder, dirname(entry.file)), wanted) : undefined;
       const contentType = file ? IMAGE_TYPES[extname(file).toLowerCase()] : undefined;
       if (!file || !contentType || !existsSync(file) || !statSync(file).isFile()) return Response.json({ error: 'Bild nicht gefunden.' }, { status: 404 });
       return new Response(new Uint8Array(readFileSync(file)), { headers: { 'Content-Type': contentType, 'Cache-Control': 'private, max-age=3600' } });
@@ -283,10 +334,13 @@ export default definePlugin<Config>({
     // Neue Rezepte: Eine Webadresse, ein Text oder eine Datei geht an das Sprachmodell und kommt als
     // Rezept in den Ordner zurück. Der Schlüssel dafür steht bei den Zugangsdaten der Instanz.
     const apiKey = context.secrets.get('anthropicApiKey') ?? process.env['ANTHROPIC_API_KEY'];
-    context.datapoints.set({ id: 'importReady', value: !!apiKey, label: 'Neue Rezepte lassen sich umwandeln' });
+    // Rezepte aus Merkio werden in Merkio gepflegt: Hier kommt keines dazu
+    context.datapoints.set({ id: 'importReady', value: !!apiKey && !fromMerkio, label: 'Neue Rezepte lassen sich umwandeln' });
     let importing = false;
     context.routes.post('/import', async (request) => {
       const refuse = (status: number, error: string) => Response.json({ error }, { status });
+      const target = folder;
+      if (fromMerkio || !target) return refuse(409, 'Die Rezepte kommen aus Merkio; neue Rezepte werden dort hinzugefügt.');
       let input;
       try {
         input = importInput(request);
@@ -303,10 +357,10 @@ export default definePlugin<Config>({
         const language = context.config.importLanguage ?? 'de';
         const result = await convertRecipe(input, { apiKey, language, signal: request.signal, ...(context.config.importModel ? { model: context.config.importModel } : {}) });
         if (!result.recipes.length) return refuse(422, 'In der Vorlage wurde kein Rezept gefunden.');
-        const saved = result.recipes.map((converted) => saveRecipe(folder, converted, language));
+        const saved = result.recipes.map((converted) => saveRecipe(target, converted, language));
         scan();
         log.info(`Rezept hinzugefügt: ${saved.map((entry) => entry.file).join(', ')} (${result.usage.inputTokens} Eingabe- und ${result.usage.outputTokens} Ausgabe-Token)`);
-        const added = saved.map((entry) => ({ title: entry.title, id: [...recipes.values()].find((known) => known.file === join(folder, entry.file))?.id }));
+        const added = saved.map((entry) => ({ title: entry.title, id: [...recipes.values()].find((known) => known.file === join(target, entry.file))?.id }));
         return Response.json({ recipes: added, warnings: result.warnings });
       } catch (error) {
         const { reason, message } = explainError(error);

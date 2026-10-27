@@ -10,13 +10,16 @@ export interface MerkioItem {
   checked?: boolean | number | null;
   checkedAt?: string | null;
   position?: number | null;
+  /** Bei Rezepten der Rest des Rezepts als JSON; die Datei dazu liefert `GET /items/:id/export.md`. */
+  content?: string | null;
+  updatedAt?: string | null;
 }
 
 /** Eine Liste in Merkio samt der Gruppe, zu der sie gehört. */
 export interface ListInfo {
   id: number;
   name: string;
-  /** `shopping`, `todo`, `reminder` oder `notes`. */
+  /** `shopping`, `todo`, `reminder`, `notes` oder `recipes`. */
   type: string;
   group: string;
 }

@@ -458,7 +458,7 @@ Where a shopping list is set up (see [Merkio](#shopping-and-task-lists-from-merk
 
 #### Adding new recipes
 
-From a web page, a document (PDF, Word, LibreOffice, text) or a photo – for example a photographed cookbook page – Culinola makes a recipe in its own format and puts it, together with a photo of the dish, into the recipe folder as `<category>/<title>.md`. Reading and organizing is done by a language model from Anthropic (Claude Haiku); the work behind it is in the [recipe-import](packages/recipe-import/README.md) package.
+This applies when the recipes come from the folder. From a web page, a document (PDF, Word, LibreOffice, text) or a photo – for example a photographed cookbook page – Culinola makes a recipe in its own format and puts it, together with a photo of the dish, into the recipe folder as `<category>/<title>.md`. Reading and organizing is done by a language model from Anthropic (Claude Haiku); the work behind it is in the [recipe-import](packages/recipe-import/README.md) package.
 
 For this a Claude API key (<https://platform.claude.com>) is needed, entered in `secrets.json` under the identifier of the recipe instance:
 
@@ -474,6 +474,17 @@ In the Docker image, the environment variable `ANTHROPIC_API_KEY` works instead.
 Without a key the button is missing; everything else runs as usual. If the API is protected by accesses, adding requires level `control`.
 
 Good to know: The source is transmitted to Anthropic for conversion, and each conversion costs a small amount by usage – the core writes the number of tokens to the log. Web addresses in your own network are not read. The result comes from a language model: compare quantities and times with the source before the first cooking. With `importModel` and `importLanguage` (`de`, `en`, `fr`) in the plugin's configuration, the model and the language of the new recipes can be changed.
+
+#### Recipes from Merkio
+
+Instead of the folder, the recipes can come from a recipe list in [Merkio](#shopping-and-task-lists-from-merkio). The `origin` setting chooses one of the two: `folder` (the default) or `merkio`. With `merkio`, the recipes are maintained in Merkio only. Culinola shows them, searches them, puts their ingredients on the shopping list and holds on to the one being cooked. Adding new recipes is not offered there, and the `folder` setting does not apply. Recipes already in the old folder stay on disk, but they are no longer shown. To show them again, switch back to `folder`.
+
+```json
+{ "id": "merkio", "plugin": "source-merkio", "config": { "lists": ["Einkauf"], "recipes": "Rezepte" } },
+{ "id": "recipes", "plugin": "recipes", "config": { "origin": "merkio" } }
+```
+
+`recipes` on the Merkio source names the recipe list, the same way as `lists` (also as `{ "name": …, "group": … }`). The Merkio source keeps a copy of every recipe in `data/merkio/rezepte`: the file Merkio exports for Culinola and the photo next to it. It fetches only what has changed. A change made on the phone arrives through the real-time channel within seconds, and everything is also compared again every `refreshMinutes`. A recipe deleted in Merkio disappears from Culinola. While Merkio cannot be reached, the copy stays as it was. If the Merkio source has another identifier than `merkio`, name it with `"merkio": "<id>"` on the `recipes` source.
 
 ### Sun and moon
 
@@ -517,6 +528,8 @@ It is best to give the display a Merkio account of its own that is a member of t
 `lists` names the lists that are shown – by their name, or for lists of the same name in several groups as `{ "name": "Einkauf", "group": "Familie" }`. Without it, all shopping lists of the account are used. Which lists exist is written to the log by the core at start if a named one is missing, and is available at `/api/v1/resources/merkio/available`. Each list gets an identifier from its name (`Einkauf` → `einkauf`); the `checklist` tile chooses its list with `list`.
 
 Tapping ticks an entry off; ticked-off items stay struck through for a few hours so that the tick can be taken back. "+" opens an input field: "2 kg Mehl" is split into quantity, unit and name, and whatever is already on the list ticked off becomes open again instead of doubled. The same works via the actions `lists.add` (`text`, `list`; quantity and unit optionally separately as `quantity` and `unit`) and `lists.check` (`item`, `checked`).
+
+With `"recipes": "Rezepte"`, the plugin also brings the recipes of a recipe list over to the recipe view. They come in one direction only and are maintained in Merkio (see [Recipes from Merkio](#recipes-from-merkio)).
 
 The plugin signs in with account and password, remembers Merkio's renewal token in `data/merkio/token.json` and signs in again by itself when it has expired. The datapoint `merkio:state` tells how things stand: `ok`, `nogroup` (signed in, but the account is not yet in any group – join in Merkio and have it confirmed), `login` (credentials missing or rejected) or `offline`. With `url`, your own Merkio installation can be addressed, with `refreshMinutes` (default 5) the interval at which everything is re-read in addition to the real-time channel. Merkio's hosting ends every connection after a quarter of an hour; the plugin reopens the real-time channel right away and catches up on what happened in between. The log mentions this only when the channel breaks off early or cannot be reopened.
 

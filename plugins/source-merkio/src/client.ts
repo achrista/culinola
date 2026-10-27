@@ -117,6 +117,12 @@ export class MerkioClient {
     return (await (await this.send(method, path, body, this.signal(), 'application/json')).json()) as T;
   }
 
+  /** Holt eine Datei, etwa ein Rezept als Markdown oder sein Foto, samt ihrer Art. */
+  async file(path: string): Promise<{ data: Uint8Array; type: string }> {
+    const response = await this.send('GET', path, undefined, this.signal(), '*/*');
+    return { data: new Uint8Array(await response.arrayBuffer()), type: (response.headers.get('content-type') ?? '').split(';')[0]!.trim() };
+  }
+
   /** Öffnet einen fortlaufenden Datenstrom, etwa den Echtzeitkanal einer Liste. */
   async stream(path: string, signal: AbortSignal): Promise<ReadableStream<Uint8Array>> {
     const response = await this.send('GET', path, undefined, signal, 'text/event-stream');

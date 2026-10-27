@@ -5,7 +5,7 @@ import type { MerkioItem } from './merkio.ts';
 /**
  * Ein Platzhalter für die Merkio-API, nur für Tests und die Testinstanz: Er bildet auf diesem
  * Rechner die Aufrufe nach, die das Plugin benutzt – Anmeldung mit wechselnden Token, Gruppen,
- * Listen, Einträge und den Echtzeitkanal –, mit einer erfundenen Familie im Arbeitsspeicher.
+ * Listen, Einträge, Rezepte samt Export und Foto und den Echtzeitkanal –, mit einer erfundenen Familie im Arbeitsspeicher.
  */
 export interface StandIn {
   url: string;
@@ -36,6 +36,7 @@ const LISTS = [
   { id: 11, groupId: 1, name: 'Einkauf', type: 'shopping' },
   { id: 12, groupId: 1, name: 'Aufgaben', type: 'todo' },
   { id: 13, groupId: 1, name: 'Baumarkt', type: 'shopping' },
+  { id: 14, groupId: 1, name: 'Rezepte', type: 'recipes' },
   { id: 21, groupId: 2, name: 'Einkauf', type: 'shopping' },
 ];
 const SEED: [listId: number, name: string, quantity?: string | undefined, unit?: string | undefined, checked?: boolean][] = [
@@ -49,6 +50,21 @@ const SEED: [listId: number, name: string, quantity?: string | undefined, unit?:
   [13, 'Dübel 8 mm', '20'],
   [21, 'Getränke fürs Sommerfest'],
 ];
+/** Rezepte, wie Merkio sie ablegt: Titel und Kategorie in eigenen Spalten, der Rest als JSON. */
+const RECIPES: [name: string, category: string, steps: string[], photo: boolean][] = [
+  ['Pfannkuchen', 'Hauptgericht', ['Mehl, Milch und Eier verrühren.', 'Dünn ausbacken.'], true],
+  ['Linsensuppe', 'Suppen', ['Linsen weich kochen.', 'Mit Essig abschmecken.'], false],
+];
+/** Ein Bild aus einem einzigen Punkt – genug, damit es als JPEG gilt. */
+const PHOTO = Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==', 'base64');
+
+/** Die Datei, die Merkio unter `/items/:id/export.md` für Culinola ausgibt – vereinfacht. */
+function exported(item: MerkioItem): string {
+  const content = JSON.parse(item.content ?? '{}') as { steps?: { steps: string[] }[]; image?: string };
+  const steps = (content.steps ?? []).flatMap((group) => group.steps).map((step, index) => `${index + 1}. ${step}`);
+  const head = [`title: ${JSON.stringify(item.name)}`, `category: ${JSON.stringify(item.category ?? 'Sonstiges')}`, ...(content.image ? [`image: ${JSON.stringify(content.image)}`] : [])];
+  return `---\n${head.join('\n')}\n---\n\n## Zubereitung\n\n${steps.join('\n')}\n`;
+}
 
 export async function startStandIn(port = 0): Promise<StandIn> {
   const account = { email: 'kueche@example.org', password: 'nur-fuer-den-platzhalter' };
@@ -63,6 +79,18 @@ export async function startStandIn(port = 0): Promise<StandIn> {
     checkedAt: checked ? new Date(Date.now() - 3_600_000).toISOString() : null,
     position: index,
   }));
+  RECIPES.forEach(([name, category, steps, photo], index) =>
+    items.push({
+      id: 300 + index,
+      listId: 14,
+      name,
+      category,
+      checked: 0,
+      position: index,
+      content: JSON.stringify({ v: 1, lang: 'de', steps: [{ title: null, steps }], ...(photo ? { image: `${name}.jpg`, photoRev: 1 } : {}) }),
+      updatedAt: new Date().toISOString(),
+    }),
+  );
   const calls = new Map<string, number>();
   const access = new Set<string>();
   const refresh = new Set<string>();
@@ -128,6 +156,17 @@ export async function startStandIn(port = 0): Promise<StandIn> {
         items.push(item);
         broadcast(id, 'item_created', item);
         return send(201, { item });
+      }
+      if (route === 'GET /items/:id/export.md' || route === 'GET /items/:id/photo') {
+        const item = items.find((known) => known.id === id && known.listId === 14);
+        if (!item || !allowed(item.listId)) return send(404, { error: 'Rezept nicht gefunden' });
+        if (route.endsWith('export.md')) {
+          response.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
+          return response.end(exported(item));
+        }
+        if (!(JSON.parse(item.content ?? '{}') as { image?: string }).image) return send(404, { error: 'Kein Foto vorhanden' });
+        response.writeHead(200, { 'Content-Type': 'image/jpeg' });
+        return response.end(PHOTO);
       }
       if (route === 'PATCH /items/:id') {
         const item = items.find((known) => known.id === id);
