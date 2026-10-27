@@ -484,7 +484,7 @@ Instead of the folder, the recipes can come from a recipe list in [Merkio](#shop
 { "id": "recipes", "plugin": "recipes", "config": { "origin": "merkio" } }
 ```
 
-`recipes` on the Merkio source names the recipe list, the same way as `lists` (also as `{ "name": …, "group": … }`). The Merkio source keeps a copy of every recipe in `data/merkio/rezepte`: the file Merkio exports for Culinola and the photo next to it. It fetches only what has changed. A change made on the phone arrives through the real-time channel within seconds, and everything is also compared again every `refreshMinutes`. A recipe deleted in Merkio disappears from Culinola. While Merkio cannot be reached, the copy stays as it was. If the Merkio source has another identifier than `merkio`, name it with `"merkio": "<id>"` on the `recipes` source.
+`recipes` on the Merkio source names the recipe list, the same way as `lists` (also as `Rezepte (Familie)` or `{ "name": …, "group": … }`). The Merkio source keeps a copy of every recipe in `data/merkio/rezepte`: the file Merkio exports for Culinola and the photo next to it. It fetches only what has changed. A change made on the phone arrives through the real-time channel within seconds, and everything is also compared again every `refreshMinutes`. A recipe deleted in Merkio disappears from Culinola. While Merkio cannot be reached, the copy stays as it was. If the Merkio source has another identifier than `merkio`, name it with `"merkio": "<id>"` on the `recipes` source.
 
 ### Sun and moon
 
@@ -525,7 +525,7 @@ It is best to give the display a Merkio account of its own that is a member of t
 { "merkio": { "email": "kueche@example.org", "password": "…" } }
 ```
 
-`lists` names the lists that are shown – by their name, or for lists of the same name in several groups as `{ "name": "Einkauf", "group": "Familie" }`. Without it, all shopping lists of the account are used. Which lists exist is written to the log by the core at start if a named one is missing, and is available at `/api/v1/resources/merkio/available`. Each list gets an identifier from its name (`Einkauf` → `einkauf`); the `checklist` tile chooses its list with `list`.
+`lists` names the lists that are shown – by their name, or for lists of the same name in several groups with the group in brackets, `Einkauf (Familie)`, or as `{ "name": "Einkauf", "group": "Familie" }`. Without the group, the first list of that name applies, and the log says which groups have one. Without `lists`, all shopping lists of the account are used. Which lists exist is written to the log by the core at start if a named one is missing, and is available at `/api/v1/resources/merkio/available`. Each list gets an identifier from its name (`Einkauf` → `einkauf`); the `checklist` tile chooses its list with `list`.
 
 Tapping ticks an entry off; ticked-off items stay struck through for a few hours so that the tick can be taken back. "+" opens an input field: "2 kg Mehl" is split into quantity, unit and name, and whatever is already on the list ticked off becomes open again instead of doubled. The same works via the actions `lists.add` (`text`, `list`; quantity and unit optionally separately as `quantity` and `unit`) and `lists.check` (`item`, `checked`).
 

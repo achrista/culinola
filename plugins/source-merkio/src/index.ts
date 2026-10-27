@@ -57,8 +57,8 @@ export default definePlugin<Config>({
   help: { de: 'Adresse der API: https://api.merkio.de ist eingetragen und bleibt so, solange Merkio nicht selbst betrieben wird.\nE-Mail-Adresse und Kennwort eines Merkio-Kontos. Am besten bekommt die Anzeige ein eigenes Konto, das Mitglied der Familiengruppe ist.\nListen: leer lassen zeigt alle Einkaufslisten des Kontos.\nRezeptliste: Die Rezepte daraus zeigt das Rezept-Plugin, wenn dort „Merkio“ als Herkunft gewählt ist. Gepflegt werden sie dann nur in Merkio.', en:'Address of the API: https://api.merkio.de is filled in and stays that way unless you run Merkio yourself.\nE-mail address and password of a Merkio account. Preferably the display gets its own account that is a member of the family group.\nLists: leaving it empty shows all shopping lists of the account.\nRecipe list: the recipes plugin shows its recipes when “Merkio” is chosen as origin there. They are then maintained in Merkio only.' },
   settings: [
     { key: 'url', type: 'text', label: { de: 'Adresse der API', en: 'Address of the API' }, hint: { de: 'Die Adresse von Merkio; nur für eine eigene Merkio-Installation zu ändern.', en: 'The address of Merkio; only to be changed for your own Merkio installation.' }, initial: 'https://api.merkio.de' },
-    { key: 'lists', type: 'tags', label: { de: 'Listen', en: 'Lists' }, hint: { de: 'Namen der Listen; leer zeigt alle Einkaufslisten des Kontos.', en: 'Names of the lists; empty shows all shopping lists of the account.' } },
-    { key: 'recipes', type: 'text', label: { de: 'Rezeptliste', en: 'Recipe list' }, hint: { de: 'Name der Rezeptliste in Merkio, deren Rezepte Culinola zeigt – beim Rezept-Plugin dazu „Merkio“ als Herkunft wählen. Leer: keine.', en: 'Name of the recipe list in Merkio whose recipes Culinola shows – choose “Merkio” as origin in the recipes plugin as well. Empty: none.' } },
+    { key: 'lists', type: 'tags', label: { de: 'Listen', en: 'Lists' }, hint: { de: 'Namen der Listen; leer zeigt alle Einkaufslisten des Kontos. Gibt es einen Namen in mehreren Gruppen, die Gruppe in Klammern dazu: „Einkauf (Familie)“.', en: 'Names of the lists; empty shows all shopping lists of the account. If a name exists in several groups, add the group in brackets: “Einkauf (Familie)”.' } },
+    { key: 'recipes', type: 'text', label: { de: 'Rezeptliste', en: 'Recipe list' }, hint: { de: 'Name der Rezeptliste in Merkio, deren Rezepte Culinola zeigt – beim Rezept-Plugin dazu „Merkio“ als Herkunft wählen. Gibt es den Namen in mehreren Gruppen, sagt es das Protokoll; dann die Gruppe in Klammern dazu: „Rezepte (Familie)“. Leer: keine.', en: 'Name of the recipe list in Merkio whose recipes Culinola shows – choose “Merkio” as origin in the recipes plugin as well. If the name exists in several groups, the log says so; then add the group in brackets: “Rezepte (Familie)”. Empty: none.' } },
     { key: 'refreshMinutes', type: 'number', label: { de: 'Abruf alle … Minuten', en: 'Fetch every … minutes' }, min: 1, max: 1440, placeholder: 5 },
   ],
   secrets: [
@@ -191,11 +191,14 @@ export default definePlugin<Config>({
           const list = recipeList;
           if (!list) return;
           const { items } = await client.request<{ items: MerkioItem[] }>('GET', `/lists/${list.info.id}/items`);
-          const { written, removed, failed } = await mirrorRecipes(recipeFolder, list.info.id, items, (path) => client.file(path));
-          if (written.length || removed.length) log.info(`Rezepte aus Merkio: ${written.length} neu oder geändert, ${removed.length} entfernt`);
+          const { written, removed, failed, photoless } = await mirrorRecipes(recipeFolder, list.info.id, items, (path) => client.file(path));
+          if (written.length || removed.length) log.info(`Rezepte aus Merkio: ${items.length} in der Liste, ${written.length} neu oder geändert, ${removed.length} entfernt`);
           // Ein Rezept, das sich nicht holen lässt, steht einmal im Protokoll, nicht bei jedem Abruf
-          const now = failed.join('\n');
-          if (now && now !== failures) log.warn(`Nicht übernommen, beim nächsten Abruf neuer Versuch: ${failed.join('; ')}`);
+          const now = [...failed, '|', ...photoless].join('\n');
+          if (now !== failures) {
+            if (failed.length) log.warn(`${failed.length} Rezepte nicht übernommen, beim nächsten Abruf neuer Versuch: ${failed.join('; ')}`);
+            if (photoless.length) log.warn(`${photoless.length} Rezepte ohne Foto übernommen, das Foto wird beim nächsten Abruf neu versucht: ${photoless.join('; ')}`);
+          }
           failures = now;
         } while (again);
       })().finally(() => (mirroring = undefined));
@@ -226,7 +229,7 @@ export default definePlugin<Config>({
         available.push(...lists.map((list) => ({ id: list.id, name: list.name, type: list.type, group: group.name })));
       }
       context.resources.set('available', available);
-      const { chosen, missing } = chooseLists(available, config.lists);
+      const { chosen, missing, ambiguous } = chooseLists(available, config.lists);
       const wanted = keyed(chosen);
 
       for (const [key, list] of shown) {
@@ -258,19 +261,22 @@ export default definePlugin<Config>({
       }
 
       const lost = [...missing];
+      const unclear = [...ambiguous];
       if (config.recipes) {
         const found = chooseLists(available.filter((list) => list.type === 'recipes'), [config.recipes]);
         followRecipes(found.chosen[0]);
         lost.push(...found.missing.map((described) => `Rezeptliste ${described}`));
+        unclear.push(...found.ambiguous.map((text) => `Rezeptliste ${text}`));
       }
 
-      const summary = `${groups.length}|${[...wanted.values()].map((list) => `${list.name} (${list.group})`).join(', ') || 'keine Liste'}${recipeList ? `; Rezepte: ${recipeList.info.name} (${recipeList.info.group})` : ''}|${lost.join(', ')}`;
+      const summary = `${groups.length}|${[...wanted.values()].map((list) => `${list.name} (${list.group})`).join(', ') || 'keine Liste'}${recipeList ? `; Rezepte: ${recipeList.info.name} (${recipeList.info.group})` : ''}|${lost.join(', ')}|${unclear.join(' ')}`;
       if (summary !== announced) {
         announced = summary;
         // Ein frisches Konto sieht nichts, bis es einer Gruppe beigetreten ist und dort bestätigt wurde
         if (!groups.length) log.warn('Bei Merkio angemeldet, aber das Konto ist in keiner Gruppe Mitglied. In Merkio mit diesem Konto der Gruppe beitreten und den Beitritt dort bestätigen lassen.');
         else log.info(`Bei Merkio angemeldet. Listen: ${summary.split('|')[1]}`);
         if (groups.length && lost.length) log.warn(`Nicht gefunden: ${lost.join(', ')}. Vorhanden sind: ${available.map((list) => `${list.name} (${list.group}, ${list.type})`).join(', ') || 'keine Listen'}`);
+        if (unclear.length) log.warn(unclear.join(' '));
       }
       return groups.length > 0;
     };
@@ -337,7 +343,9 @@ export default definePlugin<Config>({
       async ({ text, list, quantity, unit }) => {
         const wanted = typeof list === 'string' ? list.trim().toLowerCase() : '';
         const hit = [...shown].find(([key, entry]) => !wanted || key === wanted || entry.info.name.toLowerCase() === wanted);
-        if (!hit) throw new InvalidInput(wanted ? `Die Liste "${String(list)}" wird nicht gezeigt.` : 'Es ist keine Liste eingerichtet.');
+        // Wer die Liste falsch benannt hat, erfährt gleich, welche es gibt
+        const names = [...shown.values()].map((entry) => `"${entry.info.name}"`).join(', ');
+        if (!hit) throw new InvalidInput(wanted ? `Die Liste "${String(list)}" gibt es in Merkio nicht, oder sie wird hier nicht gezeigt. Gezeigt ${shown.size === 1 ? 'wird' : 'werden'}: ${names || 'keine'}.` : 'Es ist keine Liste eingerichtet.');
         const [key, target] = hit;
         // Kommen Menge und Einheit eigens mit, ist der Text allein der Name – sonst stehen sie vielleicht davor
         const given = typeof quantity === 'string' && quantity.trim() ? quantity.trim().slice(0, 50) : undefined;

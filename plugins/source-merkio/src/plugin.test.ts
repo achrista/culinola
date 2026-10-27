@@ -152,6 +152,8 @@ describe('Listen aus Merkio', () => {
     await expect(shown.run('lists.check', { item: merkio.items.find((item) => item.listId === 21)!.id })).rejects.toBeInstanceOf(InvalidInput);
     await expect(shown.run('lists.add', { text: '   ' })).rejects.toBeInstanceOf(InvalidInput);
     await expect(shown.run('lists.add', { text: 'Milch', list: 'Urlaub' })).rejects.toBeInstanceOf(InvalidInput);
+    // Die Meldung nennt, welche Listen es gibt
+    await expect(shown.run('lists.add', { text: 'Milch', list: 'Rezepte' })).rejects.toThrow('Die Liste "Rezepte" gibt es in Merkio nicht, oder sie wird hier nicht gezeigt. Gezeigt werden: "Einkauf", "Baumarkt".');
     expect(merkio.calls.get('POST /lists/:id/items')).toBeUndefined();
   });
 });

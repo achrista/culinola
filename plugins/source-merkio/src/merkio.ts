@@ -61,20 +61,31 @@ const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLow
 
 /**
  * Sucht die gewünschten Listen unter den vorhandenen. Ohne Wunsch gelten alle Einkaufslisten.
- * Was sich nicht finden lässt, kommt als Beschreibung zurück, damit der Kern es melden kann.
+ * Was sich nicht finden lässt, kommt als Beschreibung zurück, damit der Kern es melden kann – ebenso
+ * ein Name, den es in mehreren Gruppen gibt.
  */
-export function chooseLists(available: ListInfo[], wanted: Wanted[] | undefined): { chosen: ListInfo[]; missing: string[] } {
-  if (!wanted) return { chosen: available.filter((list) => list.type === 'shopping'), missing: [] };
+export function chooseLists(available: ListInfo[], wanted: Wanted[] | undefined): { chosen: ListInfo[]; missing: string[]; ambiguous: string[] } {
+  if (!wanted) return { chosen: available.filter((list) => list.type === 'shopping'), missing: [], ambiguous: [] };
   const chosen: ListInfo[] = [];
   const missing: string[] = [];
-  for (const wish of wanted) {
-    const hits = available.filter((list) => (wish.id !== undefined ? list.id === wish.id : wish.name !== undefined && same(list.name, wish.name)) && (wish.group === undefined || same(list.group, wish.group)));
+  const ambiguous: string[] = [];
+  const find = (wish: Wanted) => available.filter((list) => (wish.id !== undefined ? list.id === wish.id : wish.name !== undefined && same(list.name, wish.name)) && (wish.group === undefined || same(list.group, wish.group)));
+  for (const given of wanted) {
+    let wish = given;
+    let hits = find(wish);
+    // Im Textfeld der Oberfläche steht die Gruppe in Klammern dahinter: "Rezepte (Christas)"
+    const bracket = !hits.length && wish.group === undefined && wish.name !== undefined ? /^(.+?)\s*\(([^()]+)\)$/.exec(wish.name.trim()) : null;
+    if (bracket) {
+      wish = { name: bracket[1]!, group: bracket[2]! };
+      hits = find(wish);
+    }
     const described = wish.id !== undefined ? `Nr. ${wish.id}` : `"${wish.name ?? ''}"${wish.group ? ` in "${wish.group}"` : ''}`;
     if (!hits.length) missing.push(described);
-    // Gleichnamige Listen in mehreren Gruppen: Die erste gilt, bis die Gruppe dazugeschrieben wird
     else if (!chosen.includes(hits[0]!)) chosen.push(hits[0]!);
+    // Gleichnamige Listen in mehreren Gruppen: Die erste gilt, bis die Gruppe dazugeschrieben wird
+    if (hits.length > 1) ambiguous.push(`"${hits[0]!.name}" gibt es in ${hits.map((list) => `"${list.group}"`).join(' und ')}; es gilt die in "${hits[0]!.group}". Für eine andere die Gruppe in Klammern dazuschreiben, etwa "${hits[0]!.name} (${hits[1]!.group})".`);
   }
-  return { chosen, missing };
+  return { chosen, missing, ambiguous };
 }
 
 /** Vergibt jeder Liste eine eindeutige Kennung; gleichnamige bekommen eine Nummer. */

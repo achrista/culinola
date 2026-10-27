@@ -41,14 +41,14 @@ describe('Rezepte aus Merkio in den Ordner', () => {
     let items = [recipe(1, 'Apfelkuchen', { photoRev: 1 }), recipe(2, 'Rührei')];
     const remote = merkio(() => items);
 
-    expect(await mirrorRecipes(folder, 14, items, remote.fetchFile)).toEqual({ written: ['Apfelkuchen', 'Rührei'], removed: [], failed: [] });
+    expect(await mirrorRecipes(folder, 14, items, remote.fetchFile)).toEqual({ written: ['Apfelkuchen', 'Rührei'], removed: [], failed: [], photoless: [] });
     expect(visible(folder)).toEqual(['Apfelkuchen.jpg', 'Apfelkuchen.md', 'Rührei.md']);
     expect(readFileSync(join(folder, 'Apfelkuchen.md'), 'utf8')).toMatch(/^image: "Apfelkuchen\.jpg"$/m);
     // Ohne Foto steht auch keines in den Kopfdaten
     expect(readFileSync(join(folder, 'Rührei.md'), 'utf8')).not.toMatch(/^image:/m);
 
     remote.calls.length = 0;
-    expect(await mirrorRecipes(folder, 14, items, remote.fetchFile)).toEqual({ written: [], removed: [], failed: [] });
+    expect(await mirrorRecipes(folder, 14, items, remote.fetchFile)).toEqual({ written: [], removed: [], failed: [], photoless: [] });
     expect(remote.calls).toEqual([]);
 
     // Neuer Text, gleiches Foto: nur die Datei kommt neu
@@ -88,11 +88,26 @@ describe('Rezepte aus Merkio in den Ordner', () => {
     const changed = [recipe(1, 'Apfelkuchen', { text: 'Neu' }), recipe(2, 'Rührei', { text: 'Neu' })];
     const broken: FetchFile = (path) => (path.startsWith('/items/1/') ? Promise.reject(new Error('Merkio: Fehler 500')) : merkio(() => changed).fetchFile(path));
     const result = await mirrorRecipes(folder, 14, changed, broken);
-    expect(result).toEqual({ written: ['Rührei'], removed: [], failed: ['Apfelkuchen: Merkio: Fehler 500'] });
+    expect(result).toEqual({ written: ['Rührei'], removed: [], failed: ['Apfelkuchen: Merkio: Fehler 500'], photoless: [] });
     expect(readFileSync(join(folder, 'Apfelkuchen.md'), 'utf8')).toContain('Backen');
 
     // Beim nächsten Abruf kommt es nach
     expect((await mirrorRecipes(folder, 14, changed, merkio(() => changed).fetchFile)).written).toEqual(['Apfelkuchen']);
+  });
+
+  it('übernimmt ein Rezept auch, wenn sein Foto fehlt, und holt das Foto später nach', async () => {
+    const folder = join(dir, 'ohne-foto');
+    const items = [recipe(1, 'Apfelkuchen', { photoRev: 1 })];
+    const remote = merkio(() => items);
+    const noPhoto: FetchFile = (path) => (path.endsWith('/photo') ? Promise.reject(new Error('Merkio: Kein Foto vorhanden (GET /items/1/photo)')) : remote.fetchFile(path));
+    expect(await mirrorRecipes(folder, 14, items, noPhoto)).toEqual({ written: ['Apfelkuchen'], removed: [], failed: [], photoless: ['Apfelkuchen: Merkio: Kein Foto vorhanden (GET /items/1/photo)'] });
+    expect(visible(folder)).toEqual(['Apfelkuchen.md']);
+    // Ohne Foto auch keine Angabe dazu – das Rezept steht in der Liste, nur die wechselnde Kachel übergeht es
+    expect(readFileSync(join(folder, 'Apfelkuchen.md'), 'utf8')).not.toMatch(/^image:/m);
+
+    expect(await mirrorRecipes(folder, 14, items, remote.fetchFile)).toMatchObject({ written: ['Apfelkuchen'], photoless: [] });
+    expect(visible(folder)).toEqual(['Apfelkuchen.jpg', 'Apfelkuchen.md']);
+    expect((await mirrorRecipes(folder, 14, items, remote.fetchFile)).written).toEqual([]);
   });
 
   it('ersetzt den ganzen Bestand, wenn eine andere Liste gewählt wird', async () => {

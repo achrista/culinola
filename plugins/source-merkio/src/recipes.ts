@@ -20,7 +20,10 @@ interface Index {
 export interface MirrorResult {
   written: string[];
   removed: string[];
+  /** Rezepte, die gar nicht kamen – mit dem Grund. */
   failed: string[];
+  /** Rezepte, die ohne ihr Foto kamen – mit dem Grund; das Foto wird beim nächsten Abgleich wieder versucht. */
+  photoless: string[];
 }
 
 /** Holt eine Datei aus Merkio, etwa `/items/7/export.md`. */
@@ -100,7 +103,7 @@ function fits(base: string, title: string): boolean {
  */
 export async function mirrorRecipes(folder: string, list: number, items: MerkioItem[], fetchFile: FetchFile): Promise<MirrorResult> {
   mkdirSync(folder, { recursive: true });
-  const result: MirrorResult = { written: [], removed: [], failed: [] };
+  const result: MirrorResult = { written: [], removed: [], failed: [], photoless: [] };
   const stale: string[] = [];
   let index = readIndex(folder);
   const save = () => writeFileSync(join(folder, INDEX), JSON.stringify(index));
@@ -145,16 +148,25 @@ export async function mirrorRecipes(folder: string, list: number, items: MerkioI
     try {
       const { image, rev } = photoOf(item);
       let photo: string | undefined;
+      let photoMissing = false;
       if (image && old?.photo && old.base === base && old.photoRev === rev && existsSync(join(folder, old.photo))) photo = old.photo;
       else if (image) {
-        const got = await fetchFile(`/items/${item.id}/photo`);
-        photo = base + (PHOTO_ENDINGS[got.type] ?? '.jpg');
-        put(folder, photo, got.data);
+        // Ohne Foto ist das Rezept immer noch ein Rezept: Es kommt trotzdem, mit dem alten Foto, wenn es eines gibt
+        try {
+          const got = await fetchFile(`/items/${item.id}/photo`);
+          photo = base + (PHOTO_ENDINGS[got.type] ?? '.jpg');
+          put(folder, photo, got.data);
+        } catch (error) {
+          photoMissing = true;
+          photo = old?.photo && old.base === base && existsSync(join(folder, old.photo)) ? old.photo : undefined;
+          result.photoless.push(`${item.name}: ${explain(error)}`);
+        }
       }
       const markdown = new TextDecoder().decode((await fetchFile(`/items/${item.id}/export.md`)).data);
       put(folder, `${base}.md`, withImage(markdown, photo));
       if (old) stale.push(...filesOf(old));
-      index.copies[item.id] = { base, stamp, ...(photo ? { photo, photoRev: rev } : {}) };
+      // Fehlt das Foto, bleibt der Stempel leer – so kommt es beim nächsten Abgleich wieder dran
+      index.copies[item.id] = { base, stamp: photoMissing ? '' : stamp, ...(photo ? { photo, photoRev: photoMissing ? (old?.photoRev ?? '') : rev } : {}) };
       save();
       result.written.push(base);
     } catch (error) {

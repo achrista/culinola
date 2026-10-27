@@ -132,11 +132,12 @@ describe('Zutaten auf die Einkaufsliste', () => {
     const routes = new Map<string, RouteHandler>();
     const actions = new Map<string, ActionHandler>();
     const added: Record<string, unknown>[] = [];
+    const warnings: string[] = [];
     const listsAdd: ActionDefinition = { name: 'lists.add', description: 'Setzt einen Eintrag auf die Liste.' };
     const context: PluginContext<ReturnType<NonNullable<typeof plugin.parseConfig>>> = {
       instanceId: 'recipes',
       config: plugin.parseConfig!(options.config ?? {}),
-      log: { info: () => undefined, warn: () => undefined, error: () => undefined },
+      log: { info: () => undefined, warn: (message) => void warnings.push(message), error: () => undefined },
       secrets: { get: () => undefined },
       storageDir: folder,
       datapoints: { set: () => undefined, list: () => [], shown: () => [] },
@@ -162,7 +163,7 @@ describe('Zutaten auf die Einkaufsliste', () => {
       const response = await routes.get(key)!({ params: { id }, query: extra.query ?? {}, body: extra.body, signal: stop.signal });
       return { status: response.status, body: (await response.json()) as Record<string, unknown> };
     };
-    return { call, added, run: (action: string, params: Record<string, string | number | boolean> = {}) => actions.get(action)!(params) };
+    return { call, added, warnings, run: (action: string, params: Record<string, string | number | boolean> = {}) => actions.get(action)!(params) };
   }
 
   it('zeigt, was auf die Liste käme – auch umgerechnet', async () => {
@@ -204,6 +205,10 @@ describe('Zutaten auf die Einkaufsliste', () => {
     expect((await recipes.call('POST /shopping/:id', 'ohne')).body['error']).toMatch(/keine lesbaren Zutaten/);
     expect((await start('keine-liste', { lists: false }).call('POST /shopping/:id', 'ofenkartoffeln')).body['error']).toBe('Es ist keine Einkaufsliste eingerichtet.');
     // Eine Liste, die es nicht gibt, ist ein Fehler der Einrichtung – nicht acht gescheiterte Zutaten
-    expect((await start('falsche-liste', { config: { shoppingList: 'Urlaub' } }).call('POST /shopping/:id', 'ofenkartoffeln')).body['error']).toMatch(/Urlaub/);
+    const wrong = start('falsche-liste', { config: { shoppingList: 'Urlaub' } });
+    expect((await wrong.call('POST /shopping/:id', 'ofenkartoffeln')).body['error']).toMatch(/Urlaub/);
+    // Im Protokoll steht, wo die Liste eingestellt ist – einmal, nicht bei jedem Versuch
+    await wrong.call('POST /shopping/:id', 'ofenkartoffeln');
+    expect(wrong.warnings).toEqual([expect.stringMatching(/"Urlaub".*unter "Einkaufsliste"/)]);
   });
 });

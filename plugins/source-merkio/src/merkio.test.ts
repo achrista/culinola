@@ -20,9 +20,21 @@ describe('Wahl der Listen', () => {
     expect(missing).toEqual(['"Urlaub"', '"Baumarkt" in "Verein"', 'Nr. 99']);
   });
 
-  it('nimmt bei gleichem Namen die erste Liste und nennt keine doppelt', () => {
-    expect(chooseLists(lists, [{ name: 'Einkauf' }, { id: 11 }]).chosen.map((list) => list.id)).toEqual([11]);
+  it('nimmt bei gleichem Namen die erste Liste, nennt keine doppelt und sagt, wie man eine andere wählt', () => {
+    const { chosen, ambiguous } = chooseLists(lists, [{ name: 'Einkauf' }, { id: 11 }]);
+    expect(chosen.map((list) => list.id)).toEqual([11]);
+    expect(ambiguous).toEqual(['"Einkauf" gibt es in "Familie" und "Verein"; es gilt die in "Familie". Für eine andere die Gruppe in Klammern dazuschreiben, etwa "Einkauf (Verein)".']);
+    expect(chooseLists(lists, [{ name: 'Einkauf', group: 'Familie' }, { name: 'Baumarkt' }]).ambiguous).toEqual([]);
     expect(chooseLists(lists, []).chosen).toEqual([]);
+  });
+
+  it('versteht die Gruppe in Klammern hinter dem Namen, wie sie im Textfeld steht', () => {
+    const { chosen, missing, ambiguous } = chooseLists(lists, [{ name: 'Einkauf (verein)' }, { name: 'Baumarkt (Verein)' }]);
+    expect(chosen.map((list) => list.id)).toEqual([21]);
+    expect(missing).toEqual(['"Baumarkt" in "Verein"']);
+    expect(ambiguous).toEqual([]);
+    // Eine Liste, die wirklich so heißt, geht vor
+    expect(chooseLists([...lists, { id: 30, name: 'Einkauf (Verein)', type: 'shopping', group: 'Familie' }], [{ name: 'Einkauf (Verein)' }]).chosen.map((list) => list.id)).toEqual([30]);
   });
 
   it('bildet eindeutige Kennungen', () => {

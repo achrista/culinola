@@ -53,11 +53,11 @@ export default definePlugin<Config>({
   help: { de: 'Herkunft: „folder“ liest den Ordner, und neue Rezepte lassen sich hier hinzufügen. „merkio“ zeigt die Rezepte einer Rezeptliste in Merkio – sie werden dann nur in Merkio gepflegt. Die Rezeptliste steht in den Einstellungen der Merkio-Quelle.\nDer Schlüssel der Claude-API wird nur für das Hinzufügen neuer Rezepte gebraucht. Er wird unter https://platform.claude.com bei den API-Schlüsseln erzeugt und beginnt mit „sk-ant-“. Jede Umwandlung kostet einen kleinen Betrag nach Verbrauch.', en: 'Origin: “folder” reads the folder, and new recipes can be added here. “merkio” shows the recipes of a recipe list in Merkio – they are then maintained in Merkio only. The recipe list is set in the settings of the Merkio source.\nThe Claude API key is only needed for adding new recipes. It is created at https://platform.claude.com under API keys and starts with “sk-ant-”. Every conversion costs a small amount by usage.' },
   settings: [
     { key: 'origin', type: 'select', label: { de: 'Herkunft', en: 'Origin' }, options: ['folder', 'merkio'] },
-    { key: 'merkio', type: 'text', label: { de: 'Merkio-Quelle', en: 'Merkio source' }, hint: { de: 'Kennung der Merkio-Quelle, nur bei Herkunft „merkio“.', en: 'Id of the Merkio source, only with origin “merkio”.' }, placeholder: 'merkio' },
-    { key: 'folder', type: 'text', label: { de: 'Ordner', en: 'Folder' }, hint: { de: 'Leer gilt der Ordner der Quelle im Datenordner.', en: 'Empty means the folder of the source inside the data folder.' } },
-    { key: 'shoppingList', type: 'text', label: { de: 'Einkaufsliste', en: 'Shopping list' }, hint: { de: 'Name der Liste, auf die Zutaten gesetzt werden; leer die erste, die gezeigt wird.', en: 'Name of the list ingredients go on; empty means the first one shown.' } },
-    { key: 'importLanguage', type: 'select', label: { de: 'Sprache neuer Rezepte', en: 'Language of new recipes' }, options: ['', 'de', 'en', 'fr'] },
-    { key: 'importModel', type: 'text', label: { de: 'Sprachmodell für neue Rezepte', en: 'Language model for new recipes' } },
+    { key: 'merkio', type: 'text', label: { de: 'Merkio-Quelle', en: 'Merkio source' }, hint: { de: 'Nur bei Herkunft „merkio“: Kennung der Merkio-Quelle; leer „merkio“. Welche Rezeptliste es ist, steht in den Einstellungen dieser Quelle unter „Rezeptliste“.', en: 'Only with origin “merkio”: id of the Merkio source; empty means “merkio”. Which recipe list it is, is set in the settings of that source under “Recipe list”.' }, placeholder: 'merkio' },
+    { key: 'folder', type: 'text', label: { de: 'Ordner', en: 'Folder' }, hint: { de: 'Nur bei Herkunft „folder“. Leer gilt der Ordner der Quelle im Datenordner.', en: 'Only with origin “folder”. Empty means the folder of the source inside the data folder.' } },
+    { key: 'shoppingList', type: 'text', label: { de: 'Einkaufsliste', en: 'Shopping list' }, hint: { de: 'Die Liste, auf die beim Einkaufen die Zutaten kommen, etwa „Einkaufen“ – nicht die Rezeptliste. Leer gilt die erste, die gezeigt wird.', en: 'The list the ingredients go on when shopping, such as “Shopping” – not the recipe list. Empty means the first one shown.' } },
+    { key: 'importLanguage', type: 'select', label: { de: 'Sprache neuer Rezepte', en: 'Language of new recipes' }, hint: { de: 'Nur bei Herkunft „folder“.', en: 'Only with origin “folder”.' }, options: ['', 'de', 'en', 'fr'] },
+    { key: 'importModel', type: 'text', label: { de: 'Sprachmodell für neue Rezepte', en: 'Language model for new recipes' }, hint: { de: 'Nur bei Herkunft „folder“; leer das des Import-Werkzeugs.', en: 'Only with origin “folder”; empty means that of the import tool.' } },
   ],
   secrets: [
     { key: 'anthropicApiKey', label: { de: 'Schlüssel der Claude-API', en: 'Claude API key' }, hint: { de: 'Nur für das Hinzufügen neuer Rezepte.', en: 'Only for adding new recipes.' } },
@@ -196,6 +196,8 @@ export default definePlugin<Config>({
       const items = toShoppingItems(ingredientsOf(recipe.markdown), wanted / base.amount).map((item) => ({ ...item, amount: amountText(item) }));
       return { id: entry.id, title: entry.title, ready: canShop(), base: base.amount, amount: wanted, unit: base.unit, counted: base.counted, items, ...(context.config.shoppingList ? { list: context.config.shoppingList } : {}) };
     };
+    /** Falsch benannte Einkaufslisten, die schon im Protokoll stehen. */
+    const misnamed = new Set<string>();
     /** Setzt die Zutaten auf die Liste – alle oder nur die genannten – und zählt, was neu daraufkam. */
     const shop = async (entry: Entry, amount?: number, only?: string[]) => {
       if (!canShop()) throw new InvalidInput('Es ist keine Einkaufsliste eingerichtet.');
@@ -216,7 +218,13 @@ export default definePlugin<Config>({
           else result.added++;
         } catch (error) {
           // Eine Liste, die es nicht gibt, scheitert bei jeder Zutat gleich – das ist ein Fehler der Einrichtung
-          if (error instanceof InvalidInput && !result.added && !result.known && item === chosen[0]) throw error;
+          if (error instanceof InvalidInput && !result.added && !result.known && item === chosen[0]) {
+            if (context.config.shoppingList && !misnamed.has(error.message)) {
+              misnamed.add(error.message);
+              log.warn(`Zutaten nicht auf die Einkaufsliste gesetzt: ${error.message} Die Liste steht in den Einstellungen dieser Quelle unter "Einkaufsliste"; leer gilt die erste gezeigte.`);
+            }
+            throw error;
+          }
           result.failed.push(item.name);
         }
       }
@@ -303,10 +311,11 @@ export default definePlugin<Config>({
           folder = named;
           scan();
           follow(named);
-          log.info(`${recipes.size} Rezepte aus Merkio`);
+          // Keine Zahl: Beim ersten Abgleich füllt die Merkio-Quelle den Ordner gerade erst, ihre Meldung nennt am Ende, wie viele es sind
+          log.info(`Liest die Rezepte aus Merkio im Ordner ${named}`);
         } else if (!folder && !waited && Date.now() - began >= PATIENCE_MS) {
           waited = true;
-          log.warn(`Von der Quelle "${merkio}" kommen keine Rezepte. Dort unter "Rezeptliste" die Rezeptliste aus Merkio eintragen.`);
+          log.warn(`Die Merkio-Quelle "${merkio}" liefert keine Rezepte. In den Einstellungen dieser Quelle – nicht hier – unter "Rezeptliste" den Namen der Rezeptliste aus Merkio eintragen. Heißt die Merkio-Quelle anders, ihre Kennung hier unter "Merkio-Quelle" angeben.`);
         }
       };
       lookup();
