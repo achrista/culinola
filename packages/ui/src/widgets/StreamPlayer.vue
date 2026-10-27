@@ -11,6 +11,8 @@ interface StreamInfo {
   /** `file`: eine aufgezeichnete Videodatei, die in Schleife läuft – so zeigt die Demo ihre Kameras. */
   mode: 'webrtc' | 'hls' | 'mjpeg' | 'file';
   url?: string;
+  /** Fernsehsender: Hier zählt ein ruhiges Bild mehr als geringe Verzögerung. */
+  tv?: boolean;
 }
 
 const props = defineProps<{
@@ -35,6 +37,11 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const RETRY_MS = 4000;
+/**
+ * Empfangspuffer für Fernsehen. Ein Tvheadend liefert seine Daten stoßweise, und WebRTC gibt sie sonst
+ * so schnell wie möglich weiter – das Bild stockt dann immer wieder kurz. Kameras bleiben ohne Puffer.
+ */
+const TV_BUFFER_MS = 1000;
 const video = ref<HTMLVideoElement>();
 const info = ref<StreamInfo>();
 const state = ref<'loading' | 'playing' | 'failed'>('loading');
@@ -91,6 +98,8 @@ async function startWebrtc(run: number) {
   connection.addTransceiver('audio', { direction: 'recvonly' });
   const media = new MediaStream();
   connection.ontrack = (event) => {
+    // Nicht jeder Browser kennt den Puffer; dann läuft das Bild eben ohne
+    if (info.value?.tv && 'jitterBufferTarget' in event.receiver) event.receiver.jitterBufferTarget = TV_BUFFER_MS;
     media.addTrack(event.track);
     if (video.value && video.value.srcObject !== media) video.value.srcObject = media;
     void play();

@@ -110,7 +110,7 @@ export default definePlugin<Config>({
           .map((stream) => {
             const entry = streams.get(stream.id)!;
             const mode = asImages.has(stream.id) ? 'mjpeg' : entry.mode;
-            return { id: stream.id, name: stream.name, mode, ...(mode === 'hls' && stream.url ? { url: stream.url } : {}) };
+            return { id: stream.id, name: stream.name, mode, ...(mode === 'hls' && stream.url ? { url: stream.url } : {}), ...(stream.tv ? { tv: true } : {}) };
           }),
       );
     publish();
