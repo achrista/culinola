@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker build -f docker/Dockerfile -t culinola:ci .
       - name: Abbild starten
-        run: docker run -d --name culinola -p 8090:8090 culinola:ci
+        run: docker run -d --name culinola -p 8090:8090 -e CULINOLA_TELEMETRY=0 culinola:ci
       - name: Auf den Kern warten
         run: |
           for attempt in $(seq 1 30); do

@@ -41,6 +41,8 @@ export interface AppConfig {
    * Browser geben Mikrofon und andere Gerätefunktionen nur Seiten mit HTTPS oder `localhost`.
    */
   https?: { port: number; cert: string; key: string };
+  /** `false` schaltet die tägliche anonyme Meldung an culinola.org ab. */
+  telemetry?: boolean;
 }
 
 /** Ohne eigene Konfiguration startet Culinola mit erfundenen Beispielwerten. */
@@ -125,6 +127,10 @@ export function loadConfig(): LoadedConfig {
   const config: AppConfig = { port: raw.port ?? 8090, sources: raw.sources, layouts: raw.layouts };
   if (raw.access) config.access = raw.access;
   if (raw.site) config.site = raw.site;
+  if (raw.telemetry !== undefined) {
+    if (typeof raw.telemetry !== 'boolean') throw new Error(`${file}: "telemetry" ist true oder false.`);
+    config.telemetry = raw.telemetry;
+  }
   try {
     const events = parseEvents((raw as { events?: unknown }).events);
     if (Object.keys(events).length) config.events = events;

@@ -95,6 +95,19 @@ Under `?edit=settings` – or via "Settings" in the layout editor and on the sou
 
 Not in the interface: the port, HTTPS and the data folder – these stay in `config.json` and need a restart.
 
+### Anonymous usage ping
+
+So that we know how many installations there are, Culinola reports to `https://ping.culinola.org` once a day, starting a minute after it has started. The ping contains exactly this and nothing more:
+
+- a random installation id, created on the first start and kept in `data/installation-id`,
+- the Culinola version,
+- operating system and processor architecture (for example `linux`, `arm64`),
+- whether it runs in Docker, and whether it still runs on demo values.
+
+No configuration, no datapoints, no names, no addresses of your devices. The receiving server does not store IP addresses; its code is in [extras/telemetry-worker](../extras/telemetry-worker). If the ping fails, nothing happens.
+
+To switch it off, either set `"telemetry": false` in `config.json`, or set the environment variable `CULINOLA_TELEMETRY=0` – for Docker: `docker run -e CULINOLA_TELEMETRY=0 …`. Both need a restart. In CI runs (environment variable `CI`) it is always off. Deleting `data/installation-id` makes the installation count as a new one.
+
 ### Layout
 
 The display is a grid. Each widget sits in it with `at: [column, row, width, height]`, counted from 0.

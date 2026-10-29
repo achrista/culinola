@@ -14,6 +14,7 @@ import { DatapointRegistry } from './registry.ts';
 import { buildServer } from './server.ts';
 import { SettingsStore } from './settings.ts';
 import { SourceStore } from './sources.ts';
+import { startTelemetry } from './telemetry.ts';
 import { loadTemplates } from './templates.ts';
 
 const stamp = () => new Date().toLocaleTimeString('de-DE');
@@ -68,6 +69,7 @@ const templates = loadTemplates(resolve(import.meta.dirname, '../../../templates
 const servers = [await buildServer({ config, registry, plugins, actions, events, layouts, sources, settings, templates, log, access, auth, pairing, uiDir })];
 await servers[0]!.listen({ port: config.port, host: '0.0.0.0' });
 log.info(`Culinola läuft auf http://localhost:${config.port}`);
+const stopTelemetry = startTelemetry({ configured: config.telemetry, dataDir, demo, log });
 
 // Dieselbe Anzeige und dieselbe API noch einmal gesichert – für Anzeigen auf anderen Rechnern, die das Mikrofon brauchen
 if (config.https) {
@@ -85,6 +87,7 @@ if (config.https) {
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, () => {
     stopWatching();
+    stopTelemetry();
     plugins.stopAll();
     void Promise.all(servers.map((server) => server.close())).then(() => process.exit(0));
   });

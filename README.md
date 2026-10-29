@@ -53,6 +53,8 @@ docker run -d -p 8090:8090 -v ./data:/data culinola
 
 Everything of yours – configuration, credentials, recipes – lives in the `data` folder and never in the repository.
 
+Culinola reports once a day, anonymously, that it is running: a random installation id, its version, the operating system and whether it runs in Docker – nothing about your home. Switch it off with `"telemetry": false` in `config.json` or `CULINOLA_TELEMETRY=0`. Details are in the [handbook](docs/handbook.md#anonymous-usage-ping).
+
 ### Protect it
 
 Out of the box Culinola is open: everyone on your network can read, switch and set up. Closing it takes a minute and happens entirely in the browser – the same way on a PC, a NAS or a Raspberry Pi:
