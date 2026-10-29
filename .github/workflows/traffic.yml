@@ -1,0 +1,46 @@
+name: Traffic
+
+# Keeps the repository traffic (clones, views, referrers, popular paths) beyond GitHub's 14 days.
+# The figures are kept in this repository on the branch `traffic-stats`.
+#
+# Needs the secret TRAFFIC_TOKEN: a fine-grained personal access token for this repository
+# with the permission "Administration: Read-only" – the built-in GITHUB_TOKEN cannot read traffic.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: traffic
+
+jobs:
+  traffic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Open the branch traffic-stats
+        run: |
+          if git fetch origin traffic-stats; then
+            git worktree add -B traffic-stats stats origin/traffic-stats
+          else
+            git worktree add --orphan -b traffic-stats stats
+          fi
+      - name: Fetch the traffic
+        env:
+          TRAFFIC_TOKEN: ${{ secrets.TRAFFIC_TOKEN }}
+        run: node .github/scripts/traffic-stats.mjs stats
+      - name: Save the figures
+        working-directory: stats
+        run: |
+          git add -A
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "Traffic $(date -u +%F)"
+          git push origin traffic-stats
