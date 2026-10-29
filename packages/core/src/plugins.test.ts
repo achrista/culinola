@@ -1,6 +1,13 @@
-import { describe, expect, it } from 'vitest';
-import { explain } from '@culinola/sdk';
-import { installedPlugins, loadPlugin, matchRoute } from './plugins.ts';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { describe, expect, it, vi } from 'vitest';
+import { type Logger, explain } from '@culinola/sdk';
+import { ActionRegistry } from './actions.ts';
+import { PluginHost, installedPlugins, loadPlugin, matchRoute } from './plugins.ts';
+import { DatapointRegistry } from './registry.ts';
 
 describe('matchRoute', () => {
   it('nimmt feste Teile, benannte Teile und den Rest', () => {
@@ -32,6 +39,59 @@ describe('Plugins laden', () => {
     await expect(loadPlugin('gibt-es-nicht')).rejects.toThrow('Das Plugin "gibt-es-nicht" ist nicht installiert.');
     for (const name of ['../../../boese', 'Timer', 'timer/../recipes', '', 'a b']) await expect(loadPlugin(name), name).rejects.toThrow(/kein Name eines Plugins/);
     expect((await loadPlugin('timer')).id).toBe('timer');
+  });
+});
+
+describe('Quellen starten', () => {
+  const quiet: Logger = { info: () => undefined, warn: () => undefined, error: () => undefined };
+
+  it('versucht einen gescheiterten Start wieder – etwa wenn openHAB nach einem Stromausfall später hochkommt', async () => {
+    let ready = false;
+    const openhab = createServer((request, response) => {
+      if (!ready || !request.url?.startsWith('/rest/items')) return void response.writeHead(503).end();
+      response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify([{ name: 'Mess_TKueche', state: '21.5', type: 'Number' }]));
+    });
+    await new Promise<void>((resolve) => openhab.listen(0, '127.0.0.1', resolve));
+    const dataDir = mkdtempSync(join(tmpdir(), 'culinola-test-'));
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const registry = new DatapointRegistry();
+    const host = new PluginHost(registry, new ActionRegistry(), {}, quiet, dataDir);
+    try {
+      const source = { id: 'openhab', plugin: 'connector-openhab', config: { url: `http://127.0.0.1:${(openhab.address() as AddressInfo).port}` } };
+      expect(await host.launch(source)).toMatchObject({ state: 'failed', error: expect.stringMatching(/503/) });
+      expect(host.notesOf('openhab').at(-1)?.text).toBe('Neuer Versuch in 10 s.');
+
+      ready = true;
+      await vi.advanceTimersByTimeAsync(10_000);
+      await vi.waitFor(() => expect(host.status.find((entry) => entry.id === 'openhab')?.state).toBe('running'));
+      expect(registry.all().find((datapoint) => datapoint.id === 'openhab:Mess_TKueche')?.value).toBe(21.5);
+    } finally {
+      host.stopAll();
+      vi.useRealTimers();
+      openhab.closeAllConnections();
+      await new Promise((resolve) => openhab.close(resolve));
+      rmSync(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  it('versucht es nicht wieder, wenn Plugin oder Einstellungen nicht passen, und hört auf, wenn die Quelle entfernt wird', async () => {
+    const dataDir = mkdtempSync(join(tmpdir(), 'culinola-test-'));
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const host = new PluginHost(new DatapointRegistry(), new ActionRegistry(), {}, quiet, dataDir);
+    try {
+      await host.launch({ id: 'fehlt', plugin: 'gibt-es-nicht' });
+      await host.launch({ id: 'falsch', plugin: 'connector-openhab', config: { url: 'openhab' } });
+      expect(vi.getTimerCount()).toBe(0);
+
+      await host.launch({ id: 'weg', plugin: 'connector-openhab', config: { url: 'http://127.0.0.1:1' } });
+      expect(vi.getTimerCount()).toBe(1);
+      host.forget('weg');
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      host.stopAll();
+      vi.useRealTimers();
+      rmSync(dataDir, { recursive: true, force: true });
+    }
   });
 });
 

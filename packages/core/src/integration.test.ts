@@ -229,7 +229,7 @@ describe('Kern mit Plugins, API offen', () => {
     const second = (await post({ id: 'kurzzeit', plugin: 'timer' })).json<{ state: string; error: string }>();
     expect([second.state, second.error]).toEqual(['failed', expect.stringMatching(/schon angemeldet/)]);
     expect((second as unknown as { datapoints: number; notes: { level: string }[] }).datapoints).toBe(0);
-    expect((second as unknown as { notes: { level: string }[] }).notes.at(-1)).toMatchObject({ level: 'error' });
+    expect((second as unknown as { notes: { level: string; text: string }[] }).notes.slice(-2)).toMatchObject([{ level: 'error' }, { level: 'info', text: 'Neuer Versuch in 10 s.' }]);
     expect((await app.inject('/api/v1/datapoints')).json<Datapoint[]>().some((datapoint) => datapoint.id.startsWith('kurzzeit:'))).toBe(false);
     expect((await app.inject({ method: 'POST', url: '/api/v1/actions/timer.stop', payload: {} })).statusCode).toBe(200);
     expect((await app.inject({ method: 'DELETE', url: '/api/v1/sources/kurzzeit' })).statusCode).toBe(200);

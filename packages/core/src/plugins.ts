@@ -32,6 +32,11 @@ export interface SourceNote {
   text: string;
 }
 const KEEP_NOTES = 30;
+/**
+ * Scheitert der Start einer Quelle, versucht der Kern es nach diesen Pausen wieder, dann alle fünf Minuten –
+ * nach einem Stromausfall ist der Kern oft schneller wieder da als openHAB oder die FRITZ!Box.
+ */
+const RETRY_MS = [10_000, 30_000, 60_000, 120_000, 300_000];
 /** Zugangsdaten, die in einer Adresse stehen ("rtsp://name:kennwort@kamera"), gehören nicht in eine Meldung. */
 const hideLogin = (text: string) => text.replace(/([a-z][a-z0-9+.-]*:\/\/)[^\s/@]+@/gi, '$1…@');
 
@@ -120,6 +125,8 @@ export class PluginHost {
   private readonly histories = new Map<string, HistoryHandler>();
   private readonly running = new Map<string, Running>();
   private readonly notes = new Map<string, SourceNote[]>();
+  /** Quellen, deren Start gescheitert ist und bald wieder versucht wird. */
+  private readonly retries = new Map<string, { timer: ReturnType<typeof setTimeout>; attempt: number }>();
   readonly status: SourceStatus[] = [];
   /** Listen und Verzeichnisse der Plugins, Schlüssel "<Instanz>/<Name>". */
   readonly resources = new Map<string, unknown>();
@@ -151,15 +158,17 @@ export class PluginHost {
 
   /**
    * Startet eine einzelne Quelle – läuft sie schon, wird sie vorher angehalten. Scheitert der Start,
-   * steht das mit der Ursache in ihrem Zustand; nichts von ihr bleibt halb angemeldet zurück.
+   * steht das mit der Ursache in ihrem Zustand; nichts von ihr bleibt halb angemeldet zurück. Lag es nicht
+   * an Plugin oder Einstellungen, sondern am Start selbst, versucht der Kern es später von sich aus wieder.
    */
-  async launch(source: SourceConfig): Promise<SourceStatus> {
+  async launch(source: SourceConfig, attempt = 0): Promise<SourceStatus> {
     this.halt(source.id);
     // Die Meldungen gehören zu diesem Lauf: Was vor dem Neustart stand, ist erledigt
     this.notes.delete(source.id);
     let status: SourceStatus;
+    const prepared = { done: false };
     try {
-      await this.start(source);
+      await this.start(source, prepared);
       status = { id: source.id, plugin: source.plugin, state: 'running' };
     } catch (error) {
       this.halt(source.id);
@@ -167,6 +176,7 @@ export class PluginHost {
       this.log.error(`Quelle "${source.id}" (${source.plugin}) konnte nicht starten: ${message}`);
       this.note(source.id, 'error', message);
       status = { id: source.id, plugin: source.plugin, state: 'failed', error: message };
+      if (prepared.done) this.retryLater(source, attempt);
     }
     const position = this.status.findIndex((entry) => entry.id === source.id);
     if (position < 0) this.status.push(status);
@@ -174,8 +184,24 @@ export class PluginHost {
     return status;
   }
 
+  private retryLater(source: SourceConfig, attempt: number): void {
+    const delay = RETRY_MS[Math.min(attempt, RETRY_MS.length - 1)]!;
+    const timer = setTimeout(() => {
+      this.retries.delete(source.id);
+      void this.launch(source, attempt + 1);
+    }, delay);
+    timer.unref?.();
+    this.retries.set(source.id, { timer, attempt });
+    this.note(source.id, 'info', `Neuer Versuch in ${delay / 1000} s.`);
+  }
+
   /** Hält eine Quelle an und nimmt heraus, was sie angemeldet hat: Datenpunkte, Aktionen, Verzeichnisse, Adressen. */
   halt(id: string): void {
+    const retry = this.retries.get(id);
+    if (retry) {
+      clearTimeout(retry.timer);
+      this.retries.delete(id);
+    }
     const running = this.running.get(id);
     if (!running) return;
     this.running.delete(id);
@@ -212,9 +238,11 @@ export class PluginHost {
     this.notes.set(id, notes.slice(-KEEP_NOTES));
   }
 
-  private async start(source: SourceConfig): Promise<void> {
+  /** `prepared.done` sagt danach, ob Plugin und Einstellungen in Ordnung waren – erst ab da lohnt ein neuer Versuch. */
+  private async start(source: SourceConfig, prepared: { done: boolean }): Promise<void> {
     const definition = await loadPlugin(source.plugin);
     const config = definition.parseConfig ? definition.parseConfig(source.config ?? {}) : source.config;
+    prepared.done = true;
     const prefix = `${source.id}:`;
     const tag = `[${source.id}]`;
     const running: Running = { stop: new AbortController(), actions: [] };
@@ -305,6 +333,8 @@ export class PluginHost {
   }
 
   stopAll(): void {
+    for (const { timer } of this.retries.values()) clearTimeout(timer);
+    this.retries.clear();
     for (const id of [...this.running.keys()]) this.running.get(id)?.stop.abort();
   }
 }
